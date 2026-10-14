@@ -172,6 +172,7 @@ function createHardwareBlock(
       : [];
     type = "pybricks_drivebase_setup";
     fields = {
+      NAME: target,
       LEFT: positional[0] ?? "",
       RIGHT: positional[1] ?? "",
       WHEEL: positional[2] ?? "",

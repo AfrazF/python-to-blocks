@@ -4,7 +4,7 @@ Blockly.Blocks["pybricks_hub"] = {
   init() {
     this.jsonInit({
       type: "pybricks_hub",
-      message0: "prime hub %1",
+      message0: "new prime hub %1",
       args0: [{ type: "field_input", name: "NAME", text: "" }],
       previousStatement: null,
       nextStatement: null,
@@ -17,7 +17,7 @@ Blockly.Blocks["pybricks_motor_setup"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_setup",
-      message0: "%1 on %2 with %3",
+      message0: "new motor %1 on port %2 (%3)",
       args0: [
         { type: "field_input", name: "NAME", text: "" },
         {
@@ -52,8 +52,9 @@ Blockly.Blocks["pybricks_drivebase_setup"] = {
   init() {
     this.jsonInit({
       type: "pybricks_drivebase_setup",
-      message0: "drive base left %1 right %2 with %3 mm and %4 mm",
+      message0: "new drive base %1 from %2, %3 (wheel %4 mm, track %5 mm)",
       args0: [
+        { type: "field_input", name: "NAME", text: "" },
         { type: "field_input", name: "LEFT", text: "" },
         { type: "field_input", name: "RIGHT", text: "" },
         { type: "field_input", name: "WHEEL", text: "" },
