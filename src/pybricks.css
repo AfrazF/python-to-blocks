@@ -53,3 +53,48 @@
 .blocklyCommentTarget {
   stroke: #9a72a2;
 }
+
+/* --- Variable reporter chips --- */
+
+/* Chip body is pink; hide the white field rect so the block fill shows through */
+.pybricks_var_reporter .blocklyEditableText > rect,
+.pybricks_var_reporter .blocklyNonEditableText > rect {
+  fill: transparent;
+}
+
+/* White text on pink chip, overriding the default field text colour */
+.pybricks_var_reporter .blocklyEditableText > text,
+.pybricks_var_reporter .blocklyNonEditableText > text,
+.pybricks_var_reporter .blocklyText {
+  fill: #fff;
+}
+
+/* Chip feels draggable */
+.pybricks_var_reporter .blocklyPath,
+.pybricks_var_reporter .blocklyText,
+.pybricks_var_reporter .blocklyEditableText {
+  cursor: grab;
+}
+.pybricks_var_reporter .blocklyPath:active,
+.pybricks_var_reporter .blocklyText:active,
+.pybricks_var_reporter .blocklyEditableText:active {
+  cursor: grabbing;
+}
+
+/* --- Number fields inside slots feel like editable fields --- */
+
+.blocklyEditableText > rect:not(.blocklyDropdownRect),
+.blocklyEditableText > text:not(.blocklyDropdownText) {
+  cursor: text;
+}
+
+.pybricks_var_reporter.blocklyBlock .blocklyField.blocklyEditableField > text,
+.pybricks_var_reporter.blocklyBlock
+  .blocklyField.blocklyNonEditableField
+  > text {
+  fill: #fff;
+}
+
+.math_number .blocklyPath {
+  cursor: text;
+}
