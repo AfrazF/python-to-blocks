@@ -98,6 +98,98 @@ function createVariableBlock(
   return block;
 }
 
+function createHardwareBlock(
+  source: string,
+  node: ParseNode,
+  workspace: Blockly.WorkspaceSvg,
+): Blockly.BlockSvg | undefined {
+  const assignmentCursor = node.cursor();
+  let targetName: ParseNode | undefined;
+  let rightHandSide: ParseNode | undefined;
+  let afterAssignment = false;
+
+  if (assignmentCursor.firstChild()) {
+    do {
+      if (assignmentCursor.name === "AssignOp") {
+        afterAssignment = true;
+        continue;
+      }
+      if (!afterAssignment) {
+        if (assignmentCursor.name === "VariableName" && !targetName) {
+          targetName = assignmentCursor.node;
+        }
+        continue;
+      }
+      rightHandSide = assignmentCursor.node;
+      break;
+    } while (assignmentCursor.nextSibling());
+  }
+
+  if (!targetName || rightHandSide?.type.name !== "CallExpression") {
+    return undefined;
+  }
+
+  const callCursor = rightHandSide.cursor();
+  let callee: ParseNode | undefined;
+  let argumentList: ParseNode | undefined;
+
+  if (callCursor.firstChild()) {
+    do {
+      if (callCursor.name === "ArgList") {
+        argumentList = callCursor.node;
+      } else if (!callee) {
+        callee = callCursor.node;
+      }
+    } while (callCursor.nextSibling());
+  }
+
+  if (callee?.type.name !== "VariableName") {
+    return undefined;
+  }
+
+  const target = source.slice(targetName.from, targetName.to);
+  const constructor = source.slice(callee.from, callee.to);
+  let type: string;
+  let fields: Record<string, string>;
+
+  if (constructor === "PrimeHub") {
+    type = "pybricks_hub";
+    fields = { NAME: target };
+  } else if (constructor === "Motor") {
+    const positional = argumentList
+      ? getCallArgumentValues(source, argumentList).positional
+      : [];
+    type = "pybricks_motor_setup";
+    fields = {
+      NAME: target,
+      PORT: positional[0]?.replace(/^Port\./, "") ?? "A",
+      DIRECTION:
+        positional[1]?.replace(/^Direction\./, "").toLowerCase() ?? "clockwise",
+    };
+  } else if (constructor === "DriveBase") {
+    const positional = argumentList
+      ? getCallArgumentValues(source, argumentList).positional
+      : [];
+    type = "pybricks_drivebase_setup";
+    fields = {
+      LEFT: positional[0] ?? "",
+      RIGHT: positional[1] ?? "",
+      WHEEL: positional[2] ?? "",
+      TRACK: positional[3] ?? "",
+    };
+  } else {
+    return undefined;
+  }
+
+  const block = workspace.newBlock(type);
+  for (const [field, value] of Object.entries(fields)) {
+    block.setFieldValue(value, field);
+  }
+  block.initSvg();
+  block.render();
+  return block;
+}
+
 function getCallArguments(source: string, argumentList: ParseNode): string {
   const cursor = argumentList.cursor();
   let openingParenEnd: number | undefined;
@@ -664,7 +756,10 @@ function renderStatements(
       ];
     } else if (cursor.name === "AssignStatement") {
       blocks = [
-        createVariableBlock(source, cursor.node, workspace, topLevel) ??
+        (topLevel
+          ? createHardwareBlock(source, cursor.node, workspace)
+          : undefined) ??
+          createVariableBlock(source, cursor.node, workspace, topLevel) ??
           createRawBlock(source, cursor.node, workspace),
       ];
     } else if (cursor.name === "ExpressionStatement") {

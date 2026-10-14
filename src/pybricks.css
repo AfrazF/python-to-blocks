@@ -33,6 +33,7 @@
   fill: #9a72a2;
 }
 .blocklyCommentTextarea,
+.blocklyCommentText,
 .blocklyComment .blocklyText {
   font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
   font-weight: normal;

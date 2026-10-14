@@ -11,6 +11,7 @@ import "./blocks/driveBase";
 import "./blocks/motor";
 import "./blocks/variable";
 import "./blocks/comment";
+import "./blocks/hardware";
 import robotSource from "../fixtures/robot.py?raw";
 import examplerunSource from "../fixtures/examplerun.py?raw";
 import { createWorkspace } from "./blockly";
