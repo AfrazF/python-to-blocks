@@ -1,5 +1,17 @@
 import * as Blockly from "blockly";
 
+Blockly.Blocks["pybricks_var_reporter"] = {
+  init() {
+    this.jsonInit({
+      type: "pybricks_var_reporter",
+      message0: "%1",
+      args0: [{ type: "field_input", name: "NAME", text: "" }],
+      output: null,
+      colour: "#ff6680",
+    });
+  },
+};
+
 Blockly.Blocks["pybricks_var_declare"] = {
   init() {
     this.jsonInit({

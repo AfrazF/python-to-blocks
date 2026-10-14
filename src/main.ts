@@ -1,5 +1,6 @@
 import "./style.css";
 import "./pybricks.css";
+import "blockly/blocks";
 import "./blocks/rawCode";
 import "./blocks/setup";
 import "./blocks/importBlock";

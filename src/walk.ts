@@ -102,6 +102,7 @@ function createHardwareBlock(
   source: string,
   node: ParseNode,
   workspace: Blockly.WorkspaceSvg,
+  resolved: ResolvedTable,
 ): Blockly.BlockSvg | undefined {
   const assignmentCursor = node.cursor();
   let targetName: ParseNode | undefined;
@@ -151,6 +152,7 @@ function createHardwareBlock(
   const constructor = source.slice(callee.from, callee.to);
   let type: string;
   let fields: Record<string, string>;
+  let driveBaseArguments: string[] | undefined;
 
   if (constructor === "PrimeHub") {
     type = "pybricks_hub";
@@ -171,13 +173,8 @@ function createHardwareBlock(
       ? getCallArgumentValues(source, argumentList).positional
       : [];
     type = "pybricks_drivebase_setup";
-    fields = {
-      NAME: target,
-      LEFT: positional[0] ?? "",
-      RIGHT: positional[1] ?? "",
-      WHEEL: positional[2] ?? "",
-      TRACK: positional[3] ?? "",
-    };
+    fields = { NAME: target };
+    driveBaseArguments = positional;
   } else {
     return undefined;
   }
@@ -188,6 +185,15 @@ function createHardwareBlock(
   }
   block.initSvg();
   block.render();
+  if (driveBaseArguments) {
+    ["LEFT", "RIGHT", "WHEEL", "TRACK"].forEach((inputName, index) => {
+      const argument = driveBaseArguments?.[index];
+      if (argument !== undefined) {
+        attachArg(block, inputName, argument, workspace, resolved);
+      }
+    });
+    block.render();
+  }
   return block;
 }
 
@@ -263,6 +269,36 @@ function getCallArgumentValues(
   return { positional, keywords };
 }
 
+function attachArg(
+  block: Blockly.Block,
+  inputName: string,
+  argSource: string,
+  workspace: Blockly.WorkspaceSvg,
+  resolved: ResolvedTable,
+): void {
+  const text = argSource.trim();
+  const entry = resolved[text];
+  const input = block.getInput(inputName);
+  if (!input?.connection) {
+    return;
+  }
+
+  if (entry && (entry.kind === "variable" || entry.objectKind)) {
+    const reporter = workspace.newBlock("pybricks_var_reporter");
+    reporter.initSvg();
+    reporter.setFieldValue(text, "NAME");
+    if (reporter.outputConnection) {
+      input.connection.connect(reporter.outputConnection);
+    }
+    return;
+  }
+
+  const shadow = input.connection.targetBlock();
+  if (shadow?.type === "math_number") {
+    shadow.setFieldValue(text, "NUM");
+  }
+}
+
 function getFunctionResolvedTable(
   source: string,
   parameterList: ParseNode,
@@ -283,10 +319,14 @@ function getFunctionResolvedTable(
       }
       if (cursor.name === "VariableName" && expectingParameterName) {
         const parameterName = source.slice(cursor.node.from, cursor.node.to);
-        if (parameterName === "motor") {
-          scopedResolved ??= { ...resolved };
-          scopedResolved.motor = { objectKind: "Motor", origin: "parameter" };
-        }
+        scopedResolved ??= { ...resolved };
+        scopedResolved[parameterName] = {
+          kind: "variable",
+          ...(parameterName === "motor"
+            ? { objectKind: "Motor" as const }
+            : {}),
+          origin: "parameter",
+        };
         expectingParameterName = false;
       } else if (cursor.name === "AssignOp") {
         expectingParameterName = false;
@@ -306,12 +346,18 @@ function createMotorBlock(
   workspace: Blockly.WorkspaceSvg,
   type: string,
   fields: Record<string, string>,
+  args: Record<string, string>,
+  resolved: ResolvedTable,
 ): Blockly.BlockSvg {
   const block = workspace.newBlock(type);
   for (const [field, value] of Object.entries(fields)) {
     block.setFieldValue(value, field);
   }
   block.initSvg();
+  block.render();
+  for (const [inputName, value] of Object.entries(args)) {
+    attachArg(block, inputName, value, workspace, resolved);
+  }
   block.render();
   return block;
 }
@@ -382,8 +428,9 @@ function createDriveSettingsBlocks(
 
     const block = workspace.newBlock("pybricks_drive_configure");
     block.setFieldValue(what, "WHAT");
-    block.setFieldValue(value, "VALUE");
     block.initSvg();
+    block.render();
+    attachArg(block, "VALUE", value, workspace, resolved);
     block.render();
     return [block];
   });
@@ -499,21 +546,32 @@ function createExpressionBlock(
             : "hold";
           const block = workspace.newBlock("pybricks_drive_move");
           block.setFieldValue(methodName, "MODE");
-          block.setFieldValue(positional[0] ?? "0", "AMOUNT");
           block.setFieldValue(thenValue, "THEN");
           block.initSvg();
+          block.render();
+          attachArg(block, "AMOUNT", positional[0] ?? "0", workspace, resolved);
           block.render();
           return block;
         }
 
         if (methodName === "reset") {
           const block = workspace.newBlock("pybricks_drive_reset");
-          block.setFieldValue(
-            keywords.distance ?? positional[0] ?? "0",
-            "DISTANCE",
-          );
-          block.setFieldValue(keywords.angle ?? positional[1] ?? "0", "ANGLE");
           block.initSvg();
+          block.render();
+          attachArg(
+            block,
+            "DISTANCE",
+            keywords.distance ?? positional[0] ?? "0",
+            workspace,
+            resolved,
+          );
+          attachArg(
+            block,
+            "ANGLE",
+            keywords.angle ?? positional[1] ?? "0",
+            workspace,
+            resolved,
+          );
           block.render();
           return block;
         }
@@ -540,21 +598,35 @@ function createExpressionBlock(
         const motor = objectName;
 
         if (methodName === "run_target") {
-          return createMotorBlock(workspace, "pybricks_motor_run_target", {
-            MOTOR: motor,
-            SPEED: positional[0] ?? "",
-            TARGET: positional[1] ?? "",
-            THEN: getThenMode(keywords.then, "hold"),
-          });
+          return createMotorBlock(
+            workspace,
+            "pybricks_motor_run_target",
+            {
+              MOTOR: motor,
+              THEN: getThenMode(keywords.then, "hold"),
+            },
+            {
+              SPEED: positional[0] ?? "0",
+              TARGET: positional[1] ?? "0",
+            },
+            resolved,
+          );
         }
 
         if (methodName === "run_angle") {
-          return createMotorBlock(workspace, "pybricks_motor_run_angle", {
-            MOTOR: motor,
-            SPEED: positional[0] ?? "",
-            ANGLE: positional[1] ?? "",
-            THEN: getThenMode(keywords.then, "hold"),
-          });
+          return createMotorBlock(
+            workspace,
+            "pybricks_motor_run_angle",
+            {
+              MOTOR: motor,
+              THEN: getThenMode(keywords.then, "hold"),
+            },
+            {
+              SPEED: positional[0] ?? "0",
+              ANGLE: positional[1] ?? "0",
+            },
+            resolved,
+          );
         }
 
         if (methodName === "run_until_stalled") {
@@ -563,25 +635,41 @@ function createExpressionBlock(
             "pybricks_motor_run_until_stalled",
             {
               MOTOR: motor,
-              SPEED: positional[0] ?? "",
-              DUTY: keywords.duty_limit ?? positional[2] ?? "",
               THEN: getThenMode(keywords.then ?? positional[1], "hold"),
             },
+            {
+              SPEED: positional[0] ?? "0",
+              DUTY: keywords.duty_limit ?? positional[2] ?? "0",
+            },
+            resolved,
           );
         }
 
         if (methodName === "reset_angle") {
-          return createMotorBlock(workspace, "pybricks_motor_reset_angle", {
-            MOTOR: motor,
-            VALUE: positional[0] ?? "",
-          });
+          return createMotorBlock(
+            workspace,
+            "pybricks_motor_reset_angle",
+            {
+              MOTOR: motor,
+            },
+            {
+              VALUE: positional[0] ?? "0",
+            },
+            resolved,
+          );
         }
 
         if (methodName === "stop") {
-          return createMotorBlock(workspace, "pybricks_motor_stop", {
-            MOTOR: motor,
-            MODE: getThenMode(keywords.mode ?? positional[0], "coast"),
-          });
+          return createMotorBlock(
+            workspace,
+            "pybricks_motor_stop",
+            {
+              MOTOR: motor,
+              MODE: getThenMode(keywords.mode ?? positional[0], "coast"),
+            },
+            {},
+            resolved,
+          );
         }
       }
 
@@ -758,7 +846,7 @@ function renderStatements(
     } else if (cursor.name === "AssignStatement") {
       blocks = [
         (topLevel
-          ? createHardwareBlock(source, cursor.node, workspace)
+          ? createHardwareBlock(source, cursor.node, workspace, resolved)
           : undefined) ??
           createVariableBlock(source, cursor.node, workspace, topLevel) ??
           createRawBlock(source, cursor.node, workspace),

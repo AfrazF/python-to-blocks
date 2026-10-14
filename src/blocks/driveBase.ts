@@ -1,4 +1,5 @@
 import * as Blockly from "blockly";
+import { setNumberShadows } from "./shadows";
 
 Blockly.Blocks["pybricks_drive_move"] = {
   init() {
@@ -14,7 +15,11 @@ Blockly.Blocks["pybricks_drive_move"] = {
             ["turn", "turn"],
           ],
         },
-        { type: "field_number", name: "AMOUNT", value: 0 },
+        {
+          type: "input_value",
+          name: "AMOUNT",
+          shadow: { type: "math_number", fields: { NUM: 0 } },
+        },
         {
           type: "field_dropdown",
           name: "THEN",
@@ -29,6 +34,7 @@ Blockly.Blocks["pybricks_drive_move"] = {
       nextStatement: null,
       colour: "#4c97ff",
     });
+    setNumberShadows(this, ["AMOUNT"]);
   },
 };
 
@@ -38,13 +44,22 @@ Blockly.Blocks["pybricks_drive_reset"] = {
       type: "pybricks_drive_reset",
       message0: "drive base reset distance %1 mm angle %2",
       args0: [
-        { type: "field_number", name: "DISTANCE", value: 0 },
-        { type: "field_number", name: "ANGLE", value: 0 },
+        {
+          type: "input_value",
+          name: "DISTANCE",
+          shadow: { type: "math_number", fields: { NUM: 0 } },
+        },
+        {
+          type: "input_value",
+          name: "ANGLE",
+          shadow: { type: "math_number", fields: { NUM: 0 } },
+        },
       ],
       previousStatement: null,
       nextStatement: null,
       colour: "#4c97ff",
     });
+    setNumberShadows(this, ["DISTANCE", "ANGLE"]);
   },
 };
 
@@ -86,11 +101,16 @@ Blockly.Blocks["pybricks_drive_configure"] = {
             ["turn acceleration", "turn acceleration"],
           ],
         },
-        { type: "field_number", name: "VALUE", value: 0 },
+        {
+          type: "input_value",
+          name: "VALUE",
+          shadow: { type: "math_number", fields: { NUM: 0 } },
+        },
       ],
       previousStatement: null,
       nextStatement: null,
       colour: "#4c97ff",
     });
+    setNumberShadows(this, ["VALUE"]);
   },
 };

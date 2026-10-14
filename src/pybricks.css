@@ -1,3 +1,7 @@
+.pybricks_var_reporter > .blocklyPath {
+  fill: #ff6680;
+}
+
 .blocklyText {
   fill: #fff;
 }
