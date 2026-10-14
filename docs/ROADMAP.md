@@ -27,8 +27,8 @@ Mark a step ✅ only when it renders correctly in the browser and tests pass.
 - ✅ **Step 12** — Variable blocks: `create variable X = value`, `set X to value`
 - ✅ **Step 13** — Comment blocks (grey) + inline comment attachment
 - ✅ **Step 14** — Hardware setup blocks: `PrimeHub`, `Motor`, `DriveBase` constructors
-- ⬜ **Step 15** — Top-level expressions: `run_task(main())`, `hub_menu(*labels)`
-- ⬜ **Step 16** — Expression refactor: args become `input_value` slots, variable reporters as chips
+- ✅ **Step 15** — Top-level expressions: `run_task(main())`, `hub_menu(*labels)`
+- ✅ **Step 16** — Expression refactor: args become `input_value` slots, variable reporters as chips
 - ⬜ **Step 17** — `multitask` block: multiple statement slots, `all`/`any` dropdown
 - ⬜ **Step 18** — `wait` block (Flow orange)
 - ⬜ **Step 19** — Docstrings: `"""..."""` at top of file → comment on `set up` hat
