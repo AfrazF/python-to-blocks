@@ -1,0 +1,50 @@
+.blocklyText {
+  fill: #fff;
+}
+.blocklyNonEditableText rect:not(.blocklyDropdownRect),
+.blocklyEditableText rect:not(.blocklyDropdownRect) {
+  fill: #fff;
+}
+.blocklyNonEditableText text,
+.blocklyEditableText text,
+.blocklyNonEditableText g text,
+.blocklyEditableText g text {
+  fill: #575e75;
+}
+.blocklyDropdownText {
+  fill: #fff !important;
+}
+.blocklyText.blocklyBubbleText {
+  fill: #575e75;
+}
+.blocklyHtmlInput {
+  font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
+  font-weight: bold;
+  color: #575e75;
+}
+
+/* Block comment bubble — styled to match the Zelos theme instead of Blockly's default. */
+.blocklyWorkspace {
+  --commentFillColour: #ffffff;
+  --commentBorderColour: #9a72a2;
+}
+.blocklyCommentTopbarBackground,
+.blocklyCommentTopbar {
+  fill: #9a72a2;
+}
+.blocklyCommentTextarea,
+.blocklyComment .blocklyText {
+  font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
+  font-weight: normal;
+  color: #575e75;
+}
+.blocklyCommentPreview.blocklyText {
+  fill: #575e75;
+}
+.blocklyCommentRect {
+  fill: #ffffff;
+  stroke: #9a72a2;
+}
+.blocklyCommentTarget {
+  stroke: #9a72a2;
+}
