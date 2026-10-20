@@ -1,37 +1,65 @@
-"""Menu: left/right picks a run, center starts it."""
+"""Menu: left/right picks an attachment, center starts it.
 
-# To add a run:
-#   1. Make runN.py with an async function runN() (copy examplerun.py)
-#   2. Add the import below
-#   3. Add ("N", runN) to RUNS
+After a run, the next attachment is auto-selected.
+To add an attachment:
+  1. Make aN.py with an async def main() (copy exampleattach.py)
+  2. Add the import below
+  3. Add ("N", aN_main) to ATTACHMENTS
+"""
 
-from pybricks.tools import hub_menu, run_task
+from pybricks.parameters import Button
+from pybricks.tools import run_task
 
-from robot import drive, attachment1, attachment2
+from robot import hub, drive, attachment1, attachment2
 
-from run1 import run1
-# from run2 import run2
-# from run3 import run3
-# from run4 import run4
+from a1 import main as a1_main
+# from a2 import main as a2_main
+# from a3 import main as a3_main
 
-# (menu label, function)
-RUNS = [
-    ("1", run1),
-    # ("2", run2),
-    # ("3", run3),
-    # ("4", run4),
+# (menu label, function) — order matters: after a run, the next entry is preselected.
+ATTACHMENTS = [
+    ("1", a1_main),
+    # ("2", a2_main),
+    # ("3", a3_main),
 ]
 
-labels = [label for label, _ in RUNS]
+
+def pick(start):
+    """Menu loop. LEFT/RIGHT change selection, CENTER starts.
+
+    Returns (index, function) so the caller can advance to the next entry.
+    TODO: this replaces pybricks.tools.hub_menu, which has no "preselect"
+    argument. If you would rather keep hub_menu, delete this function and
+    accept that the menu always starts on entry 0.
+    """
+    i = start
+    while True:
+        hub.display.char(ATTACHMENTS[i][0])
+        pressed = hub.buttons.pressed()
+        if Button.LEFT in pressed:
+            i = (i - 1) % len(ATTACHMENTS)
+        elif Button.RIGHT in pressed:
+            i = (i + 1) % len(ATTACHMENTS)
+        elif Button.CENTER in pressed:
+            return i, ATTACHMENTS[i][1]
+
+
+next_index = 0
 
 while True:
-    choice = hub_menu(*labels)
+    index, attach_main = pick(next_index)
+    hub.display.off()
 
-    for label, run in RUNS:
-        if label == choice:
-            run_task(run())
+    # TODO: if run_task(...).wait() is not available on your firmware,
+    # use:   task = run_task(attach_main())
+    #        while not task.done():
+    #            wait(10)
+    run_task(attach_main()).wait()
 
-    # Make sure nothing keeps running after a run ends.
+    # Make sure nothing keeps running after an attachment ends.
     drive.stop()
     attachment1.stop()
     attachment2.stop()
+
+    # Auto-advance: next time the menu opens, it starts on the next attachment.
+    next_index = (index + 1) % len(ATTACHMENTS)

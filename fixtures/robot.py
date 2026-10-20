@@ -6,7 +6,7 @@ from pybricks.parameters import Port, Direction, Stop
 from pybricks.robotics import DriveBase
 
 # ---------------------------------------------------------------- hardware
-hub = PrimeHub() # tests
+hub = PrimeHub()
 
 # TODO: match these to the actual connections (ports + which side needs reversing)
 left = Motor(Port.A, Direction.COUNTERCLOCKWISE)
