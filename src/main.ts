@@ -8,13 +8,14 @@ import "./blocks/task";
 import "./blocks/function";
 import "./blocks/call";
 import "./blocks/await";
+import "./blocks/multitask";
 import "./blocks/driveBase";
 import "./blocks/motor";
 import "./blocks/variable";
 import "./blocks/comment";
 import "./blocks/hardware";
 import robotSource from "../fixtures/robot.py?raw";
-import examplerunSource from "../fixtures/examplerun.py?raw";
+import exampleattachSource from "../fixtures/exampleattach.py?raw";
 import { createWorkspace } from "./blockly";
 import { resolveProject } from "./resolve";
 import { renderFile } from "./walk";
@@ -27,9 +28,9 @@ function startWorkspace(): void {
   const workspace = createWorkspace(container);
   const resolved = resolveProject({
     "robot.py": robotSource,
-    "examplerun.py": examplerunSource,
+    "exampleattach.py": exampleattachSource,
   });
-  renderFile(robotSource, workspace, resolved["robot.py"]);
+  renderFile(exampleattachSource, workspace, resolved["exampleattach.py"]);
 }
 
 if (document.readyState === "loading") {

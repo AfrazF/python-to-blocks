@@ -7,15 +7,20 @@ it("resolves imports and local names across the project", () => {
     new URL("../fixtures/robot.py", import.meta.url),
     "utf8",
   );
-  const exampleRun = readFileSync(
-    new URL("../fixtures/examplerun.py", import.meta.url),
+  const run = readFileSync(
+    new URL("../fixtures/run.py", import.meta.url),
+    "utf8",
+  );
+  const exampleAttach = readFileSync(
+    new URL("../fixtures/exampleattach.py", import.meta.url),
     "utf8",
   );
   const result = resolveProject({
     "robot.py": robot,
-    "examplerun.py": exampleRun,
+    "run.py": run,
+    "exampleattach.py": exampleAttach,
   });
-  const resolved = result["examplerun.py"];
+  const resolved = result["exampleattach.py"];
 
   console.log(resolved);
 
@@ -29,8 +34,12 @@ it("resolves imports and local names across the project", () => {
   expect(resolved.reset_drive.origin).toBe("robot.py");
   expect(resolved.multitask.origin).toBe("pybricks.tools");
   expect(resolved.multitask.kind).toBeUndefined();
-  expect(resolved.run1.kind).toBe("async-function");
-  expect(resolved.run1.origin).toBe("local");
-  expect(resolved.ATTACHMENT_A_HOME.objectKind).toBe("number");
-  expect(resolved.ATTACHMENT_A_HOME.origin).toBe("local");
+  expect(resolved.run_missions.kind).toBe("async-function");
+  expect(resolved.run_missions.origin).toBe("run.py");
+  expect(resolved.mission1.kind).toBe("async-function");
+  expect(resolved.mission1.origin).toBe("local");
+  expect(resolved.HOME_A.objectKind).toBe("number");
+  expect(resolved.HOME_A.origin).toBe("local");
+  expect(resolved.ACTIVE_A.objectKind).toBe("number");
+  expect(resolved.ACTIVE_A.origin).toBe("local");
 });

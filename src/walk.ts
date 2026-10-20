@@ -254,7 +254,11 @@ function getCallArgumentValues(
 
   if (cursor.firstChild()) {
     do {
-      if (cursor.name === "(" || cursor.name === ")") {
+      if (
+        cursor.name === "(" ||
+        cursor.name === ")" ||
+        cursor.name === "Comment"
+      ) {
         continue;
       }
       if (cursor.name === ",") {
@@ -267,6 +271,41 @@ function getCallArgumentValues(
   saveArgument();
 
   return { positional, keywords };
+}
+
+function getCallArgumentNodes(argumentList: ParseNode): ParseNode[] {
+  const positional: ParseNode[] = [];
+  const cursor = argumentList.cursor();
+  let argumentNodes: ParseNode[] = [];
+
+  const saveArgument = () => {
+    if (
+      argumentNodes.length > 0 &&
+      !argumentNodes.some((argumentNode) => argumentNode.name === "AssignOp")
+    ) {
+      positional.push(argumentNodes[0]);
+    }
+    argumentNodes = [];
+  };
+
+  if (cursor.firstChild()) {
+    do {
+      if (
+        cursor.name === "(" ||
+        cursor.name === ")" ||
+        cursor.name === "Comment"
+      ) {
+        continue;
+      }
+      if (cursor.name === ",") {
+        saveArgument();
+      } else {
+        argumentNodes.push(cursor.node);
+      }
+    } while (cursor.nextSibling());
+  }
+  saveArgument();
+  return positional;
 }
 
 function attachArg(
@@ -688,6 +727,89 @@ function createExpressionBlock(
   return createRawBlock(source, expression, workspace);
 }
 
+function renderExpressionAsStatement(
+  source: string,
+  exprNode: ParseNode,
+  connection: Blockly.Connection,
+  workspace: Blockly.WorkspaceSvg,
+  resolved: ResolvedTable,
+): Blockly.Block | null {
+  let block: Blockly.BlockSvg;
+
+  if (exprNode.type.name === "AwaitExpression") {
+    const awaitCursor = exprNode.cursor();
+    let innerExpression: ParseNode | undefined;
+    if (awaitCursor.firstChild()) {
+      do {
+        if (awaitCursor.name !== "await") {
+          innerExpression = awaitCursor.node;
+          break;
+        }
+      } while (awaitCursor.nextSibling());
+    }
+
+    if (innerExpression?.type.name === "CallExpression") {
+      const callCursor = innerExpression.cursor();
+      let callee: ParseNode | undefined;
+      let argumentList: ParseNode | undefined;
+      if (callCursor.firstChild()) {
+        do {
+          if (callCursor.name === "ArgList") {
+            argumentList = callCursor.node;
+          } else if (!callee) {
+            callee = callCursor.node;
+          }
+        } while (callCursor.nextSibling());
+      }
+
+      if (
+        callee?.type.name === "VariableName" &&
+        source.slice(callee.from, callee.to) === "multitask" &&
+        argumentList
+      ) {
+        const arguments_ = getCallArgumentNodes(argumentList);
+        const { keywords } = getCallArgumentValues(source, argumentList);
+        const taskCount = Math.max(1, arguments_.length);
+        block = workspace.newBlock("pybricks_multitask");
+        (
+          block as Blockly.BlockSvg & {
+            loadExtraState: (state: { taskCount: number }) => void;
+          }
+        ).loadExtraState({ taskCount });
+        block.setFieldValue(keywords.race === "True" ? "any" : "all", "MODE");
+        block.initSvg();
+        block.render();
+
+        arguments_.forEach((argument, index) => {
+          const taskConnection = block.getInput(`TASK${index}`)?.connection;
+          if (!taskConnection) {
+            throw new Error(`Multitask blocks need a TASK${index} input.`);
+          }
+          renderExpressionAsStatement(
+            source,
+            argument,
+            taskConnection,
+            workspace,
+            resolved,
+          );
+        });
+      } else {
+        block = createExpressionBlock(source, exprNode, workspace, resolved);
+      }
+    } else {
+      block = createExpressionBlock(source, exprNode, workspace, resolved);
+    }
+  } else {
+    block = createExpressionBlock(source, exprNode, workspace, resolved);
+  }
+
+  if (!block.previousConnection) {
+    return null;
+  }
+  block.previousConnection.connect(connection);
+  return block;
+}
+
 type ImportBinding = { name: string; alias?: string };
 
 function readFromImport(
@@ -857,12 +979,30 @@ function renderStatements(
         blocks = [createRawBlock(source, cursor.node, workspace)];
       } else {
         const expression = expressionCursor.node;
-        blocks = createDriveSettingsBlocks(
+        const settingsBlocks = createDriveSettingsBlocks(
           source,
           expression,
           workspace,
           resolved,
-        ) ?? [createExpressionBlock(source, expression, workspace, resolved)];
+        );
+        if (settingsBlocks) {
+          blocks = settingsBlocks;
+        } else {
+          const block = renderExpressionAsStatement(
+            source,
+            expression,
+            nextConnection,
+            workspace,
+            resolved,
+          );
+          if (!block?.nextConnection) {
+            throw new Error("Statement blocks must have next connections.");
+          }
+          nextConnection = block.nextConnection;
+          lastBlock = block as Blockly.BlockSvg;
+          previousNonCommentNode = cursor.node;
+          continue;
+        }
       }
     } else {
       blocks = [createRawBlock(source, cursor.node, workspace)];
