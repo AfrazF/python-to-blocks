@@ -25,6 +25,15 @@ import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
 import { renderFile } from "./walk";
 
+let currentFiles: Record<string, string> = {
+  "main.py": mainSource,
+  "robot.py": robotSource,
+  "run.py": runSource,
+  "exampleattach.py": exampleattachSource,
+};
+
+let hasUploaded = false;
+
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
   const container = document.querySelector<HTMLElement>("#blockly");
@@ -32,23 +41,60 @@ function startWorkspace(): void {
     throw new Error("The sidebar and Blockly containers must exist.");
   }
   const workspace = createWorkspace(container);
-  const sources: Record<string, string> = {
-    "main.py": mainSource,
-    "robot.py": robotSource,
-    "run.py": runSource,
-    "exampleattach.py": exampleattachSource,
-  };
-  const resolved = resolveProject(sources);
-  const files = ["main.py", "robot.py", "run.py", "exampleattach.py"];
-  const { setActive } = createSidebar(sidebarContainer, files, (name) => {
-    const source = sources[name];
-    const fileResolution = resolved[name];
-    if (!source || !fileResolution) {
-      throw new Error(`Unknown project file: ${name}`);
-    }
-    workspace.clear();
-    renderFile(source, workspace, fileResolution);
-    setActive(name);
+  let resolved = resolveProject(currentFiles);
+  const files = Object.keys(currentFiles);
+  const errorBanner = document.getElementById(
+    "sidebar-error",
+  ) as HTMLDivElement | null;
+
+  const { setActive, setFiles } = createSidebar(sidebarContainer, files, {
+    onSelect: (name) => {
+      const source = currentFiles[name];
+      const fileResolution = resolved[name];
+      if (!source || !fileResolution) {
+        throw new Error(`Unknown project file: ${name}`);
+      }
+      workspace.clear();
+      renderFile(source, workspace, fileResolution);
+      setActive(name);
+    },
+    onUpload: async (uploadedFiles) => {
+      if (errorBanner) {
+        errorBanner.hidden = true;
+        errorBanner.textContent = "";
+      }
+      try {
+        const newFiles: Record<string, string> = hasUploaded
+          ? { ...currentFiles }
+          : {};
+        for (const [name, content] of Object.entries(uploadedFiles)) {
+          newFiles[name] = content;
+        }
+        const newResolved = resolveProject(newFiles);
+        currentFiles = newFiles;
+        resolved = newResolved;
+        hasUploaded = true;
+        setFiles(Object.keys(currentFiles));
+        const activeEl = document.querySelector(
+          ".sidebar-item.active",
+        ) as HTMLButtonElement | null;
+        const currentActive = activeEl?.textContent;
+        const targetFile =
+          currentActive && currentActive in currentFiles
+            ? currentActive
+            : Object.keys(currentFiles)[0];
+        if (targetFile) {
+          workspace.clear();
+          renderFile(currentFiles[targetFile], workspace, resolved[targetFile]);
+          setActive(targetFile);
+        }
+      } catch (error) {
+        if (error instanceof Error && errorBanner) {
+          errorBanner.hidden = false;
+          errorBanner.textContent = error.message;
+        }
+      }
+    },
   });
 
   const resizeObserver = new ResizeObserver(() => {
@@ -57,7 +103,7 @@ function startWorkspace(): void {
   resizeObserver.observe(sidebarContainer);
 
   workspace.clear();
-  renderFile(sources["main.py"], workspace, resolved["main.py"]);
+  renderFile(currentFiles["main.py"], workspace, resolved["main.py"]);
   setActive("main.py");
 }
 

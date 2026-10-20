@@ -85,3 +85,47 @@ body.resizing {
   cursor: col-resize;
   user-select: none;
 }
+
+#sidebar-toolbar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+  display: flex;
+  gap: 6px;
+}
+
+#upload-btn {
+  width: 100%;
+  padding: 6px 12px;
+  background: var(--sidebar-hover);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font:
+    13px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
+  color: var(--sidebar-fg);
+}
+
+#upload-btn:hover {
+  background: var(--sidebar-active-bg);
+}
+
+#sidebar.dragover {
+  background: var(--sidebar-active-bg);
+  outline: 2px dashed var(--sidebar-active-fg);
+  outline-offset: -6px;
+}
+
+#sidebar-error {
+  background: #fde2e2;
+  color: #9b2c2c;
+  padding: 8px 12px;
+  font:
+    12px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
+  border-bottom: 1px solid #f5c2c2;
+}
