@@ -45,8 +45,8 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Deploy
 
-- ⬜ **Step 22** — Docker deployment files (`Dockerfile`, `nginx.conf`, `.dockerignore`, `docker-compose.yml`). **No local build** — LXC builds on `docker compose up --build`.
-- ⬜ **Step 22.5** — Release: `npm version 1.0.0`, tag `v1.0.0`, push to GitHub. Then LXC does `git checkout v1.0.0 && docker compose up -d --build`.
+- ✅ **Step 22** — Docker deployment files (`Dockerfile`, `nginx.conf`, `.dockerignore`, `docker-compose.yml`). **No local build** — LXC builds on `docker compose up --build`.
+- ✅ **Step 22.5** — Release: `npm version 1.0.0`, tag `v1.0.0`, push to GitHub. Then LXC does `git checkout v1.0.0 && docker compose up -d --build`.
 - ⬜ **Step 23** — NPM: create proxy host pointing at `LXC-IP:8080`, SSL via Let's Encrypt, confirm the public URL loads.
 - ⬜ **Step 24** — Verify on real targets: school Windows (single-file `index.html` via USB/email, and hosted URL if domain isn't blocked) and Ubuntu Chromebook (both single-file and hosted URL).
 
