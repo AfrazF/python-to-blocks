@@ -1,0 +1,7 @@
+services:
+  python-to-blocks:
+    build: .
+    container_name: python-to-blocks
+    restart: unless-stopped
+    ports:
+      - "8080:80"
