@@ -33,9 +33,9 @@ Mark a step ✅ only when it renders correctly in the browser and tests pass.
 
 ### Closeout
 
-- ⬜ **Step 17.5** — `pass` block (for `exampleattach.py`'s placeholder `mission3()`)
-- ⬜ **Step 18** — Docstrings as comment icons on the parent block
-- ⬜ **Step 18.5** — Automated acceptance test: Vitest asserts 0 raw blocks in `robot.py` and `exampleattach.py`
+- ✅ **Step 17.5** — `pass` block (for `exampleattach.py`'s placeholder `mission3()`)
+- ✅ **Step 18** — Docstrings as comment icons on the parent block
+- ✅ **Step 18.5** — Automated acceptance test: Vitest asserts 0 raw blocks in `robot.py` and `exampleattach.py`
 - ⬜ **Step 18.75** — Update `docs/OVERVIEW.md` with the revised v1 criterion
 - ⬜ **Step 19** — Tabs UI: one workspace per file, switch between files
 - ⬜ **Step 20** — File upload: drag-and-drop or file picker, resolve whole project
@@ -52,6 +52,7 @@ Mark a step ✅ only when it renders correctly in the browser and tests pass.
 
 ### Control flow
 
+- ⬜ **Step 22.5** — Upgrade acceptance test to `collectBlocks` (Option A from Step 18.5). Prerequisite for v1.5 — the control-flow work changes `walk.ts` heavily, and the independent counter will drift.
 - ⬜ **Step 23** — `for` loops (needed for `run.py`'s mission loop)
 - ⬜ **Step 24** — `while` loops (needed for `main.py`'s menu loop)
 - ⬜ **Step 25** — `if`/`elif`/`else` upgrade: `in` operator support (for `Button.LEFT in pressed`)
