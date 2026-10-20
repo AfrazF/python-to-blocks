@@ -897,12 +897,14 @@ function renderStatements(
   workspace: Blockly.WorkspaceSvg,
   topLevel: boolean,
   resolved: ResolvedTable,
+  parentBlock: Blockly.Block | null,
 ): void {
   const cursor = node.cursor();
   const functionNodes: ParseNode[] = [];
   let nextConnection = connection;
   let lastBlock: Blockly.BlockSvg | null = null;
   let previousNonCommentNode: ParseNode | undefined;
+  let docstringConsumed = false;
 
   if (!cursor.firstChild()) {
     return;
@@ -946,6 +948,7 @@ function renderStatements(
     }
 
     if (topLevel && cursor.name === "FunctionDefinition") {
+      docstringConsumed = true;
       functionNodes.push(cursor.node);
       previousNonCommentNode = cursor.node;
       continue;
@@ -960,6 +963,23 @@ function renderStatements(
       continue;
     }
 
+    if (!docstringConsumed && cursor.name === "ExpressionStatement") {
+      const expressionCursor = cursor.node.cursor();
+      if (
+        expressionCursor.firstChild() &&
+        expressionCursor.name === "String" &&
+        !expressionCursor.nextSibling()
+      ) {
+        const raw = source.slice(cursor.node.from, cursor.node.to);
+        const stripped = raw.replace(/^['"]{3}|['"]{3}$/g, "").trim();
+        parentBlock?.setCommentText(stripped);
+        docstringConsumed = true;
+        previousNonCommentNode = cursor.node;
+        continue;
+      }
+    }
+
+    docstringConsumed = true;
     let blocks: Blockly.BlockSvg[];
     if (topLevel && cursor.name === "ImportStatement") {
       blocks = createImportBlocks(source, cursor.node, workspace) ?? [
@@ -1083,6 +1103,7 @@ function renderStatements(
       workspace,
       false,
       functionResolved,
+      block,
     );
     block.render();
 
@@ -1112,5 +1133,6 @@ export function renderFile(
     workspace,
     true,
     resolved,
+    setupBlock,
   );
 }

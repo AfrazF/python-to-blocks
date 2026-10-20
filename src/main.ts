@@ -31,7 +31,7 @@ function startWorkspace(): void {
     "robot.py": robotSource,
     "exampleattach.py": exampleattachSource,
   });
-  renderFile(exampleattachSource, workspace, resolved["exampleattach.py"]);
+  renderFile(robotSource, workspace, resolved["robot.py"]);
 }
 
 if (document.readyState === "loading") {
