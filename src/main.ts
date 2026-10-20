@@ -13,6 +13,7 @@ import "./blocks/driveBase";
 import "./blocks/motor";
 import "./blocks/variable";
 import "./blocks/comment";
+import "./blocks/pass";
 import "./blocks/hardware";
 import robotSource from "../fixtures/robot.py?raw";
 import exampleattachSource from "../fixtures/exampleattach.py?raw";

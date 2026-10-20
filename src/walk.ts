@@ -973,6 +973,11 @@ function renderStatements(
           createVariableBlock(source, cursor.node, workspace, topLevel) ??
           createRawBlock(source, cursor.node, workspace),
       ];
+    } else if (cursor.name === "PassStatement") {
+      const block = workspace.newBlock("pybricks_pass");
+      block.initSvg();
+      block.render();
+      blocks = [block];
     } else if (cursor.name === "ExpressionStatement") {
       const expressionCursor = cursor.node.cursor();
       if (!expressionCursor.firstChild()) {
