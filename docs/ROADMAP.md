@@ -24,59 +24,83 @@ Mark a step ✅ only when it renders correctly in the browser and tests pass.
 - ✅ **Step 16** — Variable chips in Pybricks block args
 - ✅ **Step 16.5** — Chip text colour, cursor polish
 - ✅ **Step 17** — `multitask` block with statement slots (+ fixture rename)
+- ✅ **Step 17.5** — `pass` block
+- ✅ **Step 18** — Docstrings as comment icons on the parent block
+- ✅ **Step 18.5** — Acceptance test: 0 raw blocks in `robot.py` and `exampleattach.py`
 
 ---
 
-## v1 — ship the viewer
+## v1 — production-ready viewer
 
-**Goal:** `robot.py` and `exampleattach.py` render with **zero raw-code blocks**. `run.py` and `main.py` may remain as large raw blocks — they are infrastructure, not mission code. Tabs, upload, and deployment work so a teammate can use it.
+**Goal:** a working viewer on real deployment targets. `robot.py` and `exampleattach.py` render with zero raw blocks. The user can switch files, open it offline, and use it without your Docker server.
 
-### Closeout
+### File switching
 
-- ✅ **Step 17.5** — `pass` block (for `exampleattach.py`'s placeholder `mission3()`)
-- ✅ **Step 18** — Docstrings as comment icons on the parent block
-- ✅ **Step 18.5** — Automated acceptance test: Vitest asserts 0 raw blocks in `robot.py` and `exampleattach.py`
-- ⬜ **Step 18.75** — Update `docs/OVERVIEW.md` with the revised v1 criterion
-- ⬜ **Step 19** — Tabs UI: one workspace per file, switch between files
-- ⬜ **Step 20** — File upload: drag-and-drop or file picker, resolve whole project
-- ⬜ **Step 21** — Docker deploy: nginx container on dev LXC, NPM proxy
-- ⬜ **Step 22** — Chromebook verification: real device test, performance check
+- ✅ **Step 18.75** — Update `docs/OVERVIEW.md` with revised v1 criterion
+- ⬜ **Step 19** — Refresh fixtures to current project files; add a left sidebar listing files; click to load; opens on `main.py`
 
-**v1 is done when** Steps 17.5–22 are ✅ and the teammate can open the URL, upload their files, and read them as blocks.
+### Deployment targets (in order of probability)
+
+- ⬜ **Step 20** — Single-file HTML export (`vite-plugin-singlefile`). Test on school Windows before doing more.
+- ⬜ **Step 21** — PWA (`vite-plugin-pwa`). Offline cache, install prompt. Only worth configuring if Step 20 didn't already solve school access.
+- ⬜ **Step 22** — File upload via browser File API. Pick `.py` files, resolve whole project, works offline.
+- ⬜ **Step 23** — Docker deploy: nginx container on dev LXC, NPM proxy. For the hosted version at home.
+- ⬜ **Step 24** — Verification: your Ubuntu Chromebook + school Windows. Real devices, real network policies.
+
+**v1 is done when** you can open the tool on at least one target your teammate can actually reach, upload their files, and read them as blocks.
+
+---
+
+## v1.25 — editor integration
+
+**Goal:** read-only Monaco panel beside the blocks, with bidirectional highlighting. This is the feature that makes the tool more than a viewer.
+
+### Prerequisite (do first, or highlighting drifts)
+
+- ⬜ **Step 25** — Refactor `walk.ts` to attach `{ sourceStart, sourceEnd }` to every block via `extraState`. Also upgrade the acceptance test to use `collectBlocks` (deferred from Step 18.5).
+
+### Monaco panel
+
+- ⬜ **Step 26** — Add Monaco as a read-only panel to the right of the blocks, with a toggle button. Plain syntax highlighting, no editing.
+- ⬜ **Step 27** — Click a block → Monaco selects and reveals its source range.
+- ⬜ **Step 28** — Click in Monaco → Blockly highlights the block whose range contains the cursor.
+
+### Tabs (only if sidebar alone isn't enough)
+
+- ⬜ **Step 29** — Optional: add horizontal tabs on top of the sidebar (VS Code style). Do this only if the sidebar becomes painful with more files.
 
 ---
 
 ## v1.5 — make infrastructure legible
 
-**Goal:** `run.py` and `main.py` also render mostly as blocks. Not blocking v1, but improves the tool for whoever maintains the menu and button handling.
+**Goal:** `run.py` and `main.py` render mostly as blocks.
 
 ### Control flow
 
-- ⬜ **Step 22.5** — Upgrade acceptance test to `collectBlocks` (Option A from Step 18.5). Prerequisite for v1.5 — the control-flow work changes `walk.ts` heavily, and the independent counter will drift.
-- ⬜ **Step 23** — `for` loops (needed for `run.py`'s mission loop)
-- ⬜ **Step 24** — `while` loops (needed for `main.py`'s menu loop)
-- ⬜ **Step 25** — `if`/`elif`/`else` upgrade: `in` operator support (for `Button.LEFT in pressed`)
+- ⬜ **Step 30** — `for` loops (needed for `run.py`'s mission loop)
+- ⬜ **Step 31** — `while` loops (needed for `main.py`'s menu loop)
+- ⬜ **Step 32** — `if`/`elif`/`else` upgrade: `in` operator support
 
 ### Expression depth
 
-- ⬜ **Step 26** — Nested member expression dispatch in walker (enables `hub.display.image`, `hub.buttons.pressed`, `hub.light.on`)
-- ⬜ **Step 27** — `return` block, `pass` handling in `try/except` context
+- ⬜ **Step 33** — Nested member expression dispatch (enables `hub.display.image`, `hub.buttons.pressed`, `hub.light.on`)
+- ⬜ **Step 34** — `return` block, `pass` inside `try/except`
 
 ### Hub API blocks
 
-- ⬜ **Step 28** — Hub display blocks: `.image`, `.off`, `.char`, `.text` (with icon dropdown)
-- ⬜ **Step 29** — Hub button block: `.pressed`
-- ⬜ **Step 30** — Hub light blocks: `.on`, `.off`
-- ⬜ **Step 31** — `wait` block (Flow orange) — only if `await wait(ms)` appears in mission code
-- ⬜ **Step 32** — `try/except` blocks (needed for `run.py`'s error handling)
+- ⬜ **Step 35** — Hub display blocks: `.image`, `.off`, `.char`, `.text`
+- ⬜ **Step 36** — Hub button block: `.pressed`
+- ⬜ **Step 37** — Hub light blocks: `.on`, `.off`
+- ⬜ **Step 38** — `wait` block
+- ⬜ **Step 39** — `try/except` blocks
 
 ---
 
-## v2 — editable blocks
+## v2 — editable blocks and native app
 
 - Editable blocks → Python generation (round-trip)
+- Tauri desktop build (per-user NSIS install, no admin) — if school Windows policy allows running unsigned exes
 - Per-function block types (like Pybricks Code's palette)
-- Custom field renderers for pink chip styling
+- Custom field renderers for pink chips
 - Multiline raw-code rendering
-- Lists as real blocks (`ICONS`, `ATTACHMENTS`)
-- `run.py` and `main.py` final polish if not fully closed by v1.5
+- Lists as real blocks
