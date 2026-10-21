@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@lezer/python": "^1.1.19",
-    "blockly": "^13.3.0"
+    "blockly": "^13.3.0",
+    "monaco-editor": "^0.57.0"
   }
 }

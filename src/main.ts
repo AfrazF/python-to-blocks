@@ -24,6 +24,7 @@ import { createWorkspace } from "./blockly";
 import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
 import { renderFile } from "./walk";
+import { createEditor } from "./editor";
 
 let currentFiles: Record<string, string> = {
   "main.py": mainSource,
@@ -37,10 +38,14 @@ let hasUploaded = false;
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
   const container = document.querySelector<HTMLElement>("#blockly");
-  if (!sidebarContainer || !container) {
-    throw new Error("The sidebar and Blockly containers must exist.");
+  const editorContainer = document.querySelector<HTMLElement>("#editor");
+  if (!sidebarContainer || !container || !editorContainer) {
+    throw new Error("The sidebar, Blockly, and editor containers must exist.");
   }
   const workspace = createWorkspace(container);
+  const editor = createEditor(editorContainer);
+  let editorVisible = false;
+  (window as any).__pybricks = { workspace, editor };
   let resolved = resolveProject(currentFiles);
   const files = Object.keys(currentFiles);
   const errorBanner = document.getElementById(
@@ -56,6 +61,7 @@ function startWorkspace(): void {
       }
       workspace.clear();
       renderFile(source, workspace, fileResolution);
+      editor.setValue(source);
       setActive(name);
     },
     onUpload: async (uploadedFiles) => {
@@ -86,6 +92,7 @@ function startWorkspace(): void {
         if (targetFile) {
           workspace.clear();
           renderFile(currentFiles[targetFile], workspace, resolved[targetFile]);
+          editor.setValue(currentFiles[targetFile]);
           setActive(targetFile);
         }
       } catch (error) {
@@ -97,13 +104,27 @@ function startWorkspace(): void {
     },
   });
 
+  const toggleEditorButton = document.getElementById(
+    "toggle-editor-btn",
+  ) as HTMLButtonElement | null;
+  toggleEditorButton?.addEventListener("click", () => {
+    editorVisible = !editorVisible;
+    editorContainer.classList.toggle("visible", editorVisible);
+    toggleEditorButton.textContent = editorVisible ? "Hide code" : "Show code";
+    toggleEditorButton.setAttribute("aria-pressed", String(editorVisible));
+    Blockly.svgResize(workspace);
+    editor.layout();
+  });
+
   const resizeObserver = new ResizeObserver(() => {
     Blockly.svgResize(workspace);
+    editor.layout();
   });
   resizeObserver.observe(sidebarContainer);
 
   workspace.clear();
   renderFile(currentFiles["main.py"], workspace, resolved["main.py"]);
+  editor.setValue(currentFiles["main.py"]);
   setActive("main.py");
 }
 
