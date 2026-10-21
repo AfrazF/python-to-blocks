@@ -2,6 +2,9 @@ import * as Blockly from "blockly";
 import { parser } from "@lezer/python";
 import type { ResolvedTable } from "./resolve";
 
+// Re-exported so tests can parse fixtures without importing @lezer directly.
+export { parser };
+
 type ParseNode = ReturnType<typeof parser.parse>["topNode"];
 
 /** One argument of a call, with the source range it came from. */

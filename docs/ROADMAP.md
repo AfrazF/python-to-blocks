@@ -68,7 +68,8 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Prerequisite (do first, or highlighting drifts)
 
-- ⬜ **Step 25** — Refactor `walk.ts` to attach `{ sourceStart, sourceEnd }` to every block via `extraState`. Also upgrade the acceptance test to use `collectBlocks` (deferred from Step 18.5).
+- ✅ **Step 25a** — Refactor `renderFile` through `collectBlocks` + `materialize`; attach `sourceStart`/`sourceEnd` as direct block properties
+- ✅ **Step 25b** — Acceptance test uses `collectBlocks` instead of its independent counter
 
 ### Monaco panel
 
