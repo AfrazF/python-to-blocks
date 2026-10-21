@@ -4,6 +4,42 @@ import type { ResolvedTable } from "./resolve";
 
 type ParseNode = ReturnType<typeof parser.parse>["topNode"];
 
+/** One argument of a call, with the source range it came from. */
+type Argument = { text: string; start: number; end: number };
+
+/**
+ * A block that has not been built yet. `collectBlocks` produces these, then
+ * `materialize` turns them into real Blockly blocks. Splitting the walk from
+ * the rendering lets every block remember the source range it came from.
+ */
+export interface BlockDescriptor {
+  type: string;
+  fields?: Record<string, string>;
+  inputs?: Record<string, BlockDescriptor[]>;
+  sourceStart: number;
+  sourceEnd: number;
+  commentText?: string;
+  taskCount?: number;
+}
+
+/** The block that owns a body: it receives the body's docstring. */
+type ParentBlockInfo = {
+  topLevel: boolean;
+  block?: BlockDescriptor;
+};
+
+/** A block that remembers where in the Python file it came from. */
+type BlockWithSourceRange = Blockly.Block & {
+  sourceStart: number;
+  sourceEnd: number;
+};
+
+/** What one body contains: statements to chain, plus functions to float. */
+type CollectedBody = {
+  statements: BlockDescriptor[];
+  functions: BlockDescriptor[];
+};
+
 function getParameters(source: string, parameterList: ParseNode): string {
   const parameters: string[] = [];
   const cursor = parameterList.cursor();
@@ -41,24 +77,20 @@ function getParameters(source: string, parameterList: ParseNode): string {
   return parameters.join(", ");
 }
 
-function createRawBlock(
-  source: string,
-  node: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
-): Blockly.BlockSvg {
-  const block = workspace.newBlock("pybricks_raw_code");
-  block.setFieldValue(source.slice(node.from, node.to), "CODE");
-  block.initSvg();
-  block.render();
-  return block;
+function rawDescriptor(source: string, node: ParseNode): BlockDescriptor {
+  return {
+    type: "pybricks_raw_code",
+    fields: { CODE: source.slice(node.from, node.to) },
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
 }
 
-function createVariableBlock(
+function collectVariableBlock(
   source: string,
   node: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
   topLevel: boolean,
-): Blockly.BlockSvg | undefined {
+): BlockDescriptor | undefined {
   const cursor = node.cursor();
   let variableName: ParseNode | undefined;
   let value: ParseNode | undefined;
@@ -88,22 +120,22 @@ function createVariableBlock(
     return undefined;
   }
 
-  const block = workspace.newBlock(
-    topLevel ? "pybricks_var_declare" : "pybricks_var_set",
-  );
-  block.setFieldValue(source.slice(variableName.from, variableName.to), "NAME");
-  block.setFieldValue(source.slice(value.from, value.to), "VALUE");
-  block.initSvg();
-  block.render();
-  return block;
+  return {
+    type: topLevel ? "pybricks_var_declare" : "pybricks_var_set",
+    fields: {
+      NAME: source.slice(variableName.from, variableName.to),
+      VALUE: source.slice(value.from, value.to),
+    },
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
 }
 
-function createHardwareBlock(
+function collectHardwareBlock(
   source: string,
   node: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
   resolved: ResolvedTable,
-): Blockly.BlockSvg | undefined {
+): BlockDescriptor | undefined {
   const assignmentCursor = node.cursor();
   let targetName: ParseNode | undefined;
   let rightHandSide: ParseNode | undefined;
@@ -130,48 +162,34 @@ function createHardwareBlock(
     return undefined;
   }
 
-  const callCursor = rightHandSide.cursor();
-  let callee: ParseNode | undefined;
-  let argumentList: ParseNode | undefined;
-
-  if (callCursor.firstChild()) {
-    do {
-      if (callCursor.name === "ArgList") {
-        argumentList = callCursor.node;
-      } else if (!callee) {
-        callee = callCursor.node;
-      }
-    } while (callCursor.nextSibling());
-  }
-
-  if (callee?.type.name !== "VariableName") {
+  const call = readCallExpression(rightHandSide);
+  if (!call || call.callee.type.name !== "VariableName") {
     return undefined;
   }
 
   const target = source.slice(targetName.from, targetName.to);
-  const constructor = source.slice(callee.from, callee.to);
+  const constructor = source.slice(call.callee.from, call.callee.to);
+  const positional = getCallArgumentValues(
+    source,
+    call.argumentList,
+  ).positional;
   let type: string;
   let fields: Record<string, string>;
-  let driveBaseArguments: string[] | undefined;
+  let driveBaseArguments: Argument[] | undefined;
 
   if (constructor === "PrimeHub") {
     type = "pybricks_hub";
     fields = { NAME: target };
   } else if (constructor === "Motor") {
-    const positional = argumentList
-      ? getCallArgumentValues(source, argumentList).positional
-      : [];
     type = "pybricks_motor_setup";
     fields = {
       NAME: target,
-      PORT: positional[0]?.replace(/^Port\./, "") ?? "A",
+      PORT: positional[0]?.text.replace(/^Port\./, "") ?? "A",
       DIRECTION:
-        positional[1]?.replace(/^Direction\./, "").toLowerCase() ?? "clockwise",
+        positional[1]?.text.replace(/^Direction\./, "").toLowerCase() ??
+        "clockwise",
     };
   } else if (constructor === "DriveBase") {
-    const positional = argumentList
-      ? getCallArgumentValues(source, argumentList).positional
-      : [];
     type = "pybricks_drivebase_setup";
     fields = { NAME: target };
     driveBaseArguments = positional;
@@ -179,22 +197,24 @@ function createHardwareBlock(
     return undefined;
   }
 
-  const block = workspace.newBlock(type);
-  for (const [field, value] of Object.entries(fields)) {
-    block.setFieldValue(value, field);
-  }
-  block.initSvg();
-  block.render();
+  const descriptor: BlockDescriptor = {
+    type,
+    fields,
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+
   if (driveBaseArguments) {
     ["LEFT", "RIGHT", "WHEEL", "TRACK"].forEach((inputName, index) => {
-      const argument = driveBaseArguments?.[index];
-      if (argument !== undefined) {
-        attachArg(block, inputName, argument, workspace, resolved);
-      }
+      applyArgument(
+        descriptor,
+        inputName,
+        driveBaseArguments?.[index],
+        resolved,
+      );
     });
-    block.render();
   }
-  return block;
+  return descriptor;
 }
 
 function getCallArguments(source: string, argumentList: ParseNode): string {
@@ -222,9 +242,9 @@ function getCallArguments(source: string, argumentList: ParseNode): string {
 function getCallArgumentValues(
   source: string,
   argumentList: ParseNode,
-): { positional: string[]; keywords: Record<string, string> } {
-  const positional: string[] = [];
-  const keywords: Record<string, string> = {};
+): { positional: Argument[]; keywords: Record<string, Argument> } {
+  const positional: Argument[] = [];
+  const keywords: Record<string, Argument> = {};
   const cursor = argumentList.cursor();
   let argumentNodes: ParseNode[] = [];
 
@@ -244,10 +264,16 @@ function getCallArgumentValues(
       );
       if (keywordNode) {
         const keyword = source.slice(keywordNode.from, keywordNode.to);
-        keywords[keyword] = source.slice(assignment.to, end).trim();
+        const rawValue = source.slice(assignment.to, end);
+        const leadingSpace = rawValue.length - rawValue.trimStart().length;
+        keywords[keyword] = {
+          text: rawValue.trim(),
+          start: assignment.to + leadingSpace,
+          end,
+        };
       }
     } else {
-      positional.push(source.slice(start, end).trim());
+      positional.push({ text: source.slice(start, end).trim(), start, end });
     }
     argumentNodes = [];
   };
@@ -308,34 +334,38 @@ function getCallArgumentNodes(argumentList: ParseNode): ParseNode[] {
   return positional;
 }
 
-function attachArg(
-  block: Blockly.Block,
+/**
+ * Fills one value input of a descriptor. A known variable becomes a reporter
+ * chip; anything else is kept as raw text for the input's shadow block.
+ */
+function applyArgument(
+  descriptor: BlockDescriptor,
   inputName: string,
-  argSource: string,
-  workspace: Blockly.WorkspaceSvg,
+  argument: Argument | undefined,
   resolved: ResolvedTable,
+  fallback?: string,
 ): void {
-  const text = argSource.trim();
+  const text = argument?.text.trim() ?? fallback;
+  if (text === undefined) {
+    return;
+  }
+
   const entry = resolved[text];
-  const input = block.getInput(inputName);
-  if (!input?.connection) {
-    return;
-  }
-
   if (entry && (entry.kind === "variable" || entry.objectKind)) {
-    const reporter = workspace.newBlock("pybricks_var_reporter");
-    reporter.initSvg();
-    reporter.setFieldValue(text, "NAME");
-    if (reporter.outputConnection) {
-      input.connection.connect(reporter.outputConnection);
-    }
+    descriptor.inputs ??= {};
+    descriptor.inputs[inputName] = [
+      {
+        type: "pybricks_var_reporter",
+        fields: { NAME: text },
+        sourceStart: argument?.start ?? descriptor.sourceStart,
+        sourceEnd: argument?.end ?? descriptor.sourceEnd,
+      },
+    ];
     return;
   }
 
-  const shadow = input.connection.targetBlock();
-  if (shadow?.type === "math_number") {
-    shadow.setFieldValue(text, "NUM");
-  }
+  descriptor.fields ??= {};
+  descriptor.fields[inputName] = text;
 }
 
 function getFunctionResolvedTable(
@@ -381,37 +411,33 @@ function getThenMode(value: string | undefined, defaultValue: string): string {
   return match ? match[1].toLowerCase() : defaultValue;
 }
 
-function createMotorBlock(
-  workspace: Blockly.WorkspaceSvg,
+function collectMotorBlock(
   type: string,
   fields: Record<string, string>,
-  args: Record<string, string>,
+  args: Record<string, Argument | undefined>,
   resolved: ResolvedTable,
-): Blockly.BlockSvg {
-  const block = workspace.newBlock(type);
-  for (const [field, value] of Object.entries(fields)) {
-    block.setFieldValue(value, field);
+  node: ParseNode,
+): BlockDescriptor {
+  const descriptor: BlockDescriptor = {
+    type,
+    fields: { ...fields },
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+  for (const [inputName, argument] of Object.entries(args)) {
+    applyArgument(descriptor, inputName, argument, resolved, "0");
   }
-  block.initSvg();
-  block.render();
-  for (const [inputName, value] of Object.entries(args)) {
-    attachArg(block, inputName, value, workspace, resolved);
-  }
-  block.render();
-  return block;
+  return descriptor;
 }
 
-function createDriveSettingsBlocks(
-  source: string,
-  expression: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
-  resolved: ResolvedTable,
-): Blockly.BlockSvg[] | undefined {
-  if (expression.type.name !== "CallExpression") {
+function readCallExpression(
+  node: ParseNode,
+): { callee: ParseNode; argumentList: ParseNode } | undefined {
+  if (node.type.name !== "CallExpression") {
     return undefined;
   }
 
-  const cursor = expression.cursor();
+  const cursor = node.cursor();
   let callee: ParseNode | undefined;
   let argumentList: ParseNode | undefined;
 
@@ -425,33 +451,65 @@ function createDriveSettingsBlocks(
     } while (cursor.nextSibling());
   }
 
-  if (callee?.type.name !== "MemberExpression" || !argumentList) {
+  return callee && argumentList ? { callee, argumentList } : undefined;
+}
+
+/** Returns the expression inside `await ...`. */
+function readAwaitInner(node: ParseNode): ParseNode | undefined {
+  const cursor = node.cursor();
+  if (!cursor.firstChild()) {
+    return undefined;
+  }
+  do {
+    if (cursor.name !== "await") {
+      return cursor.node;
+    }
+  } while (cursor.nextSibling());
+  return undefined;
+}
+
+/** Reads `object.member` into its two names. */
+function readMember(
+  source: string,
+  node: ParseNode,
+): { objectName?: string; memberName?: string } {
+  const cursor = node.cursor();
+  let objectName: string | undefined;
+  let memberName: string | undefined;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "VariableName" && objectName === undefined) {
+        objectName = source.slice(cursor.node.from, cursor.node.to);
+      } else if (cursor.name === "PropertyName") {
+        memberName = source.slice(cursor.node.from, cursor.node.to);
+      }
+    } while (cursor.nextSibling());
+  }
+
+  return { objectName, memberName };
+}
+
+function collectDriveSettingsBlocks(
+  source: string,
+  expression: ParseNode,
+  resolved: ResolvedTable,
+): BlockDescriptor[] | undefined {
+  const call = readCallExpression(expression);
+  if (!call || call.callee.type.name !== "MemberExpression") {
     return undefined;
   }
 
-  const memberCursor = callee.cursor();
-  let objectName: string | undefined;
-  let methodName: string | undefined;
-
-  if (memberCursor.firstChild()) {
-    do {
-      if (memberCursor.name === "VariableName" && objectName === undefined) {
-        objectName = source.slice(memberCursor.node.from, memberCursor.node.to);
-      } else if (memberCursor.name === "PropertyName") {
-        methodName = source.slice(memberCursor.node.from, memberCursor.node.to);
-      }
-    } while (memberCursor.nextSibling());
-  }
-
+  const { objectName, memberName } = readMember(source, call.callee);
   if (
     !objectName ||
-    methodName !== "settings" ||
+    memberName !== "settings" ||
     resolved[objectName]?.objectKind !== "DriveBase"
   ) {
     return undefined;
   }
 
-  const { keywords } = getCallArgumentValues(source, argumentList);
+  const { keywords } = getCallArgumentValues(source, call.argumentList);
   const whatByKeyword: Record<string, string> = {
     straight_speed: "drive speed",
     straight_acceleration: "drive acceleration",
@@ -459,355 +517,252 @@ function createDriveSettingsBlocks(
     turn_acceleration: "turn acceleration",
   };
 
-  return Object.entries(keywords).flatMap(([keyword, value]) => {
+  return Object.entries(keywords).flatMap(([keyword, argument]) => {
     const what = whatByKeyword[keyword];
     if (!what) {
       return [];
     }
 
-    const block = workspace.newBlock("pybricks_drive_configure");
-    block.setFieldValue(what, "WHAT");
-    block.initSvg();
-    block.render();
-    attachArg(block, "VALUE", value, workspace, resolved);
-    block.render();
-    return [block];
+    const descriptor: BlockDescriptor = {
+      type: "pybricks_drive_configure",
+      fields: { WHAT: what },
+      sourceStart: expression.from,
+      sourceEnd: expression.to,
+    };
+    applyArgument(descriptor, "VALUE", argument, resolved);
+    return [descriptor];
   });
 }
 
-function createExpressionBlock(
+function collectExpression(
   source: string,
   expression: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
   resolved: ResolvedTable,
-): Blockly.BlockSvg {
+): BlockDescriptor {
   if (expression.type.name === "AwaitExpression") {
-    const cursor = expression.cursor();
-    let innerExpression: ParseNode | undefined;
-
-    if (cursor.firstChild()) {
-      do {
-        if (cursor.name !== "await") {
-          innerExpression = cursor.node;
-          break;
-        }
-      } while (cursor.nextSibling());
+    const innerExpression = readAwaitInner(expression);
+    if (!innerExpression) {
+      throw new Error("Await expressions must have an inner expression.");
     }
-
-    const block = workspace.newBlock("pybricks_await");
-    block.initSvg();
-    block.render();
-
-    const innerConnection = block.getInput("INNER")?.connection;
-    if (!innerExpression || !innerConnection) {
-      throw new Error("Await blocks must have an INNER statement input.");
-    }
-
-    const innerBlock = createExpressionBlock(
-      source,
-      innerExpression,
-      workspace,
-      resolved,
-    );
-    if (!innerBlock.previousConnection) {
-      throw new Error(
-        "Await expression blocks must have a previous connection.",
-      );
-    }
-    innerBlock.previousConnection.connect(innerConnection);
-    block.render();
-    return block;
+    return {
+      type: "pybricks_await",
+      inputs: {
+        INNER: [collectExpression(source, innerExpression, resolved)],
+      },
+      sourceStart: expression.from,
+      sourceEnd: expression.to,
+    };
   }
 
   if (expression.type.name === "CallExpression") {
-    const cursor = expression.cursor();
-    let callee: ParseNode | undefined;
-    let argumentList: ParseNode | undefined;
+    const call = readCallExpression(expression);
 
-    if (cursor.firstChild()) {
-      do {
-        if (cursor.name === "ArgList") {
-          argumentList = cursor.node;
-        } else if (!callee) {
-          callee = cursor.node;
-        }
-      } while (cursor.nextSibling());
+    if (call?.callee.type.name === "VariableName") {
+      return {
+        type: "pybricks_call",
+        fields: {
+          NAME: source.slice(call.callee.from, call.callee.to),
+          ARGS: getCallArguments(source, call.argumentList),
+        },
+        sourceStart: expression.from,
+        sourceEnd: expression.to,
+      };
     }
 
-    if (callee?.type.name === "VariableName" && argumentList) {
-      const block = workspace.newBlock("pybricks_call");
-      block.setFieldValue(source.slice(callee.from, callee.to), "NAME");
-      block.setFieldValue(getCallArguments(source, argumentList), "ARGS");
-      block.initSvg();
-      block.render();
-      return block;
-    }
-
-    if (callee?.type.name === "MemberExpression" && argumentList) {
-      const memberCursor = callee.cursor();
-      let objectName: string | undefined;
-      let methodName: string | undefined;
-
-      if (memberCursor.firstChild()) {
-        do {
-          if (
-            memberCursor.name === "VariableName" &&
-            objectName === undefined
-          ) {
-            objectName = source.slice(
-              memberCursor.node.from,
-              memberCursor.node.to,
-            );
-          } else if (memberCursor.name === "PropertyName") {
-            methodName = source.slice(
-              memberCursor.node.from,
-              memberCursor.node.to,
-            );
-          }
-        } while (memberCursor.nextSibling());
-      }
+    if (call?.callee.type.name === "MemberExpression") {
+      const { objectName, memberName } = readMember(source, call.callee);
 
       if (
         objectName &&
-        methodName &&
+        memberName &&
         resolved[objectName]?.objectKind === "DriveBase"
       ) {
         const { positional, keywords } = getCallArgumentValues(
           source,
-          argumentList,
+          call.argumentList,
         );
 
-        if (methodName === "straight" || methodName === "turn") {
-          const thenValue = /^Stop\.(COAST|BRAKE|HOLD)$/.test(
-            keywords.then ?? "",
-          )
-            ? keywords.then.slice("Stop.".length).toLowerCase()
+        if (memberName === "straight" || memberName === "turn") {
+          const thenText = keywords.then?.text ?? "";
+          const thenValue = /^Stop\.(COAST|BRAKE|HOLD)$/.test(thenText)
+            ? thenText.slice("Stop.".length).toLowerCase()
             : "hold";
-          const block = workspace.newBlock("pybricks_drive_move");
-          block.setFieldValue(methodName, "MODE");
-          block.setFieldValue(thenValue, "THEN");
-          block.initSvg();
-          block.render();
-          attachArg(block, "AMOUNT", positional[0] ?? "0", workspace, resolved);
-          block.render();
-          return block;
+          const descriptor: BlockDescriptor = {
+            type: "pybricks_drive_move",
+            fields: { MODE: memberName, THEN: thenValue },
+            sourceStart: expression.from,
+            sourceEnd: expression.to,
+          };
+          applyArgument(descriptor, "AMOUNT", positional[0], resolved, "0");
+          return descriptor;
         }
 
-        if (methodName === "reset") {
-          const block = workspace.newBlock("pybricks_drive_reset");
-          block.initSvg();
-          block.render();
-          attachArg(
-            block,
+        if (memberName === "reset") {
+          const descriptor: BlockDescriptor = {
+            type: "pybricks_drive_reset",
+            sourceStart: expression.from,
+            sourceEnd: expression.to,
+          };
+          applyArgument(
+            descriptor,
             "DISTANCE",
-            keywords.distance ?? positional[0] ?? "0",
-            workspace,
+            keywords.distance ?? positional[0],
             resolved,
+            "0",
           );
-          attachArg(
-            block,
+          applyArgument(
+            descriptor,
             "ANGLE",
-            keywords.angle ?? positional[1] ?? "0",
-            workspace,
+            keywords.angle ?? positional[1],
             resolved,
+            "0",
           );
-          block.render();
-          return block;
+          return descriptor;
         }
 
-        if (methodName === "use_gyro") {
-          const value = positional[0] ?? keywords.value;
-          const block = workspace.newBlock("pybricks_drive_use_gyro");
-          block.setFieldValue(value === "True" ? "gyro" : "no gyro", "VALUE");
-          block.initSvg();
-          block.render();
-          return block;
+        if (memberName === "use_gyro") {
+          const value = positional[0]?.text ?? keywords.value?.text;
+          return {
+            type: "pybricks_drive_use_gyro",
+            fields: { VALUE: value === "True" ? "gyro" : "no gyro" },
+            sourceStart: expression.from,
+            sourceEnd: expression.to,
+          };
         }
       }
 
       if (
         objectName &&
-        methodName &&
+        memberName &&
         resolved[objectName]?.objectKind === "Motor"
       ) {
         const { positional, keywords } = getCallArgumentValues(
           source,
-          argumentList,
+          call.argumentList,
         );
         const motor = objectName;
 
-        if (methodName === "run_target") {
-          return createMotorBlock(
-            workspace,
+        if (memberName === "run_target") {
+          return collectMotorBlock(
             "pybricks_motor_run_target",
-            {
-              MOTOR: motor,
-              THEN: getThenMode(keywords.then, "hold"),
-            },
-            {
-              SPEED: positional[0] ?? "0",
-              TARGET: positional[1] ?? "0",
-            },
+            { MOTOR: motor, THEN: getThenMode(keywords.then?.text, "hold") },
+            { SPEED: positional[0], TARGET: positional[1] },
             resolved,
+            expression,
           );
         }
 
-        if (methodName === "run_angle") {
-          return createMotorBlock(
-            workspace,
+        if (memberName === "run_angle") {
+          return collectMotorBlock(
             "pybricks_motor_run_angle",
-            {
-              MOTOR: motor,
-              THEN: getThenMode(keywords.then, "hold"),
-            },
-            {
-              SPEED: positional[0] ?? "0",
-              ANGLE: positional[1] ?? "0",
-            },
+            { MOTOR: motor, THEN: getThenMode(keywords.then?.text, "hold") },
+            { SPEED: positional[0], ANGLE: positional[1] },
             resolved,
+            expression,
           );
         }
 
-        if (methodName === "run_until_stalled") {
-          return createMotorBlock(
-            workspace,
+        if (memberName === "run_until_stalled") {
+          return collectMotorBlock(
             "pybricks_motor_run_until_stalled",
             {
               MOTOR: motor,
-              THEN: getThenMode(keywords.then ?? positional[1], "hold"),
+              THEN: getThenMode(
+                keywords.then?.text ?? positional[1]?.text,
+                "hold",
+              ),
             },
             {
-              SPEED: positional[0] ?? "0",
-              DUTY: keywords.duty_limit ?? positional[2] ?? "0",
+              SPEED: positional[0],
+              DUTY: keywords.duty_limit ?? positional[2],
             },
             resolved,
+            expression,
           );
         }
 
-        if (methodName === "reset_angle") {
-          return createMotorBlock(
-            workspace,
+        if (memberName === "reset_angle") {
+          return collectMotorBlock(
             "pybricks_motor_reset_angle",
-            {
-              MOTOR: motor,
-            },
-            {
-              VALUE: positional[0] ?? "0",
-            },
+            { MOTOR: motor },
+            { VALUE: positional[0] },
             resolved,
+            expression,
           );
         }
 
-        if (methodName === "stop") {
-          return createMotorBlock(
-            workspace,
+        if (memberName === "stop") {
+          return collectMotorBlock(
             "pybricks_motor_stop",
             {
               MOTOR: motor,
-              MODE: getThenMode(keywords.mode ?? positional[0], "coast"),
+              MODE: getThenMode(
+                keywords.mode?.text ?? positional[0]?.text,
+                "coast",
+              ),
             },
             {},
             resolved,
+            expression,
           );
         }
       }
 
-      if (objectName && methodName) {
-        const block = workspace.newBlock("pybricks_method_call");
-        block.setFieldValue(objectName, "OBJ");
-        block.setFieldValue(methodName, "METHOD");
-        block.setFieldValue(getCallArguments(source, argumentList), "ARGS");
-        block.initSvg();
-        block.render();
-        return block;
+      if (objectName && memberName) {
+        return {
+          type: "pybricks_method_call",
+          fields: {
+            OBJ: objectName,
+            METHOD: memberName,
+            ARGS: getCallArguments(source, call.argumentList),
+          },
+          sourceStart: expression.from,
+          sourceEnd: expression.to,
+        };
       }
     }
   }
 
-  return createRawBlock(source, expression, workspace);
+  return rawDescriptor(source, expression);
 }
 
-function renderExpressionAsStatement(
+/** Turns one expression statement into a descriptor, expanding `multitask`. */
+function collectExpressionStatement(
   source: string,
-  exprNode: ParseNode,
-  connection: Blockly.Connection,
-  workspace: Blockly.WorkspaceSvg,
+  expression: ParseNode,
   resolved: ResolvedTable,
-): Blockly.Block | null {
-  let block: Blockly.BlockSvg;
+): BlockDescriptor {
+  if (expression.type.name === "AwaitExpression") {
+    const innerExpression = readAwaitInner(expression);
+    const call = innerExpression
+      ? readCallExpression(innerExpression)
+      : undefined;
 
-  if (exprNode.type.name === "AwaitExpression") {
-    const awaitCursor = exprNode.cursor();
-    let innerExpression: ParseNode | undefined;
-    if (awaitCursor.firstChild()) {
-      do {
-        if (awaitCursor.name !== "await") {
-          innerExpression = awaitCursor.node;
-          break;
-        }
-      } while (awaitCursor.nextSibling());
+    if (
+      call?.callee.type.name === "VariableName" &&
+      source.slice(call.callee.from, call.callee.to) === "multitask"
+    ) {
+      const arguments_ = getCallArgumentNodes(call.argumentList);
+      const { keywords } = getCallArgumentValues(source, call.argumentList);
+      const descriptor: BlockDescriptor = {
+        type: "pybricks_multitask",
+        fields: { MODE: keywords.race?.text === "True" ? "any" : "all" },
+        inputs: {},
+        taskCount: Math.max(1, arguments_.length),
+        sourceStart: expression.from,
+        sourceEnd: expression.to,
+      };
+
+      arguments_.forEach((argument, index) => {
+        descriptor.inputs![`TASK${index}`] = [
+          collectExpressionStatement(source, argument, resolved),
+        ];
+      });
+      return descriptor;
     }
-
-    if (innerExpression?.type.name === "CallExpression") {
-      const callCursor = innerExpression.cursor();
-      let callee: ParseNode | undefined;
-      let argumentList: ParseNode | undefined;
-      if (callCursor.firstChild()) {
-        do {
-          if (callCursor.name === "ArgList") {
-            argumentList = callCursor.node;
-          } else if (!callee) {
-            callee = callCursor.node;
-          }
-        } while (callCursor.nextSibling());
-      }
-
-      if (
-        callee?.type.name === "VariableName" &&
-        source.slice(callee.from, callee.to) === "multitask" &&
-        argumentList
-      ) {
-        const arguments_ = getCallArgumentNodes(argumentList);
-        const { keywords } = getCallArgumentValues(source, argumentList);
-        const taskCount = Math.max(1, arguments_.length);
-        block = workspace.newBlock("pybricks_multitask");
-        (
-          block as Blockly.BlockSvg & {
-            loadExtraState: (state: { taskCount: number }) => void;
-          }
-        ).loadExtraState({ taskCount });
-        block.setFieldValue(keywords.race === "True" ? "any" : "all", "MODE");
-        block.initSvg();
-        block.render();
-
-        arguments_.forEach((argument, index) => {
-          const taskConnection = block.getInput(`TASK${index}`)?.connection;
-          if (!taskConnection) {
-            throw new Error(`Multitask blocks need a TASK${index} input.`);
-          }
-          renderExpressionAsStatement(
-            source,
-            argument,
-            taskConnection,
-            workspace,
-            resolved,
-          );
-        });
-      } else {
-        block = createExpressionBlock(source, exprNode, workspace, resolved);
-      }
-    } else {
-      block = createExpressionBlock(source, exprNode, workspace, resolved);
-    }
-  } else {
-    block = createExpressionBlock(source, exprNode, workspace, resolved);
   }
 
-  if (!block.previousConnection) {
-    return null;
-  }
-  block.previousConnection.connect(connection);
-  return block;
+  return collectExpression(source, expression, resolved);
 }
 
 type ImportBinding = { name: string; alias?: string };
@@ -865,49 +820,102 @@ function readFromImport(
   return { moduleName: moduleParts.join("."), bindings };
 }
 
-function createImportBlocks(
+function collectImportBlocks(
   source: string,
   node: ParseNode,
-  workspace: Blockly.WorkspaceSvg,
-): Blockly.BlockSvg[] | undefined {
+): BlockDescriptor[] | undefined {
   const parsedImport = readFromImport(source, node);
   if (!parsedImport) {
     return undefined;
   }
 
-  return parsedImport.bindings.map((binding) => {
-    const block = workspace.newBlock(
-      binding.alias ? "pybricks_import_as" : "pybricks_import",
-    );
-    block.setFieldValue(parsedImport.moduleName, "MODULE");
-    block.setFieldValue(binding.name, "NAME");
-    if (binding.alias) {
-      block.setFieldValue(binding.alias, "ALIAS");
-    }
-    block.initSvg();
-    block.render();
-    return block;
-  });
+  return parsedImport.bindings.map((binding) => ({
+    type: binding.alias ? "pybricks_import_as" : "pybricks_import",
+    fields: {
+      MODULE: parsedImport.moduleName,
+      NAME: binding.name,
+      ...(binding.alias ? { ALIAS: binding.alias } : {}),
+    },
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  }));
 }
 
-function renderStatements(
+function collectFunctionBlock(
+  source: string,
+  functionNode: ParseNode,
+  resolved: ResolvedTable,
+): BlockDescriptor {
+  const functionCursor = functionNode.cursor();
+  let afterDef = false;
+  let isAsync = false;
+  let functionName = "";
+  let parameters = "";
+  let body: ParseNode | undefined;
+  let functionResolved = resolved;
+
+  if (functionCursor.firstChild()) {
+    do {
+      if (functionCursor.name === "async") {
+        isAsync = true;
+      } else if (functionCursor.name === "def") {
+        afterDef = true;
+      } else if (afterDef && functionCursor.name === "VariableName") {
+        functionName = source.slice(
+          functionCursor.node.from,
+          functionCursor.node.to,
+        );
+        afterDef = false;
+      } else if (functionCursor.name === "ParamList") {
+        parameters = getParameters(source, functionCursor.node);
+        functionResolved = getFunctionResolvedTable(
+          source,
+          functionCursor.node,
+          resolved,
+        );
+      } else if (functionCursor.name === "Body") {
+        body = functionCursor.node;
+      }
+    } while (functionCursor.nextSibling());
+  }
+
+  if (!body) {
+    throw new Error("Function definitions must have a body.");
+  }
+
+  const descriptor: BlockDescriptor = {
+    type: isAsync ? "pybricks_task" : "pybricks_function",
+    fields: { NAME: functionName, PARAMS: parameters },
+    sourceStart: functionNode.from,
+    sourceEnd: functionNode.to,
+  };
+
+  const collected = collectBody(source, body, functionResolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  descriptor.inputs = { BODY: collected.statements };
+  return descriptor;
+}
+
+/**
+ * Walks one body (the whole file, or a function body) and returns the
+ * statements to chain plus any functions, which float on their own.
+ */
+function collectBody(
   source: string,
   node: ParseNode,
-  connection: Blockly.Connection,
-  workspace: Blockly.WorkspaceSvg,
-  topLevel: boolean,
   resolved: ResolvedTable,
-  parentBlock: Blockly.Block | null,
-): void {
+  parent: ParentBlockInfo,
+): CollectedBody {
+  const statements: BlockDescriptor[] = [];
+  const functions: BlockDescriptor[] = [];
   const cursor = node.cursor();
-  const functionNodes: ParseNode[] = [];
-  let nextConnection = connection;
-  let lastBlock: Blockly.BlockSvg | null = null;
   let previousNonCommentNode: ParseNode | undefined;
   let docstringConsumed = false;
 
   if (!cursor.firstChild()) {
-    return;
+    return { statements, functions };
   }
 
   do {
@@ -918,38 +926,25 @@ function renderStatements(
         source
           .slice(previousNonCommentNode.to, commentNode.from)
           .includes("\n");
+      const commentText = source.slice(commentNode.from, commentNode.to);
 
-      if (!isStandalone && lastBlock) {
-        const commentText = source
-          .slice(commentNode.from, commentNode.to)
-          .replace(/^# ?/, "");
-        lastBlock.setCommentText(commentText);
+      if (!isStandalone && statements.length > 0) {
+        statements.at(-1)!.commentText = commentText.replace(/^# ?/, "");
         continue;
       }
 
-      const block = workspace.newBlock("pybricks_comment");
-      block.setFieldValue(
-        source.slice(commentNode.from, commentNode.to),
-        "TEXT",
-      );
-      block.initSvg();
-      block.render();
-      const previousConnection = block.previousConnection;
-      if (!previousConnection || !nextConnection) {
-        throw new Error("Comment blocks must have previous connections.");
-      }
-      previousConnection.connect(nextConnection);
-      if (!block.nextConnection) {
-        throw new Error("Comment blocks must have next connections.");
-      }
-      nextConnection = block.nextConnection;
-      lastBlock = block;
+      statements.push({
+        type: "pybricks_comment",
+        fields: { TEXT: commentText },
+        sourceStart: commentNode.from,
+        sourceEnd: commentNode.to,
+      });
       continue;
     }
 
-    if (topLevel && cursor.name === "FunctionDefinition") {
+    if (parent.topLevel && cursor.name === "FunctionDefinition") {
       docstringConsumed = true;
-      functionNodes.push(cursor.node);
+      functions.push(collectFunctionBlock(source, cursor.node, resolved));
       previousNonCommentNode = cursor.node;
       continue;
     }
@@ -972,7 +967,9 @@ function renderStatements(
       ) {
         const raw = source.slice(cursor.node.from, cursor.node.to);
         const stripped = raw.replace(/^['"]{3}|['"]{3}$/g, "").trim();
-        parentBlock?.setCommentText(stripped);
+        if (parent.block) {
+          parent.block.commentText = stripped;
+        }
         docstringConsumed = true;
         previousNonCommentNode = cursor.node;
         continue;
@@ -980,135 +977,208 @@ function renderStatements(
     }
 
     docstringConsumed = true;
-    let blocks: Blockly.BlockSvg[];
-    if (topLevel && cursor.name === "ImportStatement") {
-      blocks = createImportBlocks(source, cursor.node, workspace) ?? [
-        createRawBlock(source, cursor.node, workspace),
+    let blocks: BlockDescriptor[];
+    if (parent.topLevel && cursor.name === "ImportStatement") {
+      blocks = collectImportBlocks(source, cursor.node) ?? [
+        rawDescriptor(source, cursor.node),
       ];
     } else if (cursor.name === "AssignStatement") {
       blocks = [
-        (topLevel
-          ? createHardwareBlock(source, cursor.node, workspace, resolved)
+        (parent.topLevel
+          ? collectHardwareBlock(source, cursor.node, resolved)
           : undefined) ??
-          createVariableBlock(source, cursor.node, workspace, topLevel) ??
-          createRawBlock(source, cursor.node, workspace),
+          collectVariableBlock(source, cursor.node, parent.topLevel) ??
+          rawDescriptor(source, cursor.node),
       ];
     } else if (cursor.name === "PassStatement") {
-      const block = workspace.newBlock("pybricks_pass");
-      block.initSvg();
-      block.render();
-      blocks = [block];
+      blocks = [
+        {
+          type: "pybricks_pass",
+          sourceStart: cursor.node.from,
+          sourceEnd: cursor.node.to,
+        },
+      ];
     } else if (cursor.name === "ExpressionStatement") {
       const expressionCursor = cursor.node.cursor();
       if (!expressionCursor.firstChild()) {
-        blocks = [createRawBlock(source, cursor.node, workspace)];
+        blocks = [rawDescriptor(source, cursor.node)];
       } else {
         const expression = expressionCursor.node;
-        const settingsBlocks = createDriveSettingsBlocks(
-          source,
-          expression,
-          workspace,
-          resolved,
-        );
-        if (settingsBlocks) {
-          blocks = settingsBlocks;
-        } else {
-          const block = renderExpressionAsStatement(
-            source,
-            expression,
-            nextConnection,
-            workspace,
-            resolved,
-          );
-          if (!block?.nextConnection) {
-            throw new Error("Statement blocks must have next connections.");
-          }
-          nextConnection = block.nextConnection;
-          lastBlock = block as Blockly.BlockSvg;
-          previousNonCommentNode = cursor.node;
-          continue;
-        }
+        blocks = collectDriveSettingsBlocks(source, expression, resolved) ?? [
+          collectExpressionStatement(source, expression, resolved),
+        ];
       }
     } else {
-      blocks = [createRawBlock(source, cursor.node, workspace)];
+      blocks = [rawDescriptor(source, cursor.node)];
     }
 
-    for (const block of blocks) {
-      const previousConnection = block.previousConnection;
-      if (!previousConnection || !nextConnection) {
-        throw new Error("Statement blocks must have previous connections.");
-      }
-      previousConnection.connect(nextConnection);
-
-      if (!block.nextConnection) {
-        throw new Error("Statement blocks must have next connections.");
-      }
-      nextConnection = block.nextConnection;
-      lastBlock = block;
-    }
+    statements.push(...blocks);
     previousNonCommentNode = cursor.node;
   } while (cursor.nextSibling());
 
-  for (const functionNode of functionNodes) {
-    const bounds = workspace.getBlocksBoundingBox();
-    const functionCursor = functionNode.cursor();
-    let afterDef = false;
-    let isAsync = false;
-    let functionName = "";
-    let parameters = "";
-    let body: ParseNode | undefined;
-    let functionResolved = resolved;
+  return { statements, functions };
+}
 
-    if (functionCursor.firstChild()) {
-      do {
-        if (functionCursor.name === "async") {
-          isAsync = true;
-        } else if (functionCursor.name === "def") {
-          afterDef = true;
-        } else if (afterDef && functionCursor.name === "VariableName") {
-          functionName = source.slice(
-            functionCursor.node.from,
-            functionCursor.node.to,
-          );
-          afterDef = false;
-        } else if (functionCursor.name === "ParamList") {
-          parameters = getParameters(source, functionCursor.node);
-          functionResolved = getFunctionResolvedTable(
-            source,
-            functionCursor.node,
-            resolved,
-          );
-        } else if (functionCursor.name === "Body") {
-          body = functionCursor.node;
-        }
-      } while (functionCursor.nextSibling());
+/**
+ * Walks the whole file and returns the `set up` hat, the statements below it,
+ * and the function blocks that float beside it.
+ */
+export function collectBlocks(
+  source: string,
+  resolved: ResolvedTable,
+): BlockDescriptor[] {
+  const tree = parser.parse(source);
+  const setup: BlockDescriptor = {
+    type: "pybricks_setup",
+    sourceStart: 0,
+    sourceEnd: source.length,
+  };
+  const body = collectBody(source, tree.topNode, resolved, {
+    topLevel: true,
+    block: setup,
+  });
+  return [setup, ...body.statements, ...body.functions];
+}
+
+/**
+ * Sets a field, or the shadow block inside a value input. Literal arguments
+ * live in `fields` under the input's name, so they land on the shadow.
+ */
+function applyFieldValue(
+  block: Blockly.Block,
+  name: string,
+  value: string,
+): void {
+  const getField = (block as Partial<Blockly.Block>).getField;
+  if (typeof getField !== "function") {
+    // Test stubs implement only setFieldValue.
+    block.setFieldValue(value, name);
+    return;
+  }
+
+  if (getField.call(block, name)) {
+    block.setFieldValue(value, name);
+    return;
+  }
+
+  const shadow = block.getInput(name)?.connection?.targetBlock();
+  if (shadow?.type === "math_number") {
+    shadow.setFieldValue(value, "NUM");
+  }
+}
+
+function createBlock(
+  descriptor: BlockDescriptor,
+  workspace: Blockly.WorkspaceSvg,
+): Blockly.BlockSvg {
+  const block = workspace.newBlock(descriptor.type);
+
+  for (const [name, value] of Object.entries(descriptor.fields ?? {})) {
+    applyFieldValue(block, name, value);
+  }
+
+  // The mutator must add its task slots before we look for them.
+  if (descriptor.taskCount !== undefined) {
+    (
+      block as Blockly.Block & {
+        loadExtraState: (state: { taskCount: number }) => void;
+      }
+    ).loadExtraState({ taskCount: descriptor.taskCount });
+  }
+
+  block.initSvg();
+  block.render();
+
+  if (descriptor.commentText !== undefined) {
+    block.setCommentText?.(descriptor.commentText);
+  }
+
+  const ranged = block as Blockly.BlockSvg & Partial<BlockWithSourceRange>;
+  ranged.sourceStart = descriptor.sourceStart;
+  ranged.sourceEnd = descriptor.sourceEnd;
+  return block;
+}
+
+/** Places a block that has nothing above it: the hat, or a function. */
+function placeRootBlock(
+  block: Blockly.BlockSvg,
+  descriptor: BlockDescriptor,
+  bounds: Blockly.utils.Rect | null,
+): void {
+  if (descriptor.type === "pybricks_setup") {
+    block.moveBy(40, 40);
+    return;
+  }
+
+  const position = block.getRelativeToSurfaceXY?.();
+  if (!bounds || !position) {
+    return;
+  }
+  block.moveBy(40 - position.x, bounds.bottom + 32 - position.y);
+}
+
+function materializeInputs(
+  block: Blockly.BlockSvg,
+  descriptor: BlockDescriptor,
+  workspace: Blockly.WorkspaceSvg,
+): void {
+  for (const [inputName, children] of Object.entries(descriptor.inputs ?? {})) {
+    const input = block.getInput?.(inputName);
+    if (!input?.connection) {
+      throw new Error(
+        `Block ${descriptor.type} has no input named ${inputName}.`,
+      );
     }
 
-    const block = workspace.newBlock(
-      isAsync ? "pybricks_task" : "pybricks_function",
-    );
-    block.setFieldValue(functionName, "NAME");
-    block.setFieldValue(parameters, "PARAMS");
-    block.initSvg();
-    block.render();
-
-    const bodyConnection = block.getInput("BODY")?.connection;
-    if (!body || !bodyConnection) {
-      throw new Error("Function blocks must have a BODY statement input.");
+    if (input.connection.type === Blockly.ConnectionType.INPUT_VALUE) {
+      const child = children[0];
+      if (!child) {
+        continue;
+      }
+      const childBlock = createBlock(child, workspace);
+      if (!childBlock.outputConnection) {
+        throw new Error(`Value block ${child.type} needs an output.`);
+      }
+      childBlock.outputConnection.connect(input.connection);
+      materializeInputs(childBlock, child, workspace);
+      childBlock.render();
+      continue;
     }
-    renderStatements(
-      source,
-      body,
-      bodyConnection,
-      workspace,
-      false,
-      functionResolved,
-      block,
-    );
-    block.render();
 
-    const position = block.getRelativeToSurfaceXY();
-    block.moveBy(40 - position.x, bounds.bottom + 32 - position.y);
+    materialize(children, workspace, input.connection);
+  }
+}
+
+/**
+ * Turns descriptors into real blocks. Statements chain downwards; blocks with
+ * no previous connection (the hat, functions) are placed on their own.
+ */
+function materialize(
+  descriptors: BlockDescriptor[],
+  workspace: Blockly.WorkspaceSvg,
+  parentConnection: Blockly.Connection | null,
+): void {
+  let connection = parentConnection;
+
+  for (const descriptor of descriptors) {
+    // Measure before creating the block, so a function lands below what is
+    // already on the workspace rather than below itself.
+    const bounds = workspace.getBlocksBoundingBox?.() ?? null;
+    const block = createBlock(descriptor, workspace);
+
+    if (connection && block.previousConnection) {
+      block.previousConnection.connect(connection);
+      connection = block.nextConnection ?? null;
+    } else {
+      placeRootBlock(block, descriptor, bounds);
+      // The hat starts the top-level chain; functions stay on their own.
+      if (descriptor.type === "pybricks_setup") {
+        connection = block.nextConnection ?? null;
+      }
+    }
+
+    materializeInputs(block, descriptor, workspace);
+    block.render();
   }
 }
 
@@ -1117,22 +1187,6 @@ export function renderFile(
   workspace: Blockly.WorkspaceSvg,
   resolved: ResolvedTable,
 ): void {
-  const setupBlock = workspace.newBlock("pybricks_setup");
-  setupBlock.initSvg();
-  setupBlock.render();
-  setupBlock.moveBy(40, 40);
-
-  const tree = parser.parse(source);
-  if (!setupBlock.nextConnection) {
-    throw new Error("Setup block must have a next connection.");
-  }
-  renderStatements(
-    source,
-    tree.topNode,
-    setupBlock.nextConnection,
-    workspace,
-    true,
-    resolved,
-    setupBlock,
-  );
+  const descriptors = collectBlocks(source, resolved);
+  materialize(descriptors, workspace, null);
 }
