@@ -7,6 +7,10 @@
   --sidebar-active-fg: #2c3138;
 }
 
+body {
+  background-color: #ecf0f1;
+}
+
 body.dark {
   --sidebar-bg: #2a3139;
   --sidebar-fg: #cccccc;
@@ -14,6 +18,7 @@ body.dark {
   --sidebar-hover: #353d47;
   --sidebar-active-bg: #3d4751;
   --sidebar-active-fg: #ffffff;
+  background-color: #1e1e1e;
 }
 
 /* Smooth theme crossfade — applies to all theme-variable-driven elements */
@@ -33,16 +38,21 @@ body,
     fill 300ms ease;
 }
 
-/* Blockly workspace background — the theme system sets fill via attribute, so also target the SVG element */
-.blocklyMainBackground {
-  transition:
-    fill 300ms ease,
-    stroke 300ms ease;
+/* Correct target — Blockly sets background-color here on theme change */
+.blocklySvg {
+  transition: background-color 300ms ease;
 }
 
 /* Blockly scrollbars */
 .blocklyScrollbarHandle {
   transition: fill 300ms ease;
+}
+
+/* Monaco does not transition — it re-renders on setTheme(). Accepted. */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  transition: background-color 300ms ease;
 }
 
 .material-symbols-outlined {
