@@ -12,7 +12,12 @@ export function createSidebar(
   const uploadBtn = document.createElement("button");
   uploadBtn.id = "upload-btn";
   uploadBtn.type = "button";
-  uploadBtn.textContent = "Upload";
+  const uploadIcon = document.createElement("span");
+  uploadIcon.className = "material-symbols-outlined";
+  uploadIcon.textContent = "upload";
+  const uploadLabel = document.createElement("span");
+  uploadLabel.textContent = "Upload";
+  uploadBtn.append(uploadIcon, uploadLabel);
   toolbar.append(uploadBtn);
 
   const fileInput = document.createElement("input");

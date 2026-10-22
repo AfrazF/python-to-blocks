@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
     <title>Python to Blocks</title>
   </head>
   <body>
@@ -21,14 +25,7 @@
         title="Show code"
         aria-label="Show code"
       >
-        <svg viewBox="0 0 16 16" width="16" height="16">
-          <path
-            d="M314.2000000000001 174.2L254.2 234.2C250.6 237.8 245.6 240 240 240C229 240 220 231 220 220C220 214.4 222.2 209.4 225.8 205.8L271.8 160L226 114.2C222.2 110.6 220 105.6 220 100C220 89 229 80 240 80C245.6 80 250.6 82.2 254.2 85.8L314.2000000000001 145.8C317.8 149.4 320 154.4 320 160C320 165.6 317.8 170.6 314.2000000000001 174.2zM100 220C100 231 91 240 80 240C74.4 240 69.4 237.8 65.8 234.2L5.8 174.2C2.2 170.6 0 165.6 0 160C0 154.4 2.2 149.4 5.8 145.8L65.8 85.8C69.4 82.2 74.4 80 80 80C91 80 100 89 100 100C100 105.6 97.8 110.6 94.2 114.2L48.2 160L94 205.8C97.8 209.4 100 214.4 100 220zM180 280C170.4 280 162.6 273 160.8 263.8L120.8 63.8C120.6 62.6 120 61.4 120 60C120 49 129 40 140 40C149.6 40 157.4 47 159.2 56.2L199.2 256.2C199.4 257.4 200 258.6 200 260C200 271 191 280 180 280z"
-            fill-rule="evenodd"
-            transform="scale(0.05, -0.05) translate(-160, -160)"
-            style="transform-origin: center center 0px"
-          ></path>
-        </svg>
+        <span class="material-symbols-outlined">code_xml</span>
       </button>
       <button
         id="theme-toggle-btn"
@@ -36,7 +33,9 @@
         title="Toggle theme"
         aria-label="Toggle theme"
       >
-        🌙
+        <span class="material-symbols-outlined" id="theme-icon"
+          >light_mode</span
+        >
       </button>
     </div>
     <script type="module" src="/src/main.ts"></script>

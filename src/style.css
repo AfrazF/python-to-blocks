@@ -8,12 +8,51 @@
 }
 
 body.dark {
-  --sidebar-bg: #252526;
+  --sidebar-bg: #2a3139;
   --sidebar-fg: #cccccc;
-  --sidebar-border: #3c3c3c;
-  --sidebar-hover: #2a2d2e;
-  --sidebar-active-bg: #37373d;
+  --sidebar-border: #1e242b;
+  --sidebar-hover: #353d47;
+  --sidebar-active-bg: #3d4751;
   --sidebar-active-fg: #ffffff;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+  transition: font-variation-settings 200ms ease;
+}
+
+#toggle-editor-btn:hover .material-symbols-outlined,
+#theme-toggle-btn:hover .material-symbols-outlined,
+#upload-btn:hover .material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+body.code-visible #toggle-editor-btn .material-symbols-outlined {
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 html,
@@ -83,12 +122,12 @@ body {
 }
 
 body.dark #sidebar-handle::before {
-  color: #cccccc;
-  background: #252526;
+  color: var(--sidebar-fg);
+  background: var(--sidebar-bg);
 }
 
 body.dark #sidebar-handle:hover::before {
-  background: #3c3c3c;
+  background: var(--sidebar-hover);
 }
 
 #workspace-container {
@@ -148,12 +187,12 @@ body.dark .blocklyScrollbarHandle:hover {
 }
 
 body.dark #editor-splitter::before {
-  color: #cccccc;
-  background: #252526;
+  color: var(--sidebar-fg);
+  background: var(--sidebar-bg);
 }
 
 body.dark #editor-splitter:hover::before {
-  background: #3c3c3c;
+  background: var(--sidebar-hover);
 }
 
 #editor {
@@ -236,10 +275,8 @@ body.resizing {
   background: var(--sidebar-hover);
 }
 
-#app-controls button svg {
-  fill: currentColor;
-  width: 20px;
-  height: 20px;
+#app-controls button .material-symbols-outlined {
+  font-size: 22px;
 }
 
 #sidebar-toolbar {
@@ -263,6 +300,14 @@ body.resizing {
     Helvetica,
     sans-serif;
   color: var(--sidebar-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#upload-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 #upload-btn:hover {
