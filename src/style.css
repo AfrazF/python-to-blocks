@@ -37,7 +37,6 @@ body.dark {
   transition: font-variation-settings 200ms ease;
 }
 
-#toggle-editor-btn:hover .material-symbols-outlined,
 #theme-toggle-btn:hover .material-symbols-outlined,
 #upload-btn:hover .material-symbols-outlined {
   font-variation-settings:
@@ -47,12 +46,61 @@ body.dark {
     "opsz" 24;
 }
 
-body.code-visible #toggle-editor-btn .material-symbols-outlined {
-  font-variation-settings:
-    "FILL" 1,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 24;
+/* Code button: SVG morph between <> and </> */
+#toggle-editor-btn .code-icon {
+  fill: currentColor;
+  overflow: visible;
+  clip-path: circle(50%);
+}
+
+/* Wipe animation driver — makes --reveal interpolable */
+@property --reveal {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+#toggle-editor-btn .code-chevron-left,
+#toggle-editor-btn .code-chevron-right {
+  transform: translateX(0);
+  transition: transform 500ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* Base (open) state */
+#toggle-editor-btn .code-slash {
+  --reveal: 100%;
+  transform: translate(0, 0);
+  mask-image: linear-gradient(
+    to top right,
+    black 0%,
+    black var(--reveal),
+    transparent var(--reveal),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to top right,
+    black 0%,
+    black var(--reveal),
+    transparent var(--reveal),
+    transparent 100%
+  );
+  transition:
+    transform 500ms cubic-bezier(0.05, 0.7, 0.1, 1),
+    --reveal 500ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* Closed state: chevrons pulled inward, slash sliding to bottom-left and wiped away */
+body:not(.code-visible) #toggle-editor-btn .code-chevron-left {
+  transform: translateX(80px);
+}
+
+body:not(.code-visible) #toggle-editor-btn .code-chevron-right {
+  transform: translateX(-80px);
+}
+
+body:not(.code-visible) #toggle-editor-btn .code-slash {
+  --reveal: 0%;
+  transform: translate(-200px, 640px);
 }
 
 html,
