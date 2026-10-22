@@ -127,21 +127,7 @@ function startWorkspace(): void {
     editor.layout();
   });
 
-  workspace.addChangeListener((event: Blockly.Events.Abstract) => {
-    if (event.type !== Blockly.Events.SELECTED) {
-      return;
-    }
-    const selectedEvent = event as Blockly.Events.Selected;
-    // newElementId is undefined when the canvas is clicked (deselect).
-    if (!selectedEvent.newElementId) {
-      return;
-    }
-
-    const block = workspace.getBlockById(selectedEvent.newElementId);
-    if (!block) {
-      return;
-    }
-
+  const revealBlockSource = (block: Blockly.Block): void => {
     // The setup hat spans the whole file, so highlighting it is noise.
     if (block.type === "pybricks_setup") {
       return;
@@ -153,6 +139,47 @@ function startWorkspace(): void {
     };
     if (typeof sourceStart === "number" && typeof sourceEnd === "number") {
       editor.revealRange(sourceStart, sourceEnd);
+    }
+  };
+
+  // Blockly readOnly mode suppresses gesture-driven SELECTED events, so mouse
+  // clicks are read straight off the SVG. Blockly 13 puts `data-id` on each
+  // block's <g> (class `blocklyBlock`, not `blocklyDraggable`).
+  const canvas = workspace.getCanvas();
+  canvas.addEventListener("click", (event: MouseEvent) => {
+    let el = event.target as Element | null;
+    while (el && el !== canvas && !el.hasAttribute("data-id")) {
+      el = el.parentElement;
+    }
+    if (!el || el === canvas) {
+      return;
+    }
+
+    const blockId = el.getAttribute("data-id");
+    if (!blockId) {
+      return;
+    }
+
+    const block = workspace.getBlockById(blockId);
+    if (block) {
+      revealBlockSource(block);
+    }
+  });
+
+  // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
+  workspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.type !== Blockly.Events.SELECTED) {
+      return;
+    }
+    const selectedEvent = event as Blockly.Events.Selected;
+    // newElementId is undefined when the canvas is clicked (deselect).
+    if (!selectedEvent.newElementId) {
+      return;
+    }
+
+    const block = workspace.getBlockById(selectedEvent.newElementId);
+    if (block) {
+      revealBlockSource(block);
     }
   });
 
