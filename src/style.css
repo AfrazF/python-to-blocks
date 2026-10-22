@@ -32,27 +32,52 @@ body,
 #editor-splitter::before,
 #app-controls button {
   transition:
-    background-color 300ms ease,
-    color 300ms ease,
-    border-color 300ms ease,
-    fill 300ms ease;
+    background-color 300ms linear,
+    color 300ms linear,
+    border-color 300ms linear,
+    fill 300ms linear;
 }
 
 /* Correct target — Blockly sets background-color here on theme change */
 .blocklySvg {
-  transition: background-color 300ms ease;
+  transition: background-color 300ms linear;
 }
 
 /* Blockly scrollbars */
 .blocklyScrollbarHandle {
-  transition: fill 300ms ease;
+  transition: fill 300ms linear;
 }
 
 /* Monaco does not transition — it re-renders on setTheme(). Accepted. */
 .monaco-editor,
 .monaco-editor-background,
 .monaco-editor .margin {
-  transition: background-color 300ms ease;
+  transition: background-color 300ms linear;
+}
+
+/* Monaco internal elements — color-driven, need explicit transitions */
+.monaco-editor .lines-content .core-guide-indent {
+  transition: box-shadow 300ms linear;
+}
+
+.monaco-editor .bracket-indent-guide {
+  transition: box-shadow 300ms linear;
+}
+
+.monaco-editor .bracket-highlighting-0,
+.monaco-editor .bracket-highlighting-1,
+.monaco-editor .bracket-highlighting-2,
+.monaco-editor .bracket-highlighting-3 {
+  transition: color 300ms linear;
+}
+
+.monaco-editor .view-overlays .current-line {
+  transition: background-color 300ms linear;
+}
+
+/* Monaco 0.57 uses .current-line in the margin, not .current-line-margin */
+.monaco-editor .margin-view-overlays .current-line {
+  transition: background-color 300ms linear;
 }
 
 .material-symbols-outlined {
@@ -232,8 +257,8 @@ body {
   opacity: 0.35;
   transition:
     opacity 120ms,
-    background-color 300ms ease,
-    color 300ms ease;
+    background-color 300ms linear,
+    color 300ms linear;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -302,8 +327,8 @@ body.dark .blocklyScrollbarHandle:hover {
   opacity: 0.35;
   transition:
     opacity 120ms,
-    background-color 300ms ease,
-    color 300ms ease;
+    background-color 300ms linear,
+    color 300ms linear;
 }
 
 #editor-splitter:hover::before {
