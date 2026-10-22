@@ -4,6 +4,7 @@ export interface PyEditor {
   setValue: (text: string) => void;
   setTheme: (theme: "light" | "dark") => void;
   revealRange: (start: number, end: number) => void;
+  clearSelection: () => void;
   /** Calls back with the cursor's character offset. Returns a detach function. */
   onCursorChange: (callback: (offset: number) => void) => () => void;
   dispose: () => void;
@@ -134,6 +135,21 @@ export function createEditor(container: HTMLElement): PyEditor {
       editor.setSelection(range);
       editor.revealRangeInCenterIfOutsideViewport(range);
       // Do NOT call editor.focus() — it steals focus from Blockly.
+    },
+    clearSelection: () => {
+      const position = editor.getPosition();
+      if (!position) {
+        return;
+      }
+      // Collapse to a zero-length range so no text stays highlighted.
+      editor.setSelection(
+        new monaco.Range(
+          position.lineNumber,
+          position.column,
+          position.lineNumber,
+          position.column,
+        ),
+      );
     },
     onCursorChange: (callback) => {
       const disposable = editor.onDidChangeCursorPosition((event) => {

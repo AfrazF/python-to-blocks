@@ -151,19 +151,16 @@ function startWorkspace(): void {
     while (el && el !== canvas && !el.hasAttribute("data-id")) {
       el = el.parentElement;
     }
-    if (!el || el === canvas) {
+
+    const blockId = el && el !== canvas ? el.getAttribute("data-id") : null;
+    const block = blockId ? workspace.getBlockById(blockId) : null;
+    if (!block) {
+      // Empty canvas: drop the Monaco highlight left over from the last block.
+      editor.clearSelection();
       return;
     }
 
-    const blockId = el.getAttribute("data-id");
-    if (!blockId) {
-      return;
-    }
-
-    const block = workspace.getBlockById(blockId);
-    if (block) {
-      revealBlockSource(block);
-    }
+    revealBlockSource(block);
   });
 
   // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
@@ -197,32 +194,63 @@ function startWorkspace(): void {
     }
     highlightTimer = setTimeout(() => {
       highlightTimer = null;
-      let best: Blockly.Block | null = null;
-      let bestSize = Infinity;
+      type Ranged = Blockly.Block & {
+        sourceStart?: number;
+        sourceEnd?: number;
+        statementStart?: number;
+        statementEnd?: number;
+      };
+      const allBlocks = workspace
+        .getAllBlocks(false)
+        .filter((block) => block.type !== "pybricks_setup") as Ranged[];
 
-      for (const block of workspace.getAllBlocks(false)) {
-        if (block.type === "pybricks_setup") {
-          continue;
-        }
-        const { sourceStart, sourceEnd } = block as Blockly.Block & {
-          sourceStart?: number;
-          sourceEnd?: number;
-        };
-        if (typeof sourceStart !== "number" || typeof sourceEnd !== "number") {
-          continue;
-        }
-        if (offset >= sourceStart && offset <= sourceEnd) {
-          const size = sourceEnd - sourceStart;
-          if (size < bestSize) {
-            bestSize = size;
-            best = block;
+      // 1. Narrow ranges first: the innermost block containing the cursor.
+      const narrow = allBlocks.filter(
+        (block) =>
+          typeof block.sourceStart === "number" &&
+          typeof block.sourceEnd === "number" &&
+          offset >= block.sourceStart &&
+          offset <= block.sourceEnd,
+      );
+
+      let best: Ranged | null = null;
+
+      if (narrow.length > 0) {
+        // Innermost = smallest range; ties broken by earliest start.
+        best = narrow.sort((a, b) => {
+          const aSize = a.sourceEnd! - a.sourceStart!;
+          const bSize = b.sourceEnd! - b.sourceStart!;
+          if (aSize !== bSize) {
+            return aSize - bSize;
           }
+          return a.sourceStart! - b.sourceStart!;
+        })[0];
+      } else {
+        // 2. Fall back to whole-statement ranges (imports), so clicking the
+        // `from`/`import` keywords or a comma still finds a block.
+        const atStatement = allBlocks.filter(
+          (block) =>
+            typeof block.statementStart === "number" &&
+            typeof block.statementEnd === "number" &&
+            offset >= block.statementStart &&
+            offset <= block.statementEnd,
+        );
+        if (atStatement.length > 0) {
+          best = atStatement.sort((a, b) => a.sourceStart! - b.sourceStart!)[0];
         }
       }
 
-      if (best && best.id !== lastHighlightedBlockId) {
-        lastHighlightedBlockId = best.id;
-        workspace.highlightBlock(best.id);
+      if (best) {
+        if (best.id !== lastHighlightedBlockId) {
+          if (lastHighlightedBlockId) {
+            workspace.highlightBlock(lastHighlightedBlockId, false);
+          }
+          lastHighlightedBlockId = best.id;
+          workspace.highlightBlock(best.id);
+        }
+      } else if (lastHighlightedBlockId) {
+        workspace.highlightBlock(lastHighlightedBlockId, false);
+        lastHighlightedBlockId = null;
       }
     }, 50);
   });
