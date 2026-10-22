@@ -127,6 +127,35 @@ function startWorkspace(): void {
     editor.layout();
   });
 
+  workspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.type !== Blockly.Events.SELECTED) {
+      return;
+    }
+    const selectedEvent = event as Blockly.Events.Selected;
+    // newElementId is undefined when the canvas is clicked (deselect).
+    if (!selectedEvent.newElementId) {
+      return;
+    }
+
+    const block = workspace.getBlockById(selectedEvent.newElementId);
+    if (!block) {
+      return;
+    }
+
+    // The setup hat spans the whole file, so highlighting it is noise.
+    if (block.type === "pybricks_setup") {
+      return;
+    }
+
+    const { sourceStart, sourceEnd } = block as Blockly.Block & {
+      sourceStart?: number;
+      sourceEnd?: number;
+    };
+    if (typeof sourceStart === "number" && typeof sourceEnd === "number") {
+      editor.revealRange(sourceStart, sourceEnd);
+    }
+  });
+
   const themeToggleButton = document.getElementById(
     "theme-toggle-btn",
   ) as HTMLButtonElement | null;

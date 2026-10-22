@@ -3,6 +3,7 @@ import * as monaco from "monaco-editor/editor/editor.api.js";
 export interface PyEditor {
   setValue: (text: string) => void;
   setTheme: (theme: "light" | "dark") => void;
+  revealRange: (start: number, end: number) => void;
   dispose: () => void;
   layout: () => void;
 }
@@ -115,6 +116,23 @@ export function createEditor(container: HTMLElement): PyEditor {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
       monaco.editor.setTheme(theme === "light" ? "vs" : "pybricks-dark"),
+    revealRange: (start, end) => {
+      const model = editor.getModel();
+      if (!model) {
+        return;
+      }
+      const startPos = model.getPositionAt(start);
+      const endPos = model.getPositionAt(end);
+      const range = new monaco.Range(
+        startPos.lineNumber,
+        startPos.column,
+        endPos.lineNumber,
+        endPos.column,
+      );
+      editor.setSelection(range);
+      editor.revealRangeInCenterIfOutsideViewport(range);
+      // Do NOT call editor.focus() — it steals focus from Blockly.
+    },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };
