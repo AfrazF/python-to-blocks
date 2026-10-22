@@ -768,7 +768,13 @@ function collectExpressionStatement(
   return collectExpression(source, expression, resolved);
 }
 
-type ImportBinding = { name: string; alias?: string };
+type ImportBinding = {
+  name: string;
+  alias?: string;
+  /** Source range of just this name (and its alias, if any). */
+  from: number;
+  to: number;
+};
 
 function readFromImport(
   source: string,
@@ -808,9 +814,15 @@ function readFromImport(
         const lastBinding = bindings.at(-1);
         if (expectingAlias && lastBinding) {
           lastBinding.alias = name;
+          // The alias extends the range to cover `name as alias`.
+          lastBinding.to = cursor.node.to;
           expectingAlias = false;
         } else {
-          bindings.push({ name });
+          bindings.push({
+            name,
+            from: cursor.node.from,
+            to: cursor.node.to,
+          });
         }
       }
     } while (cursor.nextSibling());
@@ -839,8 +851,9 @@ function collectImportBlocks(
       NAME: binding.name,
       ...(binding.alias ? { ALIAS: binding.alias } : {}),
     },
-    sourceStart: node.from,
-    sourceEnd: node.to,
+    // Each block points at its own name (plus alias), not the whole statement.
+    sourceStart: binding.from,
+    sourceEnd: binding.to,
   }));
 }
 
