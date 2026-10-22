@@ -134,19 +134,11 @@ function startWorkspace(): void {
     throw new Error("The theme toggle button must exist.");
   }
 
-  const themeIcon = document.getElementById(
-    "theme-icon",
-  ) as HTMLSpanElement | null;
-  if (!themeIcon) {
-    throw new Error("The theme icon must exist.");
-  }
-
   const applyTheme = (theme: "light" | "dark") => {
     document.body.classList.toggle("dark", theme === "dark");
     workspace.setTheme(theme === "dark" ? pybricksDark : pybricksTheme);
     workspace.render();
     editor.setTheme(theme);
-    themeIcon.textContent = theme === "dark" ? "dark_mode" : "light_mode";
     themeToggleButton.setAttribute(
       "aria-label",
       theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
