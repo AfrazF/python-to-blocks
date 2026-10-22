@@ -4,6 +4,8 @@ export interface PyEditor {
   setValue: (text: string) => void;
   setTheme: (theme: "light" | "dark") => void;
   revealRange: (start: number, end: number) => void;
+  /** Calls back with the cursor's character offset. Returns a detach function. */
+  onCursorChange: (callback: (offset: number) => void) => () => void;
   dispose: () => void;
   layout: () => void;
 }
@@ -132,6 +134,16 @@ export function createEditor(container: HTMLElement): PyEditor {
       editor.setSelection(range);
       editor.revealRangeInCenterIfOutsideViewport(range);
       // Do NOT call editor.focus() — it steals focus from Blockly.
+    },
+    onCursorChange: (callback) => {
+      const disposable = editor.onDidChangeCursorPosition((event) => {
+        const model = editor.getModel();
+        if (!model) {
+          return;
+        }
+        callback(model.getOffsetAt(event.position));
+      });
+      return () => disposable.dispose();
     },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),

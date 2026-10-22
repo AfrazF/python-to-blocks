@@ -183,6 +183,50 @@ function startWorkspace(): void {
     }
   });
 
+  // Reverse sync: moving the cursor in Monaco briefly glows the innermost
+  // block whose source range contains the cursor. highlightBlock() is a
+  // temporary visual effect and does not fire SELECTED, so this cannot loop
+  // back into the block -> Monaco handler above.
+  let lastHighlightedBlockId: string | null = null;
+  let highlightTimer: ReturnType<typeof setTimeout> | null = null;
+
+  editor.onCursorChange((offset) => {
+    // Cursor events fire on every click and scroll; settle before acting.
+    if (highlightTimer) {
+      clearTimeout(highlightTimer);
+    }
+    highlightTimer = setTimeout(() => {
+      highlightTimer = null;
+      let best: Blockly.Block | null = null;
+      let bestSize = Infinity;
+
+      for (const block of workspace.getAllBlocks(false)) {
+        if (block.type === "pybricks_setup") {
+          continue;
+        }
+        const { sourceStart, sourceEnd } = block as Blockly.Block & {
+          sourceStart?: number;
+          sourceEnd?: number;
+        };
+        if (typeof sourceStart !== "number" || typeof sourceEnd !== "number") {
+          continue;
+        }
+        if (offset >= sourceStart && offset <= sourceEnd) {
+          const size = sourceEnd - sourceStart;
+          if (size < bestSize) {
+            bestSize = size;
+            best = block;
+          }
+        }
+      }
+
+      if (best && best.id !== lastHighlightedBlockId) {
+        lastHighlightedBlockId = best.id;
+        workspace.highlightBlock(best.id);
+      }
+    }, 50);
+  });
+
   const themeToggleButton = document.getElementById(
     "theme-toggle-btn",
   ) as HTMLButtonElement | null;
