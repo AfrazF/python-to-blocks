@@ -7,6 +7,17 @@ export interface PyEditor {
   layout: () => void;
 }
 
+monaco.editor.defineTheme("pybricks-dark", {
+  base: "vs-dark",
+  inherit: true,
+  rules: [],
+  colors: {
+    "editor.background": "#2d2d2d",
+    "editorGutter.background": "#2d2d2d",
+    "editor.lineHighlightBackground": "#393939",
+  },
+});
+
 const pythonKeywords = [
   "and",
   "as",
@@ -103,7 +114,7 @@ export function createEditor(container: HTMLElement): PyEditor {
   return {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
-      monaco.editor.setTheme(theme === "light" ? "vs" : "vs-dark"),
+      monaco.editor.setTheme(theme === "light" ? "vs" : "pybricks-dark"),
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };

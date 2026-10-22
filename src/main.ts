@@ -25,6 +25,7 @@ import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
 import { renderFile } from "./walk";
 import { createEditor } from "./editor";
+import { pybricksDark, pybricksTheme } from "./theme";
 
 let currentFiles: Record<string, string> = {
   "main.py": mainSource,
@@ -38,9 +39,12 @@ let hasUploaded = false;
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
   const container = document.querySelector<HTMLElement>("#blockly");
+  const splitter = document.querySelector<HTMLElement>("#editor-splitter");
   const editorContainer = document.querySelector<HTMLElement>("#editor");
-  if (!sidebarContainer || !container || !editorContainer) {
-    throw new Error("The sidebar, Blockly, and editor containers must exist.");
+  if (!sidebarContainer || !container || !splitter || !editorContainer) {
+    throw new Error(
+      "The sidebar, Blockly, splitter, and editor containers must exist.",
+    );
   }
   const workspace = createWorkspace(container);
   const editor = createEditor(editorContainer);
@@ -107,13 +111,71 @@ function startWorkspace(): void {
   const toggleEditorButton = document.getElementById(
     "toggle-editor-btn",
   ) as HTMLButtonElement | null;
-  toggleEditorButton?.addEventListener("click", () => {
+  if (!toggleEditorButton) {
+    throw new Error("The editor toggle button must exist.");
+  }
+
+  toggleEditorButton.addEventListener("click", () => {
     editorVisible = !editorVisible;
     editorContainer.classList.toggle("visible", editorVisible);
-    toggleEditorButton.textContent = editorVisible ? "Hide code" : "Show code";
+    splitter.classList.toggle("visible", editorVisible);
+    toggleEditorButton.title = editorVisible ? "Hide code" : "Show code";
+    toggleEditorButton.setAttribute("aria-label", toggleEditorButton.title);
     toggleEditorButton.setAttribute("aria-pressed", String(editorVisible));
     Blockly.svgResize(workspace);
     editor.layout();
+  });
+
+  const themeToggleButton = document.getElementById(
+    "theme-toggle-btn",
+  ) as HTMLButtonElement | null;
+  if (!themeToggleButton) {
+    throw new Error("The theme toggle button must exist.");
+  }
+
+  const applyTheme = (theme: "light" | "dark") => {
+    document.body.classList.toggle("dark", theme === "dark");
+    workspace.setTheme(theme === "dark" ? pybricksDark : pybricksTheme);
+    workspace.render();
+    editor.setTheme(theme);
+    themeToggleButton.textContent = theme === "dark" ? "☀️" : "🌙";
+    themeToggleButton.setAttribute(
+      "aria-label",
+      theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
+    );
+    localStorage.setItem("theme", theme);
+  };
+
+  themeToggleButton.addEventListener("click", () => {
+    applyTheme(document.body.classList.contains("dark") ? "light" : "dark");
+  });
+
+  applyTheme(localStorage.getItem("theme") === "dark" ? "dark" : "light");
+
+  const onSplitterMouseMove = (event: MouseEvent) => {
+    const width = Math.max(
+      240,
+      Math.min(window.innerWidth * 0.6, window.innerWidth - event.clientX),
+    );
+    editorContainer.style.width = `${width}px`;
+    editor.layout();
+    Blockly.svgResize(workspace);
+  };
+
+  const onSplitterMouseUp = () => {
+    document.removeEventListener("mousemove", onSplitterMouseMove);
+    document.removeEventListener("mouseup", onSplitterMouseUp);
+    document.body.classList.remove("resizing");
+  };
+
+  splitter.addEventListener("mousedown", (event: MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    document.body.classList.add("resizing");
+    document.addEventListener("mousemove", onSplitterMouseMove);
+    document.addEventListener("mouseup", onSplitterMouseUp);
   });
 
   const resizeObserver = new ResizeObserver(() => {

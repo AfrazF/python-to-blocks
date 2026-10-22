@@ -15,13 +15,6 @@ export function createSidebar(
   uploadBtn.textContent = "Upload";
   toolbar.append(uploadBtn);
 
-  const toggleEditorBtn = document.createElement("button");
-  toggleEditorBtn.id = "toggle-editor-btn";
-  toggleEditorBtn.type = "button";
-  toggleEditorBtn.textContent = "Show code";
-  toggleEditorBtn.setAttribute("aria-pressed", "false");
-  toolbar.append(toggleEditorBtn);
-
   const fileInput = document.createElement("input");
   fileInput.id = "file-input";
   fileInput.type = "file";

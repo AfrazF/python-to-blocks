@@ -7,6 +7,15 @@
   --sidebar-active-fg: #2c3138;
 }
 
+body.dark {
+  --sidebar-bg: #252526;
+  --sidebar-fg: #cccccc;
+  --sidebar-border: #3c3c3c;
+  --sidebar-hover: #2a2d2e;
+  --sidebar-active-bg: #37373d;
+  --sidebar-active-fg: #ffffff;
+}
+
 html,
 body {
   width: 100%;
@@ -29,6 +38,7 @@ body {
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 0;
   flex-shrink: 0;
   position: relative;
@@ -47,7 +57,38 @@ body {
 }
 
 #sidebar-handle:hover {
-  background: var(--sidebar-border);
+  background: transparent;
+}
+
+#sidebar-handle::before {
+  content: "⋮";
+  font-size: 16px;
+  color: var(--sidebar-fg);
+  background: var(--sidebar-bg);
+  border-radius: 4px;
+  padding: 8px 2px;
+  opacity: 0.35;
+  transition:
+    opacity 120ms,
+    background 120ms;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#sidebar-handle:hover::before {
+  opacity: 1;
+  background: var(--sidebar-hover);
+}
+
+body.dark #sidebar-handle::before {
+  color: #cccccc;
+  background: #252526;
+}
+
+body.dark #sidebar-handle:hover::before {
+  background: #3c3c3c;
 }
 
 #workspace-container {
@@ -61,7 +102,62 @@ body {
   min-width: 0;
 }
 
+body.dark .blocklyMainBackground {
+  stroke: #232830;
+}
+
+body.dark .blocklyScrollbarHandle {
+  fill: #4e4e4e;
+}
+
+body.dark .blocklyScrollbarHandle:hover {
+  fill: #5e5e5e;
+}
+
+#editor-splitter {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#editor-splitter:not(.visible) {
+  display: none;
+}
+
+#editor-splitter::before {
+  content: "⋮";
+  font-size: 16px;
+  color: var(--sidebar-fg);
+  background: var(--sidebar-bg);
+  border-radius: 4px;
+  padding: 8px 2px;
+  opacity: 0.35;
+  transition:
+    opacity 120ms,
+    background 120ms;
+}
+
+#editor-splitter:hover::before {
+  opacity: 1;
+  background: var(--sidebar-hover);
+}
+
+body.dark #editor-splitter::before {
+  color: #cccccc;
+  background: #252526;
+}
+
+body.dark #editor-splitter:hover::before {
+  background: #3c3c3c;
+}
+
 #editor {
+  box-sizing: border-box;
   width: 400px;
   flex-shrink: 0;
   border-left: 1px solid var(--sidebar-border);
@@ -74,6 +170,7 @@ body {
 
 .sidebar-item {
   display: block;
+  box-sizing: border-box;
   width: 100%;
   padding: 8px 16px;
   text-align: left;
@@ -86,6 +183,9 @@ body {
     Helvetica,
     sans-serif;
   color: var(--sidebar-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-item:hover {
@@ -98,9 +198,48 @@ body {
   font-weight: 600;
 }
 
-body.resizing {
+body.resizing,
+body.resizing * {
   cursor: col-resize;
+}
+
+body.resizing {
   user-select: none;
+}
+
+#app-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+#app-controls button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  color: var(--sidebar-fg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+#app-controls button:hover {
+  background: var(--sidebar-hover);
+}
+
+#app-controls button svg {
+  fill: currentColor;
+  width: 20px;
+  height: 20px;
 }
 
 #sidebar-toolbar {
@@ -111,8 +250,7 @@ body.resizing {
   gap: 6px;
 }
 
-#upload-btn,
-#toggle-editor-btn {
+#upload-btn {
   width: 100%;
   padding: 6px 12px;
   background: var(--sidebar-hover);
@@ -127,8 +265,7 @@ body.resizing {
   color: var(--sidebar-fg);
 }
 
-#upload-btn:hover,
-#toggle-editor-btn:hover {
+#upload-btn:hover {
   background: var(--sidebar-active-bg);
 }
 
