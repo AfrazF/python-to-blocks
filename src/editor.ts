@@ -3,6 +3,10 @@ import * as monaco from "monaco-editor/editor/editor.api.js";
 export interface PyEditor {
   setValue: (text: string) => void;
   setTheme: (theme: "light" | "dark") => void;
+  revealRange: (start: number, end: number) => void;
+  clearSelection: () => void;
+  /** Calls back with the cursor's character offset. Returns a detach function. */
+  onCursorChange: (callback: (offset: number) => void) => () => void;
   dispose: () => void;
   layout: () => void;
 }
@@ -115,6 +119,48 @@ export function createEditor(container: HTMLElement): PyEditor {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
       monaco.editor.setTheme(theme === "light" ? "vs" : "pybricks-dark"),
+    revealRange: (start, end) => {
+      const model = editor.getModel();
+      if (!model) {
+        return;
+      }
+      const startPos = model.getPositionAt(start);
+      const endPos = model.getPositionAt(end);
+      const range = new monaco.Range(
+        startPos.lineNumber,
+        startPos.column,
+        endPos.lineNumber,
+        endPos.column,
+      );
+      editor.setSelection(range);
+      editor.revealRangeInCenterIfOutsideViewport(range);
+      // Do NOT call editor.focus() — it steals focus from Blockly.
+    },
+    clearSelection: () => {
+      const position = editor.getPosition();
+      if (!position) {
+        return;
+      }
+      // Collapse to a zero-length range so no text stays highlighted.
+      editor.setSelection(
+        new monaco.Range(
+          position.lineNumber,
+          position.column,
+          position.lineNumber,
+          position.column,
+        ),
+      );
+    },
+    onCursorChange: (callback) => {
+      const disposable = editor.onDidChangeCursorPosition((event) => {
+        const model = editor.getModel();
+        if (!model) {
+          return;
+        }
+        callback(model.getOffsetAt(event.position));
+      });
+      return () => disposable.dispose();
+    },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };

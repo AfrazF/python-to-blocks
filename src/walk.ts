@@ -21,6 +21,9 @@ export interface BlockDescriptor {
   inputs?: Record<string, BlockDescriptor[]>;
   sourceStart: number;
   sourceEnd: number;
+  /** Whole-statement range, used as a fallback for import blocks. */
+  statementStart?: number;
+  statementEnd?: number;
   commentText?: string;
   taskCount?: number;
 }
@@ -35,6 +38,8 @@ type ParentBlockInfo = {
 type BlockWithSourceRange = Blockly.Block & {
   sourceStart: number;
   sourceEnd: number;
+  statementStart?: number;
+  statementEnd?: number;
 };
 
 /** What one body contains: statements to chain, plus functions to float. */
@@ -768,7 +773,13 @@ function collectExpressionStatement(
   return collectExpression(source, expression, resolved);
 }
 
-type ImportBinding = { name: string; alias?: string };
+type ImportBinding = {
+  name: string;
+  alias?: string;
+  /** Source range of just this name (and its alias, if any). */
+  from: number;
+  to: number;
+};
 
 function readFromImport(
   source: string,
@@ -808,9 +819,15 @@ function readFromImport(
         const lastBinding = bindings.at(-1);
         if (expectingAlias && lastBinding) {
           lastBinding.alias = name;
+          // The alias extends the range to cover `name as alias`.
+          lastBinding.to = cursor.node.to;
           expectingAlias = false;
         } else {
-          bindings.push({ name });
+          bindings.push({
+            name,
+            from: cursor.node.from,
+            to: cursor.node.to,
+          });
         }
       }
     } while (cursor.nextSibling());
@@ -839,8 +856,12 @@ function collectImportBlocks(
       NAME: binding.name,
       ...(binding.alias ? { ALIAS: binding.alias } : {}),
     },
-    sourceStart: node.from,
-    sourceEnd: node.to,
+    // Each block points at its own name (plus alias), not the whole statement.
+    sourceStart: binding.from,
+    sourceEnd: binding.to,
+    // Fallback range: the whole `from ... import ...` statement.
+    statementStart: node.from,
+    statementEnd: node.to,
   }));
 }
 
@@ -1099,6 +1120,13 @@ function createBlock(
   const ranged = block as Blockly.BlockSvg & Partial<BlockWithSourceRange>;
   ranged.sourceStart = descriptor.sourceStart;
   ranged.sourceEnd = descriptor.sourceEnd;
+  if (
+    descriptor.statementStart !== undefined &&
+    descriptor.statementEnd !== undefined
+  ) {
+    ranged.statementStart = descriptor.statementStart;
+    ranged.statementEnd = descriptor.statementEnd;
+  }
   return block;
 }
 

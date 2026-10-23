@@ -1,5 +1,7 @@
 # Python to Blocks
 
+> **For AI agents:** read `AGENTS.md` before making any changes.
+
 A read-only viewer that shows Pybricks Python (LEGO SPIKE Prime, FLL robots) as Pybricks-style Blockly blocks.
 
 Built for teammates who prefer blocks, and for reading unfamiliar code fast.

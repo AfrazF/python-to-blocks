@@ -7,6 +7,10 @@
   --sidebar-active-fg: #2c3138;
 }
 
+body {
+  background-color: #ecf0f1;
+}
+
 body.dark {
   --sidebar-bg: #2a3139;
   --sidebar-fg: #cccccc;
@@ -14,6 +18,66 @@ body.dark {
   --sidebar-hover: #353d47;
   --sidebar-active-bg: #3d4751;
   --sidebar-active-fg: #ffffff;
+  background-color: #1e1e1e;
+}
+
+/* Smooth theme crossfade — applies to all theme-variable-driven elements */
+body,
+#sidebar,
+#sidebar-toolbar,
+#sidebar-error,
+.sidebar-item,
+#upload-btn,
+#sidebar-handle::before,
+#editor-splitter::before,
+#app-controls button {
+  transition:
+    background-color 300ms linear,
+    color 300ms linear,
+    border-color 300ms linear,
+    fill 300ms linear;
+}
+
+/* Correct target — Blockly sets background-color here on theme change */
+.blocklySvg {
+  transition: background-color 300ms linear;
+}
+
+/* Blockly scrollbars */
+.blocklyScrollbarHandle {
+  transition: fill 300ms linear;
+}
+
+/* Monaco does not transition — it re-renders on setTheme(). Accepted. */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  transition: background-color 300ms linear;
+}
+
+/* Monaco internal elements — color-driven, need explicit transitions */
+.monaco-editor .lines-content .core-guide-indent {
+  transition: box-shadow 300ms linear;
+}
+
+.monaco-editor .bracket-indent-guide {
+  transition: box-shadow 300ms linear;
+}
+
+.monaco-editor .bracket-highlighting-0,
+.monaco-editor .bracket-highlighting-1,
+.monaco-editor .bracket-highlighting-2,
+.monaco-editor .bracket-highlighting-3 {
+  transition: color 300ms linear;
+}
+
+.monaco-editor .view-overlays .current-line {
+  transition: background-color 300ms linear;
+}
+
+/* Monaco 0.57 uses .current-line in the margin, not .current-line-margin */
+.monaco-editor .margin-view-overlays .current-line {
+  transition: background-color 300ms linear;
 }
 
 .material-symbols-outlined {
@@ -44,6 +108,42 @@ body.dark {
     "wght" 400,
     "GRAD" 0,
     "opsz" 24;
+}
+
+/* Theme toggle: stacked sun/moon ligatures with crossfade + rotate */
+#theme-toggle-btn {
+  position: relative;
+}
+
+#theme-toggle-btn .theme-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition:
+    transform 550ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 250ms ease;
+}
+
+/* Light mode (default): sun visible, moon rotated away */
+#theme-toggle-btn .theme-icon-sun {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
+}
+
+#theme-toggle-btn .theme-icon-moon {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-90deg) scale(0.3);
+}
+
+/* Dark mode: sun spins out, moon spins in */
+body.dark #theme-toggle-btn .theme-icon-sun {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(90deg) scale(0.3);
+}
+
+body.dark #theme-toggle-btn .theme-icon-moon {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
 /* Code button: SVG morph between <> and </> */
@@ -157,7 +257,8 @@ body {
   opacity: 0.35;
   transition:
     opacity 120ms,
-    background 120ms;
+    background-color 300ms linear,
+    color 300ms linear;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -226,7 +327,8 @@ body.dark .blocklyScrollbarHandle:hover {
   opacity: 0.35;
   transition:
     opacity 120ms,
-    background 120ms;
+    background-color 300ms linear,
+    color 300ms linear;
 }
 
 #editor-splitter:hover::before {

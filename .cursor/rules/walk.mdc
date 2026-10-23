@@ -1,0 +1,18 @@
+---
+description: Rules for editing src/walk.ts (Python AST -> BlockDescriptor -> Blockly)
+globs: src/walk.ts
+alwaysApply: false
+---
+
+# walk.ts
+
+- Two phases: `collectBlocks` builds descriptors, `materialize` renders them. Never render inside the walk.
+- Every descriptor needs `sourceStart`/`sourceEnd`. Import blocks also need `statementStart`/`statementEnd`.
+- Inline comments attach via `statements.at(-1)!.commentText`, guarded by `statements.length > 0`. There is no `lastBlock` variable. Keep the guard; never index without it.
+- `at(-1)` is the last descriptor, not the last rendered block. `drive.settings()` expands to several descriptors.
+- `docstringConsumed` is set by every non-comment statement. Do not reset it mid-body.
+- Mutator blocks: call `loadExtraState({ taskCount })` before `initSvg()`, or the inputs do not exist yet.
+- `materialize` measures `getBlocksBoundingBox()` before creating each block. Keep that order.
+- Literal args go in `fields` under the input name and land on the `math_number` shadow via `applyFieldValue`.
+- Unmapped constructs must fall back to `pybricks_raw_code`. Never drop a statement.
+- `fixtures/robot.py` and `fixtures/exampleattach.py` must stay at zero raw blocks (`src/acceptance.test.ts`).

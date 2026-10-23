@@ -127,6 +127,134 @@ function startWorkspace(): void {
     editor.layout();
   });
 
+  const revealBlockSource = (block: Blockly.Block): void => {
+    // The setup hat spans the whole file, so highlighting it is noise.
+    if (block.type === "pybricks_setup") {
+      return;
+    }
+
+    const { sourceStart, sourceEnd } = block as Blockly.Block & {
+      sourceStart?: number;
+      sourceEnd?: number;
+    };
+    if (typeof sourceStart === "number" && typeof sourceEnd === "number") {
+      editor.revealRange(sourceStart, sourceEnd);
+    }
+  };
+
+  // Blockly readOnly mode suppresses gesture-driven SELECTED events, so mouse
+  // clicks are read straight off the SVG. Blockly 13 puts `data-id` on each
+  // block's <g> (class `blocklyBlock`, not `blocklyDraggable`).
+  const canvas = workspace.getCanvas();
+  canvas.addEventListener("click", (event: MouseEvent) => {
+    let el = event.target as Element | null;
+    while (el && el !== canvas && !el.hasAttribute("data-id")) {
+      el = el.parentElement;
+    }
+
+    const blockId = el && el !== canvas ? el.getAttribute("data-id") : null;
+    const block = blockId ? workspace.getBlockById(blockId) : null;
+    if (!block) {
+      // Empty canvas: drop the Monaco highlight left over from the last block.
+      editor.clearSelection();
+      return;
+    }
+
+    revealBlockSource(block);
+  });
+
+  // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
+  workspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.type !== Blockly.Events.SELECTED) {
+      return;
+    }
+    const selectedEvent = event as Blockly.Events.Selected;
+    // newElementId is undefined when the canvas is clicked (deselect).
+    if (!selectedEvent.newElementId) {
+      return;
+    }
+
+    const block = workspace.getBlockById(selectedEvent.newElementId);
+    if (block) {
+      revealBlockSource(block);
+    }
+  });
+
+  // Reverse sync: moving the cursor in Monaco briefly glows the innermost
+  // block whose source range contains the cursor. highlightBlock() is a
+  // temporary visual effect and does not fire SELECTED, so this cannot loop
+  // back into the block -> Monaco handler above.
+  let lastHighlightedBlockId: string | null = null;
+  let highlightTimer: ReturnType<typeof setTimeout> | null = null;
+
+  editor.onCursorChange((offset) => {
+    // Cursor events fire on every click and scroll; settle before acting.
+    if (highlightTimer) {
+      clearTimeout(highlightTimer);
+    }
+    highlightTimer = setTimeout(() => {
+      highlightTimer = null;
+      type Ranged = Blockly.Block & {
+        sourceStart?: number;
+        sourceEnd?: number;
+        statementStart?: number;
+        statementEnd?: number;
+      };
+      const allBlocks = workspace
+        .getAllBlocks(false)
+        .filter((block) => block.type !== "pybricks_setup") as Ranged[];
+
+      // 1. Narrow ranges first: the innermost block containing the cursor.
+      const narrow = allBlocks.filter(
+        (block) =>
+          typeof block.sourceStart === "number" &&
+          typeof block.sourceEnd === "number" &&
+          offset >= block.sourceStart &&
+          offset <= block.sourceEnd,
+      );
+
+      let best: Ranged | null = null;
+
+      if (narrow.length > 0) {
+        // Innermost = smallest range; ties broken by earliest start.
+        best = narrow.sort((a, b) => {
+          const aSize = a.sourceEnd! - a.sourceStart!;
+          const bSize = b.sourceEnd! - b.sourceStart!;
+          if (aSize !== bSize) {
+            return aSize - bSize;
+          }
+          return a.sourceStart! - b.sourceStart!;
+        })[0];
+      } else {
+        // 2. Fall back to whole-statement ranges (imports), so clicking the
+        // `from`/`import` keywords or a comma still finds a block.
+        const atStatement = allBlocks.filter(
+          (block) =>
+            typeof block.statementStart === "number" &&
+            typeof block.statementEnd === "number" &&
+            offset >= block.statementStart &&
+            offset <= block.statementEnd,
+        );
+        if (atStatement.length > 0) {
+          best = atStatement.sort((a, b) => a.sourceStart! - b.sourceStart!)[0];
+        }
+      }
+
+      if (best) {
+        if (best.id !== lastHighlightedBlockId) {
+          if (lastHighlightedBlockId) {
+            workspace.highlightBlock(lastHighlightedBlockId, false);
+          }
+          lastHighlightedBlockId = best.id;
+          workspace.highlightBlock(best.id);
+        }
+      } else if (lastHighlightedBlockId) {
+        workspace.highlightBlock(lastHighlightedBlockId, false);
+        lastHighlightedBlockId = null;
+      }
+    }, 50);
+  });
+
   const themeToggleButton = document.getElementById(
     "theme-toggle-btn",
   ) as HTMLButtonElement | null;
@@ -134,19 +262,11 @@ function startWorkspace(): void {
     throw new Error("The theme toggle button must exist.");
   }
 
-  const themeIcon = document.getElementById(
-    "theme-icon",
-  ) as HTMLSpanElement | null;
-  if (!themeIcon) {
-    throw new Error("The theme icon must exist.");
-  }
-
   const applyTheme = (theme: "light" | "dark") => {
     document.body.classList.toggle("dark", theme === "dark");
     workspace.setTheme(theme === "dark" ? pybricksDark : pybricksTheme);
     workspace.render();
     editor.setTheme(theme);
-    themeIcon.textContent = theme === "dark" ? "dark_mode" : "light_mode";
     themeToggleButton.setAttribute(
       "aria-label",
       theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
