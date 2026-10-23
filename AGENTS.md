@@ -4,7 +4,7 @@ Rules for AI agents working in this repository. Read this file before editing an
 
 ## 1. What this project is, and what it is not
 
-A read-only viewer. It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
+A read-only viewer (v1.25; v2 adds editing on a separate branch). It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
 
 Pipeline, in order:
 
@@ -43,6 +43,23 @@ Expected output: `Test Files 5 passed (5)` and `Tests 6 passed (6)`. The six tes
 
 If either command fails on a clean checkout, STOP. Report the failure and do not start editing.
 
+## Read-only is v1.25, not permanent
+
+`src/blockly.ts` sets `readOnly: true` on the Blockly workspace. `src/editor.ts` sets `readOnly: true, domReadOnly: true` on Monaco.
+
+**This is the constraint for v1.25 and everything merged to `main` today.** Do not flip either to `false` in any PR that targets `main`. That boundary is what ships to users right now.
+
+**v2 (editable blocks) is planned.** It lives on a long-running branch, never on `main`, and requires components that do not exist yet:
+
+- A Python **generator** (blocks → Python) — currently zero of this exists
+- Round-trip verification (Python → blocks → Python must be identical)
+- Undo/redo across both panels
+- Editable Monaco with two-way sync
+
+v2 is not "turn off `readOnly: true`." That's the first 1% of the work. Do not start v2 on `main`, and do not flip `readOnly` on any branch whose PR targets `main`.
+
+See `docs/ROADMAP.md` under "v2 — editable blocks" for the full scope.
+
 ## 3. Non-negotiable constraints
 
 **The workspace is read-only.** `src/blockly.ts:8` sets `readOnly: true`, `:6` sets `renderer: "zelos"`, `:7` sets `theme: pybricksTheme`, `:9` sets `trashcan: false`. Do not add a toolbox, flyout, or mutator UI that assumes editing. Consequence: Blockly suppresses gesture-driven `SELECTED` events on mouse click, which is why `src/main.ts:149-165` reads clicks off the SVG instead.
@@ -66,6 +83,8 @@ If either command fails on a clean checkout, STOP. Report the failure and do not
 **The editor is read-only in two places.** `src/editor.ts:109-110` sets `readOnly: true` and `domReadOnly: true`. Do not remove either; the tool has no write path back to Python.
 
 **`automaticLayout` is off.** `src/editor.ts:114` sets `automaticLayout: false`, so every layout change must call `editor.layout()` explicitly. `src/main.ts` does this on the toggle (`:127`), the splitter drag (`:289`), and the `ResizeObserver` (`:311`). If you add a container that changes size, call `editor.layout()` and `Blockly.svgResize(workspace)`.
+
+- **`readOnly: true` on Blockly and Monaco** — enforced by v1.25. See "Read-only is v1.25, not permanent" above before considering any change.
 
 ## 4. Fragile code — read before modifying
 
