@@ -2,9 +2,16 @@
 
 Rules for AI agents working in this repository. Read this file before editing anything.
 
+## Milestones shipped
+
+- **v1.0.0** (2026-10-22) — read-only viewer, single-file HTML, Docker deployment
+- **v1.1.0** (2026-10-24) — Monaco panel, bidirectional highlighting, multitask argument comments, cascade glow
+
+See `docs/ROADMAP.md` for v1.5 in-progress and v2/v3 planning.
+
 ## 1. What this project is, and what it is not
 
-A read-only viewer (v1.1.0 shipped; v2 adds editing on a separate branch). It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
+A read-only viewer (v1.1.0 shipped; v2 adds editing behind a feature flag). It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
 
 Pipeline, in order:
 
@@ -43,26 +50,29 @@ Expected output: `Test Files 5 passed (5)` and `Tests 6 passed (6)`. The six tes
 
 If either command fails on a clean checkout, STOP. Report the failure and do not start editing.
 
-## Read-only is v1.1.0, not permanent
+## Read-only is v1.1.0 — v2 uses a feature flag, not a separate branch
 
-`src/blockly.ts` sets `readOnly: true` on the Blockly workspace. `src/editor.ts` sets `readOnly: true, domReadOnly: true` on Monaco.
+`src/blockly.ts` sets `readOnly: true`. `src/editor.ts` sets `readOnly: true, domReadOnly: true`. **This remains the default on `main` throughout v2 development.**
 
-**v1.1.0 shipped with this constraint, and it still applies to everything merged to `main` today.** Do not flip either to `false` in any PR that targets `main`. That boundary is what ships to users right now.
+v2 (editable blocks) is gated behind a URL parameter: `?editable=1`. When the param is present, the app:
 
-**v2 (editable blocks) is planned.** It lives on a long-running branch, never on `main`, and requires components that do not exist yet:
+- Sets `readOnly: false` on the Blockly workspace
+- Shows a toolbox / palette
+- Enables gesture editing (drag, connect, delete)
 
-- A Python **generator** (blocks → Python) — currently zero of this exists
-- Round-trip verification (Python → blocks → Python must be identical)
-- Undo/redo across both panels
-- Editable Monaco with two-way sync
+**The default state of `main` never changes during v2.** Users who hit the app without `?editable=1` get the exact v1.1.0 read-only experience. Users who add the param get the in-progress v2 experience.
 
-v2 is not "turn off `readOnly: true`." That's the first 1% of the work. Do not start v2 on `main`, and do not flip `readOnly` on any branch whose PR targets `main`.
+**Why not a `v2-dev` branch:** A separate long-lived branch means two protected branch heads, two CI targets, PRs against the wrong base, and constant rebasing. The feature flag avoids all of it — v2 features land on `main` behind the flag, one PR at a time, exactly like v1.5.
 
-See `docs/ROADMAP.md` under "v2 — editable blocks" for the full scope.
+**When v2 ships:** flip the default (`readOnly: true` → `readOnly: false`, param becomes `?readonly=1` for legacy behavior). One commit, no branch merge, no ruleset change.
+
+**Do not:** create a `v2-dev` branch. Do not set `readOnly: false` unconditionally. Do not add a second ruleset. Any v2 PR should preserve the flag gate.
+
+See `docs/ROADMAP.md` under "v2 — Editable IDE" for the full scope.
 
 ## 3. Non-negotiable constraints
 
-**The workspace is read-only.** `src/blockly.ts` sets `readOnly: true`, `renderer: "zelos"`, `theme: pybricksTheme`, and `trashcan: false`. Do not add a toolbox, flyout, or mutator UI that assumes editing. Consequence: Blockly suppresses gesture-driven `SELECTED` events on mouse click, which is why the click listener in `src/main.ts` reads clicks off the SVG instead.
+**The workspace is read-only by default.** `src/blockly.ts` sets `readOnly: true`, `renderer: "zelos"`, `theme: pybricksTheme`, and `trashcan: false`. Do not add a toolbox, flyout, or mutator UI that assumes editing on the default path — v2 editing is gated behind `?editable=1` (see "Read-only is v1.1.0" above). Consequence: Blockly suppresses gesture-driven `SELECTED` events on mouse click, which is why the click listener in `src/main.ts` reads clicks off the SVG instead.
 
 **Monaco is imported through the API-only entry point.** `src/editor.ts` starts with `import * as monaco from "monaco-editor/editor/editor.api.js";`. Use that specifier. Do not import the `monaco-editor` root or `monaco-editor/esm/vs/editor/editor.main.js`; those pull in workers and break the single-file build. There is no `MonacoEnvironment` or `getWorker` anywhere in `src/`. Keep it that way.
 
@@ -84,7 +94,7 @@ See `docs/ROADMAP.md` under "v2 — editable blocks" for the full scope.
 
 **`automaticLayout` is off.** `createEditor` in `src/editor.ts` sets `automaticLayout: false`, so every layout change must call `editor.layout()` explicitly. `src/main.ts` does this on the toggle, the splitter drag, and the `ResizeObserver`. If you add a container that changes size, call `editor.layout()` and `Blockly.svgResize(workspace)`.
 
-- **`readOnly: true` on Blockly and Monaco** — enforced by v1.1.0. See "Read-only is v1.1.0, not permanent" above before considering any change.
+- **`readOnly: true` on Blockly and Monaco** — enforced by v1.1.0. See "Read-only is v1.1.0 — v2 uses a feature flag, not a separate branch" above before considering any change.
 
 ## 4. Fragile code — read before modifying
 
@@ -146,3 +156,15 @@ Follow `docs/GIT.md`. Message shape is `Step NN: <one line>`, no trailing period
 2. `npm run build` succeeds and writes `dist/index.html`.
 3. In the browser, the changed behaviour works AND a previously-working behaviour still works: switch files, toggle the code panel, toggle the theme, click a block, click in Monaco.
 4. `dist/index.html` opens via `file://` with no console errors.
+
+## v2 scope decisions (locked)
+
+These were decided 2026-10-24 and should not be re-litigated without cause:
+
+- **Architecture:** Hybrid. Single-file `index.html` = viewer-only (no pyodide). Hosted URL = full intellisense. Feature-detected at runtime.
+- **Sequence:** v2a (Monaco+tabs) → v2b (editable blocks) → v2c (intellisense) → v2d (polish) → v2 wrap-up (PWA + Tauri). Do not skip ahead.
+- **v2b is the biggest cluster** (6–10 weeks). Full round-trip editing. If v2b.5 (Python→blocks reverse sync) proves infeasible in scope, the fallback is blocks→Python only — a documented reduction, not a failure.
+- **Tabs pattern:** sidebar keeps file list (like VS Code Explorer), tabs show open files. Clicking a file in the sidebar opens it as a tab; clicking again if already open focuses that tab.
+- **Comment revamp:** TurboWarp-style (speech bubble shape, subtle shadow, small rounded corners), not Zelos-themed, not MD3.
+- **Token colors in v2a.2:** Python tokens colored by the block they would become (DriveBase → blue, Flow → orange, Variables → pink). Does not need pyodide.
+- **Intellisense packages are npm-wrapped pyodide wheels** (~29 MB combined). Not pure JS. Cache after first fetch. Excluded from single-file `file://` build.
