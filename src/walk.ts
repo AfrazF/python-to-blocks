@@ -1119,6 +1119,136 @@ function collectWhileBlock(
   return { descriptor, functions: collected.functions };
 }
 
+/** One arm of an `if` chain: a condition (absent for `else`) and its body. */
+type IfBranch = {
+  condition?: ParseNode;
+  body?: ParseNode;
+  start: number;
+  end: number;
+};
+
+/**
+ * Reads `if` / `elif` / `else` into nested C-shaped blocks.
+ *
+ * Lezer keeps the whole chain in one `IfStatement` node, with `if`, `elif`,
+ * and `else` as sibling tokens and one `Body` child per arm. Each `elif`
+ * becomes an `if` block inside the previous arm's `else` slot, which is how
+ * Blockly renders else-if chains without a mutator.
+ *
+ * Conditions are kept as raw source text, so `Button.LEFT in pressed` and
+ * `label == choice` both survive verbatim. The slice stops at the condition
+ * node, so neither the `if`/`elif` keyword nor the `:` is included.
+ *
+ * An unexpected shape (an `else` that is not last, an arm with no body, a
+ * chain with no condition) returns undefined and the caller falls back to a
+ * raw-code block.
+ */
+function collectIfBlock(
+  source: string,
+  node: ParseNode,
+  resolved: ResolvedTable,
+): { descriptor: BlockDescriptor; functions: BlockDescriptor[] } | undefined {
+  const cursor = node.cursor();
+  const branches: IfBranch[] = [];
+  const functions: BlockDescriptor[] = [];
+  let current: IfBranch | undefined;
+  let expectingCondition = false;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "if" || cursor.name === "elif") {
+        current = { start: cursor.node.from, end: cursor.node.to };
+        branches.push(current);
+        expectingCondition = true;
+        continue;
+      }
+      if (cursor.name === "else") {
+        current = { start: cursor.node.from, end: cursor.node.to };
+        branches.push(current);
+        expectingCondition = false;
+        continue;
+      }
+      if (cursor.name === "Body") {
+        if (!current || current.body) {
+          return undefined;
+        }
+        current.body = cursor.node;
+        current.end = cursor.node.to;
+        expectingCondition = false;
+        continue;
+      }
+      if (expectingCondition && current) {
+        current.condition = cursor.node;
+        expectingCondition = false;
+      }
+    } while (cursor.nextSibling());
+  }
+
+  if (
+    branches.length === 0 ||
+    branches.some((branch) => !branch.body) ||
+    !branches.some((branch) => branch.condition)
+  ) {
+    return undefined;
+  }
+
+  // Build from the last arm backwards: each arm's `else` slot holds the arm
+  // below it, so the first arm ends up as the root descriptor.
+  let tail: BlockDescriptor | undefined;
+  let tailBody: ParseNode | undefined;
+
+  for (let index = branches.length - 1; index >= 0; index -= 1) {
+    const branch = branches[index];
+    const body = branch.body!;
+
+    if (!branch.condition) {
+      // `else` must be the final arm; anything else is a shape we cannot draw.
+      if (index !== branches.length - 1) {
+        return undefined;
+      }
+      tailBody = body;
+      continue;
+    }
+
+    const hasElse = tail !== undefined || tailBody !== undefined;
+    const descriptor: BlockDescriptor = {
+      type: hasElse ? "pybricks_if_else" : "pybricks_if",
+      fields: {
+        CONDITION: source
+          .slice(branch.condition.from, branch.condition.to)
+          .trim(),
+      },
+      inputs: {},
+      // The root spans the whole statement; a nested `elif` spans its own arm.
+      sourceStart: index === 0 ? node.from : branch.start,
+      sourceEnd: index === 0 ? node.to : branch.end,
+    };
+
+    const collected = collectBody(source, body, resolved, {
+      topLevel: false,
+      block: descriptor,
+    });
+    descriptor.inputs = { DO: collected.statements };
+    functions.push(...collected.functions);
+
+    if (tailBody) {
+      const elseCollected = collectBody(source, tailBody, resolved, {
+        topLevel: false,
+        block: descriptor,
+      });
+      descriptor.inputs.ELSE = elseCollected.statements;
+      functions.push(...elseCollected.functions);
+      tailBody = undefined;
+    } else if (tail) {
+      descriptor.inputs.ELSE = [tail];
+    }
+
+    tail = descriptor;
+  }
+
+  return tail ? { descriptor: tail, functions } : undefined;
+}
+
 /**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
@@ -1267,6 +1397,14 @@ function collectBody(
       if (collectedWhile) {
         blocks = [collectedWhile.descriptor];
         functions.push(...collectedWhile.functions);
+      } else {
+        blocks = [rawDescriptor(source, cursor.node)];
+      }
+    } else if (cursor.name === "IfStatement") {
+      const collectedIf = collectIfBlock(source, cursor.node, resolved);
+      if (collectedIf) {
+        blocks = [collectedIf.descriptor];
+        functions.push(...collectedIf.functions);
       } else {
         blocks = [rawDescriptor(source, cursor.node)];
       }
