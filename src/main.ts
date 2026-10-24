@@ -18,6 +18,7 @@ import "./blocks/pass";
 import "./blocks/hardware";
 import "./blocks/for";
 import "./blocks/while";
+import "./blocks/if";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
 import runSource from "../fixtures/run.py?raw";
