@@ -68,6 +68,10 @@ function startWorkspace(): void {
       renderFile(source, workspace, fileResolution);
       editor.setValue(source);
       setActive(name);
+      // workspace.clear() disposed the old blocks (and their bubbles), so the
+      // tracked id is stale. Drop it rather than leave it pointing at a block
+      // that no longer exists.
+      monacoOpenedBubbleBlockId = null;
     },
     onUpload: async (uploadedFiles) => {
       if (errorBanner) {
@@ -99,6 +103,7 @@ function startWorkspace(): void {
           renderFile(currentFiles[targetFile], workspace, resolved[targetFile]);
           editor.setValue(currentFiles[targetFile]);
           setActive(targetFile);
+          monacoOpenedBubbleBlockId = null;
         }
       } catch (error) {
         if (error instanceof Error && errorBanner) {
@@ -143,6 +148,81 @@ function startWorkspace(): void {
     }
   };
 
+  // --- Comment bubbles driven from Monaco -----------------------------------
+  // Blockly 13 exposes the comment bubble through the block's COMMENT icon:
+  // `block.getIcon(Blockly.icons.IconType.COMMENT)` returns an ICommentIcon,
+  // which implements IHasBubble (`bubbleIsVisible` / `setBubbleVisible`).
+  // setBubbleVisible() flips its internal visibility flag synchronously and
+  // only then awaits the pending render, so open/close in the same tick is
+  // safe, and it never calls focus() — Monaco keeps the caret.
+  type CommentRanged = Blockly.Block & {
+    commentSourceStart?: number;
+    commentSourceEnd?: number;
+  };
+
+  // The block whose bubble Monaco opened, or null. Only bubbles opened by
+  // cursor movement are tracked; icon-opened bubbles stay Blockly's business.
+  let monacoOpenedBubbleBlockId: string | null = null;
+
+  const openBubbleForBlock = (block: Blockly.Block): boolean => {
+    const icon = block.getIcon(Blockly.icons.IconType.COMMENT);
+    if (!icon) {
+      return false;
+    }
+    void icon.setBubbleVisible(true).catch(() => {});
+    return true;
+  };
+
+  const closeBubbleForBlock = (block: Blockly.Block): void => {
+    const icon = block.getIcon(Blockly.icons.IconType.COMMENT);
+    if (!icon) {
+      return;
+    }
+    void icon.setBubbleVisible(false).catch(() => {});
+  };
+
+  const closeMonacoOpenedBubble = (): void => {
+    if (!monacoOpenedBubbleBlockId) {
+      return;
+    }
+    const previous = workspace.getBlockById(monacoOpenedBubbleBlockId);
+    if (previous) {
+      closeBubbleForBlock(previous);
+    }
+    monacoOpenedBubbleBlockId = null;
+  };
+
+  // The most specific block whose comment/docstring range contains `offset`.
+  // Docstrings sit inside their owner's body, so ranges can nest; the smallest
+  // range wins. The setup hat is skipped for the same reason it is skipped in
+  // reverse sync.
+  const findCommentOwner = (offset: number): Blockly.Block | null => {
+    let best: CommentRanged | null = null;
+    for (const block of workspace.getAllBlocks(false) as CommentRanged[]) {
+      if (block.type === "pybricks_setup") {
+        continue;
+      }
+      const { commentSourceStart, commentSourceEnd } = block;
+      if (
+        typeof commentSourceStart !== "number" ||
+        typeof commentSourceEnd !== "number"
+      ) {
+        continue;
+      }
+      if (offset < commentSourceStart || offset > commentSourceEnd) {
+        continue;
+      }
+      if (
+        !best ||
+        commentSourceEnd - commentSourceStart <
+          best.commentSourceEnd! - best.commentSourceStart!
+      ) {
+        best = block;
+      }
+    }
+    return best;
+  };
+
   // Blockly readOnly mode suppresses gesture-driven SELECTED events, so mouse
   // clicks are read straight off the SVG. Blockly 13 puts `data-id` on each
   // block's <g> (class `blocklyBlock`, not `blocklyDraggable`).
@@ -158,6 +238,11 @@ function startWorkspace(): void {
     // so that icon keeps its old behaviour.
     const icon = el?.closest?.(".blocklyCommentIcon");
     if (icon) {
+      // The user switched context to the icon, so drop any bubble Monaco
+      // opened. Blockly's own pointerdown handler opens this icon's bubble;
+      // calling openBubbleForBlock here would be redundant, and leaving the
+      // bubble untracked keeps its native close behaviour intact.
+      closeMonacoOpenedBubble();
       const owner = icon.closest("[data-id]");
       const ownerId = owner?.getAttribute("data-id");
       const ownerBlock = ownerId ? workspace.getBlockById(ownerId) : null;
@@ -186,10 +271,17 @@ function startWorkspace(): void {
       editor.clearSelection();
       editor.clearCommentHighlight();
       clearBlockHighlight();
+      closeMonacoOpenedBubble();
       return;
     }
 
     editor.clearCommentHighlight();
+    if (block.type === "pybricks_setup") {
+      // The hat spans the whole file, so revealBlockSource() returns early and
+      // no cursor event fires to close a Monaco-opened bubble. Every other
+      // block moves the cursor, and the reverse-sync debounce closes it.
+      closeMonacoOpenedBubble();
+    }
     revealBlockSource(block);
   });
 
@@ -205,6 +297,7 @@ function startWorkspace(): void {
     editor.clearSelection();
     editor.clearCommentHighlight();
     clearBlockHighlight();
+    closeMonacoOpenedBubble();
   });
 
   // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
@@ -278,6 +371,26 @@ function startWorkspace(): void {
         statementStart?: number;
         statementEnd?: number;
       };
+
+      // Cursor landed on a comment or docstring line: open that block's bubble
+      // and stop. The bubble is the feedback here, so the reverse-sync glow is
+      // skipped — glowing the block as well is visual noise.
+      const commentOwner = findCommentOwner(offset);
+      if (commentOwner) {
+        if (monacoOpenedBubbleBlockId !== commentOwner.id) {
+          closeMonacoOpenedBubble();
+          if (openBubbleForBlock(commentOwner)) {
+            monacoOpenedBubbleBlockId = commentOwner.id;
+          }
+        }
+        clearBlockHighlight();
+        return;
+      }
+
+      // Cursor left every comment range: close the bubble Monaco opened. A
+      // bubble opened by clicking the icon is untracked and stays untouched.
+      closeMonacoOpenedBubble();
+
       const allBlocks = workspace
         .getAllBlocks(false)
         .filter((block) => block.type !== "pybricks_setup") as Ranged[];
