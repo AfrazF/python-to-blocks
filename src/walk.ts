@@ -1069,6 +1069,57 @@ function collectForBlock(
 }
 
 /**
+ * Reads `while <condition>:` into a C-shaped block.
+ *
+ * The condition is kept as raw source text, so `True`, `not x.done()`, and
+ * `x < 10` all survive verbatim. The slice stops at the body, whose first
+ * child is the `:` token, so the colon is excluded without extra trimming.
+ * A `while ... else:` has no block shape yet, so it returns undefined and the
+ * caller falls back to a raw-code block.
+ */
+function collectWhileBlock(
+  source: string,
+  node: ParseNode,
+  resolved: ResolvedTable,
+): { descriptor: BlockDescriptor; functions: BlockDescriptor[] } | undefined {
+  const cursor = node.cursor();
+  let whileTokenEnd: number | undefined;
+  let body: ParseNode | undefined;
+  let hasElse = false;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "while" && whileTokenEnd === undefined) {
+        whileTokenEnd = cursor.node.to;
+      } else if (cursor.name === "Body" && body === undefined) {
+        body = cursor.node;
+      } else if (cursor.name === "else") {
+        hasElse = true;
+      }
+    } while (cursor.nextSibling());
+  }
+
+  if (whileTokenEnd === undefined || !body || hasElse) {
+    return undefined;
+  }
+
+  const descriptor: BlockDescriptor = {
+    type: "pybricks_while",
+    fields: { CONDITION: source.slice(whileTokenEnd, body.from).trim() },
+    inputs: {},
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+
+  const collected = collectBody(source, body, resolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  descriptor.inputs = { BODY: collected.statements };
+  return { descriptor, functions: collected.functions };
+}
+
+/**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
  */
@@ -1208,6 +1259,14 @@ function collectBody(
       if (collectedFor) {
         blocks = [collectedFor.descriptor];
         functions.push(...collectedFor.functions);
+      } else {
+        blocks = [rawDescriptor(source, cursor.node)];
+      }
+    } else if (cursor.name === "WhileStatement") {
+      const collectedWhile = collectWhileBlock(source, cursor.node, resolved);
+      if (collectedWhile) {
+        blocks = [collectedWhile.descriptor];
+        functions.push(...collectedWhile.functions);
       } else {
         blocks = [rawDescriptor(source, cursor.node)];
       }
