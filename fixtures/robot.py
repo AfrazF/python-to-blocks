@@ -20,25 +20,27 @@ AXLE_TRACK = 112
 
 drive = DriveBase(left, right, WHEEL_DIAMETER, AXLE_TRACK)
 drive.use_gyro(True)
-# capture the factory-calculated default settings for your specific robot:
-DEFAULT_SETTINGS = drive.settings()
 
 
 # ------------------------------------------------------------ speed presets
 # Only call these between moves, not while the robot is moving.
 def normal():
     """Default settings."""
-    # Unpacks and applies the exact default settings calculated by Pybricks
-    drive.settings(*DEFAULT_SETTINGS)
+    drive.settings(
+        straight_speed=350,
+        straight_acceleration=700,
+        turn_rate=150,
+        turn_acceleration=400,
+    )
 
 
 def fast():
     """Long drives with no obstacles."""
     drive.settings(
-        straight_speed=430,
-        straight_acceleration=750,
-        turn_rate=180,
-        turn_acceleration=450,
+        straight_speed=500,
+        straight_acceleration=1000,
+        turn_rate=200,
+        turn_acceleration=500,
     )
 
 
