@@ -2,9 +2,16 @@
 
 Rules for AI agents working in this repository. Read this file before editing anything.
 
+## Milestones shipped
+
+- **v1.0.0** (2026-10-22) — read-only viewer, single-file HTML, Docker deployment
+- **v1.1.0** (2026-10-24) — Monaco panel, bidirectional highlighting, multitask argument comments, cascade glow
+
+See `docs/ROADMAP.md` for v1.5 in-progress and v2/v3 planning.
+
 ## 1. What this project is, and what it is not
 
-A read-only viewer (v1.25; v2 adds editing on a separate branch). It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
+A read-only viewer (v1.1.0 shipped; v2 adds editing behind a feature flag). It parses Pybricks Python (LEGO SPIKE Prime, FLL robots) with `@lezer/python` and renders it as Blockly blocks on the Zelos renderer, resolving imports across files so that `attachment1 as attachment_a` is known to be a `Motor`. It is not an editor: there is no Python generation, no round-trip, no block editing, no Monaco workers, no icons on blocks, and no drag-to-create. Anything unmapped becomes a `pybricks_raw_code` block and is never dropped. Scope is locked in `docs/OVERVIEW.md`; block wording and colours are locked in `docs/BLOCK_DESIGN.md`.
 
 Pipeline, in order:
 
@@ -43,72 +50,89 @@ Expected output: `Test Files 5 passed (5)` and `Tests 6 passed (6)`. The six tes
 
 If either command fails on a clean checkout, STOP. Report the failure and do not start editing.
 
-## Read-only is v1.25, not permanent
+## Read-only is v1.1.0 — v2 uses a feature flag, not a separate branch
 
-`src/blockly.ts` sets `readOnly: true` on the Blockly workspace. `src/editor.ts` sets `readOnly: true, domReadOnly: true` on Monaco.
+`src/blockly.ts` sets `readOnly: true`. `src/editor.ts` sets `readOnly: true, domReadOnly: true`. **This remains the default on `main` throughout v2 development.**
 
-**This is the constraint for v1.25 and everything merged to `main` today.** Do not flip either to `false` in any PR that targets `main`. That boundary is what ships to users right now.
+v2 (editable blocks) is gated behind a URL parameter: `?editable=1`. When the param is present, the app:
 
-**v2 (editable blocks) is planned.** It lives on a long-running branch, never on `main`, and requires components that do not exist yet:
+- Sets `readOnly: false` on the Blockly workspace
+- Shows a toolbox / palette
+- Enables gesture editing (drag, connect, delete)
 
-- A Python **generator** (blocks → Python) — currently zero of this exists
-- Round-trip verification (Python → blocks → Python must be identical)
-- Undo/redo across both panels
-- Editable Monaco with two-way sync
+**The default state of `main` never changes during v2.** Users who hit the app without `?editable=1` get the exact v1.1.0 read-only experience. Users who add the param get the in-progress v2 experience.
 
-v2 is not "turn off `readOnly: true`." That's the first 1% of the work. Do not start v2 on `main`, and do not flip `readOnly` on any branch whose PR targets `main`.
+**Why not a `v2-dev` branch:** A separate long-lived branch means two protected branch heads, two CI targets, PRs against the wrong base, and constant rebasing. The feature flag avoids all of it — v2 features land on `main` behind the flag, one PR at a time, exactly like v1.5.
 
-See `docs/ROADMAP.md` under "v2 — editable blocks" for the full scope.
+**When v2 ships:** flip the default (`readOnly: true` → `readOnly: false`, param becomes `?readonly=1` for legacy behavior). One commit, no branch merge, no ruleset change.
+
+**Do not:** create a `v2-dev` branch. Do not set `readOnly: false` unconditionally. Do not add a second ruleset. Any v2 PR should preserve the flag gate.
+
+See `docs/ROADMAP.md` under "v2 — Editable IDE" for the full scope.
 
 ## 3. Non-negotiable constraints
 
-**The workspace is read-only.** `src/blockly.ts:8` sets `readOnly: true`, `:6` sets `renderer: "zelos"`, `:7` sets `theme: pybricksTheme`, `:9` sets `trashcan: false`. Do not add a toolbox, flyout, or mutator UI that assumes editing. Consequence: Blockly suppresses gesture-driven `SELECTED` events on mouse click, which is why `src/main.ts:149-165` reads clicks off the SVG instead.
+**The workspace is read-only by default.** `src/blockly.ts` sets `readOnly: true`, `renderer: "zelos"`, `theme: pybricksTheme`, and `trashcan: false`. Do not add a toolbox, flyout, or mutator UI that assumes editing on the default path — v2 editing is gated behind `?editable=1` (see "Read-only is v1.1.0" above). Consequence: Blockly suppresses gesture-driven `SELECTED` events on mouse click, which is why the click listener in `src/main.ts` reads clicks off the SVG instead.
 
-**Monaco is imported through the API-only entry point.** `src/editor.ts:1` is `import * as monaco from "monaco-editor/editor/editor.api.js";`. Use that specifier. Do not import the `monaco-editor` root or `monaco-editor/esm/vs/editor/editor.main.js`; those pull in workers and break the single-file build. There is no `MonacoEnvironment` or `getWorker` anywhere in `src/`. Keep it that way.
+**Monaco is imported through the API-only entry point.** `src/editor.ts` starts with `import * as monaco from "monaco-editor/editor/editor.api.js";`. Use that specifier. Do not import the `monaco-editor` root or `monaco-editor/esm/vs/editor/editor.main.js`; those pull in workers and break the single-file build. There is no `MonacoEnvironment` or `getWorker` anywhere in `src/`. Keep it that way.
 
-**The build must stay a single file.** `vite.config.ts:2` imports `viteSingleFile`, `:5` registers it, and `:7-9` inline everything (`assetsInlineLimit`, `cssCodeSplit: false`, `copyPublicDir: false`). The shipped artifact is one `dist/index.html` opened via `file://`. Anything that emits a separate asset or a worker breaks the product.
+**The build must stay a single file.** `vite.config.ts` imports `viteSingleFile`, registers it, and inlines everything (`assetsInlineLimit`, `cssCodeSplit: false`, `copyPublicDir: false`). The shipped artifact is one `dist/index.html` opened via `file://`. Anything that emits a separate asset or a worker breaks the product.
 
-**Source ranges are direct block properties, not `extraState`.** `src/walk.ts:1121-1122` assigns `ranged.sourceStart` and `ranged.sourceEnd` on the block after `initSvg()`. `src/main.ts:136-142` and `:198-201` read them off the block. Do not move them into `extraState` or `saveExtraState`.
+**Source ranges are direct block properties, not `extraState`.** `createBlock` in `src/walk.ts` assigns `ranged.sourceStart` and `ranged.sourceEnd` on the block after `initSvg()`. `revealBlockSource` and `onCursorChange` in `src/main.ts` read them off the block. Do not move them into `extraState` or `saveExtraState`.
 
-**`pybricks_setup` is skipped in both sync directions.** `src/main.ts:132` returns early in `revealBlockSource`; `src/main.ts:205` filters it out of the reverse-sync candidate list. The hat spans the whole file (`src/walk.ts:1057-1058`, `sourceStart: 0`, `sourceEnd: source.length`), so highlighting it is noise.
+**`pybricks_setup` is skipped in both sync directions.** `revealBlockSource` in `src/main.ts` returns early for it, and `onCursorChange` filters it out of the reverse-sync candidate list. The hat spans the whole file (`collectBlocks` in `src/walk.ts` sets `sourceStart: 0`, `sourceEnd: source.length`), so highlighting it is noise.
 
-**Import blocks carry a second, wider range.** `src/walk.ts:863-864` sets `statementStart`/`statementEnd` to the whole `from ... import ...` statement while `sourceStart`/`sourceEnd` cover only the name plus alias. `createBlock` copies them at `src/walk.ts:1127-1128`; `src/main.ts:233-235` uses them as the fallback when the cursor sits on `from`, `import`, or a comma.
+**Import blocks carry a second, wider range.** `collectImportBlocks` in `src/walk.ts` sets `statementStart`/`statementEnd` to the whole `from ... import ...` statement while `sourceStart`/`sourceEnd` cover only the name plus alias. `createBlock` copies them; `onCursorChange` in `src/main.ts` uses them as the fallback when the cursor sits on `from`, `import`, or a comma.
 
-**`multitask` uses `loadExtraState({ taskCount })`.** `src/walk.ts:1105-1110` calls it before `initSvg()`; the mutator in `src/blocks/multitask.ts:38-40` creates the `TASK0..TASKn` statement inputs. `src/walk.ts:759` sets `taskCount: Math.max(1, arguments_.length)`. Any new mutator block must follow the same order: load state, then `initSvg()`.
+**`multitask` uses `loadExtraState({ taskCount })`.** `createBlock` in `src/walk.ts` calls it before `initSvg()`; the mutator in `src/blocks/multitask.ts` creates the `TASK0..TASKn` statement inputs. `collectExpressionStatement` sets `taskCount: Math.max(1, argumentNodes.length)`. Any new mutator block must follow the same order: load state, then `initSvg()`.
 
-**Every block type must be registered before it is rendered.** Block definitions live in `src/blocks/*.ts` and are imported for side effects at the top of `src/main.ts:5-18`. A new block file that is not imported there will throw `Unknown block type` at render time. The registered types are `pybricks_setup`, `pybricks_task`, `pybricks_function`, `pybricks_call`, `pybricks_method_call`, `pybricks_await`, `pybricks_multitask`, `pybricks_import`, `pybricks_import_as`, `pybricks_var_reporter`, `pybricks_var_declare`, `pybricks_var_set`, `pybricks_comment`, `pybricks_pass`, `pybricks_raw_code`, `pybricks_hub`, `pybricks_motor_setup`, `pybricks_drivebase_setup`, `pybricks_drive_move`, `pybricks_drive_reset`, `pybricks_drive_use_gyro`, `pybricks_drive_configure`, `pybricks_motor_run_target`, `pybricks_motor_run_angle`, `pybricks_motor_run_until_stalled`, `pybricks_motor_reset_angle`, `pybricks_motor_stop`.
+**Every block type must be registered before it is rendered.** Block definitions live in `src/blocks/*.ts` and are imported for side effects at the top of `src/main.ts`. A new block file that is not imported there will throw `Unknown block type` at render time. The registered types are `pybricks_setup`, `pybricks_task`, `pybricks_function`, `pybricks_call`, `pybricks_method_call`, `pybricks_await`, `pybricks_multitask`, `pybricks_import`, `pybricks_import_as`, `pybricks_var_reporter`, `pybricks_var_declare`, `pybricks_var_set`, `pybricks_comment`, `pybricks_pass`, `pybricks_raw_code`, `pybricks_hub`, `pybricks_motor_setup`, `pybricks_drivebase_setup`, `pybricks_drive_move`, `pybricks_drive_reset`, `pybricks_drive_use_gyro`, `pybricks_drive_configure`, `pybricks_motor_run_target`, `pybricks_motor_run_angle`, `pybricks_motor_run_until_stalled`, `pybricks_motor_reset_angle`, `pybricks_motor_stop`.
 
-**Colours come from the block definition, not the theme.** Each `jsonInit` sets a literal `colour` (for example `#4c97ff` in `src/blocks/driveBase.ts:35`). `src/theme.ts` only supplies `blockStyles` for Blockly's own blocks and the workspace background. Changing a block's colour means editing its `jsonInit`, and `docs/BLOCK_DESIGN.md` must be updated in the same commit.
+**Colours come from the block definition, not the theme.** Each `jsonInit` sets a literal `colour` (for example `#4c97ff` in `src/blocks/driveBase.ts`). `src/theme.ts` only supplies `blockStyles` for Blockly's own blocks and the workspace background. Changing a block's colour means editing its `jsonInit`, and `docs/BLOCK_DESIGN.md` must be updated in the same commit.
 
-**The editor is read-only in two places.** `src/editor.ts:109-110` sets `readOnly: true` and `domReadOnly: true`. Do not remove either; the tool has no write path back to Python.
+**The editor is read-only in two places.** `createEditor` in `src/editor.ts` sets `readOnly: true` and `domReadOnly: true`. Do not remove either; the tool has no write path back to Python.
 
-**`automaticLayout` is off.** `src/editor.ts:114` sets `automaticLayout: false`, so every layout change must call `editor.layout()` explicitly. `src/main.ts` does this on the toggle (`:127`), the splitter drag (`:289`), and the `ResizeObserver` (`:311`). If you add a container that changes size, call `editor.layout()` and `Blockly.svgResize(workspace)`.
+**`automaticLayout` is off.** `createEditor` in `src/editor.ts` sets `automaticLayout: false`, so every layout change must call `editor.layout()` explicitly. `src/main.ts` does this on the toggle, the splitter drag, and the `ResizeObserver`. If you add a container that changes size, call `editor.layout()` and `Blockly.svgResize(workspace)`.
 
-- **`readOnly: true` on Blockly and Monaco** — enforced by v1.25. See "Read-only is v1.25, not permanent" above before considering any change.
+- **`readOnly: true` on Blockly and Monaco** — enforced by v1.1.0. See "Read-only is v1.1.0 — v2 uses a feature flag, not a separate branch" above before considering any change.
 
 ## 4. Fragile code — read before modifying
 
-**`collectBody` (`src/walk.ts:929`).** There is no `lastBlock` variable. Inline comments attach through `statements.at(-1)!.commentText = ...` at `src/walk.ts:956`, guarded by `statements.length > 0` at `:955`. Keep that guard; never index without it. The `at(-1)` target is the last _descriptor_, not the last rendered block: `drive.settings(...)` expands to up to four descriptors and `multitask` is one descriptor with nested inputs, so an inline comment can attach to a block that is not visually above it. Do not reorder pushes to "fix" this without a test.
+**`collectBody` (`src/walk.ts`).** There is no `lastBlock` variable. Inline comments attach through `statements.at(-1)!.commentText = ...`, guarded by `statements.length > 0`. Keep that guard; never index without it. The `at(-1)` target is the last _descriptor_, not the last rendered block: `drive.settings(...)` expands to up to four descriptors and `multitask` is one descriptor with nested inputs, so an inline comment can attach to a block that is not visually above it. Do not reorder pushes to "fix" this without a test.
 
-**Docstring consumption (`src/walk.ts:985-1000`).** The first bare string expression in a body becomes `commentText` on the parent block and is consumed. `docstringConsumed` is set for every non-comment statement. Do not reset it mid-body.
+**Docstring consumption (`collectBody` in `src/walk.ts`).** The first bare string expression in a body becomes `commentText` on the parent block and is consumed. `docstringConsumed` is set for every non-comment statement. Do not reset it mid-body.
 
-**Comment bubble click path (`src/main.ts:149-165`).** There is no `.blocklyCommentIcon` check. The handler walks up from `event.target` to the nearest `data-id` ancestor. A comment bubble renders outside the block's `<g data-id>`, so clicking a bubble finds no block and falls into `editor.clearSelection()` at `:159`. Do not add a comment-specific branch without first confirming the bubble's DOM is inside the block group in the current Blockly version.
+**Comment bubble click path (`src/main.ts`).** There is no `.blocklyCommentIcon` check. The handler walks up from `event.target` to the nearest `data-id` ancestor. A comment bubble renders outside the block's `<g data-id>`, so clicking a bubble finds no block and falls into `editor.clearSelection()`. Comment-icon clicks open the bubble through Blockly's native handler and fall through to `clearSelection()` for the Monaco side. **Do not** add a comment-icon branch that calls `editor.revealRange()` — it steals focus and closes the bubble. Do not add a comment-specific branch without first confirming the bubble's DOM is inside the block group in the current Blockly version.
 
-**Reverse sync (`src/main.ts:190-256`).** 50 ms debounce at `:195`, then: (1) narrow ranges — blocks whose `sourceStart..sourceEnd` contains the offset, sorted by smallest range then earliest start (`:207-226`); (2) if none, `statementStart..statementEnd` ranges sorted by `sourceStart` (`:230-239`); (3) `workspace.highlightBlock(id)` with `lastHighlightedBlockId` tracking so the previous glow is cleared (`:243-255`). `highlightBlock` does not fire `SELECTED`, so this cannot loop. Do not replace it with `select` or `setSelected`.
+**Reverse sync (`onCursorChange` in `src/main.ts`).** 50 ms debounce, then: (1) narrow ranges — blocks whose `sourceStart..sourceEnd` contains the offset, sorted by smallest range then earliest start; (2) if none, `statementStart..statementEnd` ranges sorted by `sourceStart`; (3) `workspace.highlightBlock(id)` with `lastHighlightedBlockId` tracking so the previous glow is cleared. `highlightBlock` does not fire `SELECTED`, so this cannot loop. Do not replace it with `select` or `setSelected`.
 
-**Forward sync (`src/main.ts:149-182`).** Mouse clicks resolve from the SVG `data-id` attribute, not from Blockly events, because `readOnly` suppresses gesture `SELECTED`. Keyboard navigation still emits `SELECTED` and is handled at `:167`. `revealBlockSource` (`:130`) skips the hat and calls `editor.revealRange`. `revealRange` must not call `editor.focus()` (`src/editor.ts:137`) — it steals focus from Blockly.
+**Forward sync (`src/main.ts`).** Mouse clicks resolve from the SVG `data-id` attribute, not from Blockly events, because `readOnly` suppresses gesture `SELECTED`. Keyboard navigation still emits `SELECTED` and is handled by the `addChangeListener` branch. `revealBlockSource` skips the hat and calls `editor.revealRange`. `revealRange` must not call `editor.focus()` — it steals focus from Blockly.
 
-**`materialize` (`src/walk.ts:1187`).** It measures `workspace.getBlocksBoundingBox()` before creating each block so a floating function lands below existing content. Keep the measure-then-create order.
+**`materialize` (`src/walk.ts`).** It measures `workspace.getBlocksBoundingBox()` before creating each block so a floating function lands below existing content. Keep the measure-then-create order.
 
-**`applyFieldValue` (`src/walk.ts:1071`).** It falls back to the shadow block when the field does not exist. Literal arguments live in `fields` under the input name and land on the `math_number` shadow. Do not add a field whose name collides with a value input.
+**`applyFieldValue` (`src/walk.ts`).** It falls back to the shadow block when the field does not exist. Literal arguments live in `fields` under the input name and land on the `math_number` shadow. Do not add a field whose name collides with a value input.
 
-**Upload merge (`src/main.ts:71-110`).** `hasUploaded` (`:37`) decides whether the first upload replaces the fixtures or merges into them. The first upload starts from `{}`; later uploads spread `currentFiles` (`:77`). Do not change this to always-merge or always-replace without updating the sidebar behaviour and testing both paths.
+**Upload merge (`src/main.ts`).** `hasUploaded` decides whether the first upload replaces the fixtures or merges into them. The first upload starts from `{}`; later uploads spread `currentFiles`. Do not change this to always-merge or always-replace without updating the sidebar behaviour and testing both paths.
 
-**File switching (`src/main.ts:60-69`).** `onSelect` calls `workspace.clear()`, then `renderFile`, then `editor.setValue`, then `setActive`. The order matters: `renderFile` measures the workspace bounding box, so it must run on a cleared workspace. Never render into a workspace that still holds the previous file.
+**File switching (`onSelect` in `src/main.ts`).** It calls `workspace.clear()`, then `renderFile`, then `editor.setValue`, then `setActive`. The order matters: `renderFile` measures the workspace bounding box, so it must run on a cleared workspace. Never render into a workspace that still holds the previous file.
 
-**Theme persistence (`src/main.ts:274`, `:281`).** The theme is stored in `localStorage` under the key `theme` and applied on load. `applyTheme` toggles `body.dark`, calls `workspace.setTheme`, `workspace.render`, and `editor.setTheme`. All three are required; skipping `workspace.render()` leaves stale block colours.
+**Theme persistence (`applyTheme` in `src/main.ts`).** The theme is stored in `localStorage` under the key `theme` and applied on load. `applyTheme` toggles `body.dark`, calls `workspace.setTheme`, `workspace.render`, and `editor.setTheme`. All three are required; skipping `workspace.render()` leaves stale block colours.
 
-**`resolveProject` is recomputed on upload only.** `src/main.ts:53` resolves once at startup and `:83` re-resolves after an upload. If you add a code path that mutates `currentFiles`, re-run `resolveProject` or the object kinds go stale.
+**`resolveProject` is recomputed on upload only.** `src/main.ts` resolves once at startup and re-resolves after an upload. If you add a code path that mutates `currentFiles`, re-run `resolveProject` or the object kinds go stale.
+
+### Added in v1.1.0 (2026-10-24)
+
+**`highlightSubtree` in `src/main.ts`.** It recursively glows a block and all of its descendants, but skips the block's next-sibling. `getChildren()` returns both input children and the next statement, and the next statement is a sibling, not a descendant. The `includeNext` flag distinguishes root calls (`false`) from recursive calls (`true`). **Do not** collapse this to a bare `block.getChildren()` loop without filtering — a task block would swallow every subsequent top-level statement into its glow.
+
+**`revealRange` in `src/editor.ts`.** It builds `new monaco.Selection(endLine, endCol, startLine, startCol)`. That inversion is intentional: anchor at the end, cursor at the start. It is what makes `await home(...)` reverse-sync to the await wrapper instead of the inner `home(...)` call. **Do not** "fix" the argument order back to `(start, end)` — that reintroduces the await bug.
+
+**`clearSelection` in `src/editor.ts`.** It suppresses `onCursorChange` for 100 ms after collapsing the selection (`suppressCursorChangesUntil`). The collapse is itself a programmatic cursor move, so without the guard reverse sync would see that offset, find the block still sitting there, and re-glow the block that was just cleared. **Do not** remove the suppression without a replacement — the "clear on background click" behaviour depends on it.
+
+**`getMultitaskComments` in `src/walk.ts`.** It returns `{ multitask: string[], perArg: string[][] }`. Argument matching is by **start offset** against `getCallArgumentNodes`, not by node-type counting. Keyword args (`race=True`) appear in the `ArgList` as three separate children (`VariableName`, `AssignOp`, `Boolean`), so node-type counting would treat them as one argument and misalign every subsequent comment. **Do not** simplify this to `child.name === "CallExpression"` counting.
+
+**`block.removeIcon(Blockly.icons.IconType.MUTATOR)` in `src/walk.ts`.** This is the correct API for removing the mutator gear from the multitask block in Blockly 13. `IIcon` has no `setVisible()` method; `getIcon().setVisible(false)` throws at runtime. **Do not** attempt `setVisible` approaches.
+
+**The click listener in `src/main.ts` is on `.blocklyMainBackground`** in addition to the SVG canvas listener. The background rect lives in `.blocklyWorkspace`, which is a **sibling** of `.blocklyBlockCanvas`, not a child. A listener only on the canvas misses empty-background clicks. **Do not** consolidate to a single listener on the canvas.
 
 ## 5. Testing
 
@@ -132,3 +156,15 @@ Follow `docs/GIT.md`. Message shape is `Step NN: <one line>`, no trailing period
 2. `npm run build` succeeds and writes `dist/index.html`.
 3. In the browser, the changed behaviour works AND a previously-working behaviour still works: switch files, toggle the code panel, toggle the theme, click a block, click in Monaco.
 4. `dist/index.html` opens via `file://` with no console errors.
+
+## v2 scope decisions (locked)
+
+These were decided 2026-10-24 and should not be re-litigated without cause:
+
+- **Architecture:** Hybrid. Single-file `index.html` = viewer-only (no pyodide). Hosted URL = full intellisense. Feature-detected at runtime.
+- **Sequence:** v2a (Monaco+tabs) → v2b (editable blocks) → v2c (intellisense) → v2d (polish) → v2 wrap-up (PWA + Tauri). Do not skip ahead.
+- **v2b is the biggest cluster** (6–10 weeks). Full round-trip editing. If v2b.5 (Python→blocks reverse sync) proves infeasible in scope, the fallback is blocks→Python only — a documented reduction, not a failure.
+- **Tabs pattern:** sidebar keeps file list (like VS Code Explorer), tabs show open files. Clicking a file in the sidebar opens it as a tab; clicking again if already open focuses that tab.
+- **Comment revamp:** TurboWarp-style (speech bubble shape, subtle shadow, small rounded corners), not Zelos-themed, not MD3.
+- **Token colors in v2a.2:** Python tokens colored by the block they would become (DriveBase → blue, Flow → orange, Variables → pink). Does not need pyodide.
+- **Intellisense packages are npm-wrapped pyodide wheels** (~29 MB combined). Not pure JS. Cache after first fetch. Excluded from single-file `file://` build.

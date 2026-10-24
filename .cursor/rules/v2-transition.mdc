@@ -1,0 +1,23 @@
+---
+description: v2 mode — feature flag context and editing-specific guardrails
+alwaysApply: false
+---
+
+This rule applies when working on v2 (editable blocks) code paths.
+
+**Feature flag:** v2 features are gated on `?editable=1`. Read-only behavior must remain the default when the param is absent. The flag check lives in `src/main.ts` (search for `editable`). Do not remove the gate.
+
+**Editing mode requires more Blockly APIs than read-only:**
+
+- `workspace.setReadOnly(false)`
+- Toolbox config passed to `Blockly.inject` (see `src/blockly.ts`)
+- Drag/connect events fire normally in editable mode
+
+**Do not break the read-only path:**
+
+- All existing click handlers, comment-icon paths, and reverse-sync logic assume readOnly. Adding editable behavior must not change read-only behavior.
+- Test both `?editable=1` AND bare URL after any change. Both must work.
+
+**Round-trip integrity is the v2 acceptance test:** `Python → blocks → Python` and `blocks → Python → blocks` must produce identical output. This is the v2 equivalent of the v1 `acceptance.test.ts` 0-raw-blocks test. Add a matching `roundtrip.test.ts` when v2b.4 lands.
+
+**AGENTS.md still applies in full.** The fragile-code section, the `collectBody` guardrail, the no-`.blocklyCommentIcon` rule — all still apply in editing mode. The only thing that changes is `readOnly` itself.
