@@ -155,12 +155,27 @@ function startWorkspace(): void {
     const blockId = el && el !== canvas ? el.getAttribute("data-id") : null;
     const block = blockId ? workspace.getBlockById(blockId) : null;
     if (!block) {
-      // Empty canvas: drop the Monaco highlight left over from the last block.
+      // An element inside the block canvas that is not part of a block: drop
+      // both highlights left over from the last block.
       editor.clearSelection();
+      clearBlockHighlight();
       return;
     }
 
     revealBlockSource(block);
+  });
+
+  // The empty-area background rect lives in the `.blocklyWorkspace` group,
+  // which is a sibling of `.blocklyBlockCanvas` — clicks there never bubble
+  // through the canvas listener above. Without this, clicking empty space
+  // left the previous block glowing. Comment bubbles and comment icons render
+  // inside block groups, so they do not reach this listener.
+  const backgroundRect = workspace
+    .getParentSvg()
+    .querySelector<SVGElement>(".blocklyMainBackground");
+  backgroundRect?.addEventListener("click", () => {
+    editor.clearSelection();
+    clearBlockHighlight();
   });
 
   // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
@@ -186,6 +201,40 @@ function startWorkspace(): void {
   // back into the block -> Monaco handler above.
   let lastHighlightedBlockId: string | null = null;
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // highlightBlock(null) clears every stored highlight synchronously (it calls
+  // setHighlighted(false), which only toggles the `blocklyHighlighted` class),
+  // so clearing then re-adding in a loop is safe and leaves no stray glow.
+  const clearBlockHighlight = (): void => {
+    if (lastHighlightedBlockId) {
+      workspace.highlightBlock(lastHighlightedBlockId, false);
+    }
+    workspace.highlightBlock(null);
+    lastHighlightedBlockId = null;
+  };
+
+  // Highlight a block and everything nested inside it: statement inputs,
+  // value inputs, and the statement chain that follows within those inputs.
+  // `getChildren()` also returns the block's own next statement, which is a
+  // sibling rather than a descendant, so it is skipped at the root but kept
+  // once we are inside a statement input. Shadow blocks (inline literals)
+  // render inside their parent's outline, so they are skipped too.
+  const highlightSubtree = (
+    block: Blockly.Block,
+    includeNext: boolean,
+  ): void => {
+    if (block.isShadow()) {
+      return;
+    }
+    workspace.highlightBlock(block.id, true);
+    const next = block.getNextBlock();
+    for (const child of block.getChildren(false)) {
+      if (!includeNext && child === next) {
+        continue;
+      }
+      highlightSubtree(child, true);
+    }
+  };
 
   editor.onCursorChange((offset) => {
     // Cursor events fire on every click and scroll; settle before acting.
@@ -242,15 +291,14 @@ function startWorkspace(): void {
 
       if (best) {
         if (best.id !== lastHighlightedBlockId) {
-          if (lastHighlightedBlockId) {
-            workspace.highlightBlock(lastHighlightedBlockId, false);
-          }
+          // Clear first so a click on a nested block replaces the parent's
+          // glow at any depth instead of stacking on top of it.
+          clearBlockHighlight();
           lastHighlightedBlockId = best.id;
-          workspace.highlightBlock(best.id);
+          highlightSubtree(best, false);
         }
-      } else if (lastHighlightedBlockId) {
-        workspace.highlightBlock(lastHighlightedBlockId, false);
-        lastHighlightedBlockId = null;
+      } else {
+        clearBlockHighlight();
       }
     }, 50);
   });

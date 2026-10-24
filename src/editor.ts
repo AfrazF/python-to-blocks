@@ -115,6 +115,10 @@ export function createEditor(container: HTMLElement): PyEditor {
     renderLineHighlight: "none",
   });
 
+  // Epoch (ms) until which programmatic cursor moves are ignored. Bumped by
+  // clearSelection so its own collapse does not kick off reverse sync.
+  let suppressCursorChangesUntil = 0;
+
   return {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
@@ -132,7 +136,18 @@ export function createEditor(container: HTMLElement): PyEditor {
         endPos.lineNumber,
         endPos.column,
       );
-      editor.setSelection(range);
+      // Anchor at the end, caret at the start. The blue highlight still spans
+      // the whole range, but the cursor sits on the first token so reverse
+      // sync resolves the wrapper block (e.g. `await`) instead of whichever
+      // innermost block happens to end at the same offset.
+      editor.setSelection(
+        new monaco.Selection(
+          endPos.lineNumber,
+          endPos.column,
+          startPos.lineNumber,
+          startPos.column,
+        ),
+      );
       editor.revealRangeInCenterIfOutsideViewport(range);
       // Do NOT call editor.focus() — it steals focus from Blockly.
     },
@@ -141,6 +156,11 @@ export function createEditor(container: HTMLElement): PyEditor {
       if (!position) {
         return;
       }
+      // Collapsing the selection is a programmatic cursor move, so it fires
+      // onDidChangeCursorPosition. Without this guard, reverse sync would see
+      // that offset, find the block still sitting there, and re-glow it right
+      // after the caller cleared it.
+      suppressCursorChangesUntil = Date.now() + 100;
       // Collapse to a zero-length range so no text stays highlighted.
       editor.setSelection(
         new monaco.Range(
@@ -153,6 +173,9 @@ export function createEditor(container: HTMLElement): PyEditor {
     },
     onCursorChange: (callback) => {
       const disposable = editor.onDidChangeCursorPosition((event) => {
+        if (Date.now() < suppressCursorChangesUntil) {
+          return;
+        }
         const model = editor.getModel();
         if (!model) {
           return;
