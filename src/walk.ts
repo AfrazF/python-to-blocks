@@ -462,6 +462,54 @@ function readCallExpression(
   return callee && argumentList ? { callee, argumentList } : undefined;
 }
 
+/**
+ * Collects every inline comment inside a call's argument list, joined with
+ * newlines. `multitask(...)` spreads its calls over several lines, so each
+ * argument carries its own `# ...` comment. `getCallArgumentValues` skips
+ * `Comment` nodes, so they never reach a block on their own.
+ */
+function getCallComments(
+  source: string,
+  callNode: ParseNode,
+  argumentList: ParseNode,
+): string | undefined {
+  const comments: string[] = [];
+
+  const collectFrom = (node: ParseNode) => {
+    const cursor = node.cursor();
+    if (!cursor.firstChild()) {
+      return;
+    }
+    do {
+      if (cursor.name === "Comment") {
+        comments.push(
+          source.slice(cursor.node.from, cursor.node.to).replace(/^# ?/, ""),
+        );
+      }
+    } while (cursor.nextSibling());
+  };
+
+  collectFrom(argumentList);
+
+  // A comment right after `multitask(` can sit beside the ArgList rather than
+  // inside it, so scan the call's direct children too. Skip the callee.
+  const callCursor = callNode.cursor();
+  if (callCursor.firstChild()) {
+    do {
+      if (callCursor.name === "Comment") {
+        const text = source
+          .slice(callCursor.node.from, callCursor.node.to)
+          .replace(/^# ?/, "");
+        if (!comments.includes(text)) {
+          comments.push(text);
+        }
+      }
+    } while (callCursor.nextSibling());
+  }
+
+  return comments.length > 0 ? comments.join("\n") : undefined;
+}
+
 /** Returns the expression inside `await ...`. */
 function readAwaitInner(node: ParseNode): ParseNode | undefined {
   const cursor = node.cursor();
@@ -747,6 +795,7 @@ function collectExpressionStatement(
       : undefined;
 
     if (
+      innerExpression &&
       call?.callee.type.name === "VariableName" &&
       source.slice(call.callee.from, call.callee.to) === "multitask"
     ) {
@@ -760,6 +809,15 @@ function collectExpressionStatement(
         sourceStart: expression.from,
         sourceEnd: expression.to,
       };
+
+      const commentText = getCallComments(
+        source,
+        innerExpression,
+        call.argumentList,
+      );
+      if (commentText !== undefined) {
+        descriptor.commentText = commentText;
+      }
 
       arguments_.forEach((argument, index) => {
         descriptor.inputs![`TASK${index}`] = [
@@ -1108,6 +1166,12 @@ function createBlock(
         loadExtraState: (state: { taskCount: number }) => void;
       }
     ).loadExtraState({ taskCount: descriptor.taskCount });
+
+    // The slots are already built, so the gear icon has nothing left to do.
+    // Removing it lets the comment icon own the top-left corner instead.
+    // Blockly 13 has no setVisible(); removeIcon() disposes the icon and
+    // clears block.mutator (block_svg.js).
+    block.removeIcon(Blockly.icons.IconType.MUTATOR);
   }
 
   block.initSvg();
