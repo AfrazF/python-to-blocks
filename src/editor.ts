@@ -132,6 +132,14 @@ export function createEditor(container: HTMLElement): PyEditor {
   // that revealRange is about to set.
   let commentHighlightActive = false;
 
+  // The comment range currently selected by highlightComment, or null. Reverse
+  // sync ignores cursor events that land inside it: a comment icon click must
+  // not glow a block, and for a docstring the comment range sits inside the
+  // owning block's range, so reverse sync would light up the whole subtree.
+  // Matching on the offset (rather than a one-shot flag) means a cursor move
+  // anywhere else is never swallowed.
+  let suppressedCommentRange: { start: number; end: number } | null = null;
+
   return {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
@@ -193,7 +201,17 @@ export function createEditor(container: HTMLElement): PyEditor {
         if (!model) {
           return;
         }
-        callback(model.getOffsetAt(event.position));
+        const offset = model.getOffsetAt(event.position);
+        // A cursor move inside the comment highlight is the highlight itself,
+        // not the user navigating. Ignore it so the icon click does not glow.
+        if (
+          suppressedCommentRange &&
+          offset >= suppressedCommentRange.start &&
+          offset <= suppressedCommentRange.end
+        ) {
+          return;
+        }
+        callback(offset);
       });
       return () => disposable.dispose();
     },
@@ -210,6 +228,10 @@ export function createEditor(container: HTMLElement): PyEditor {
       // events and never calls focus(). That is what keeps Blockly's comment
       // bubble open: revealRangeInCenterIfOutsideViewport() is the call that
       // focuses, not setSelection().
+      //
+      // The cursor event this emits is ignored by reverse sync (see
+      // suppressedCommentRange): a comment icon click must not glow a block.
+      suppressedCommentRange = { start, end };
       editor.setSelection(
         new monaco.Selection(
           endPos.lineNumber,
@@ -232,29 +254,18 @@ export function createEditor(container: HTMLElement): PyEditor {
       }
     },
     clearCommentHighlight: () => {
-      // Nothing to clear: leave the selection alone so a block-body click's
-      // revealRange() is not collapsed by this call.
       if (!commentHighlightActive) {
         return;
       }
       commentHighlightActive = false;
-      const position = editor.getPosition();
-      if (!position) {
-        return;
-      }
-      // Collapsing the selection is a programmatic cursor move, so it fires
-      // onDidChangeCursorPosition. Suppress reverse sync for the same 100 ms
-      // window clearSelection uses, or the block under the caret re-glows
-      // right after the caller cleared it.
-      suppressCursorChangesUntil = Date.now() + 100;
-      editor.setSelection(
-        new monaco.Selection(
-          position.lineNumber,
-          position.column,
-          position.lineNumber,
-          position.column,
-        ),
-      );
+      suppressedCommentRange = null;
+      // Deliberately does NOT touch the selection. Every caller follows this
+      // with a selection change of its own: the block-body path calls
+      // revealRange(), and the background path calls clearSelection(). Both
+      // set the selection themselves, so collapsing here was redundant — and
+      // worse, the collapse fired a cursor event that had to be suppressed,
+      // and that suppression then swallowed the revealRange() cursor event,
+      // so the block never glowed.
     },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
