@@ -1,5 +1,19 @@
 # Roadmap
 
+**Current version: v1.1.0 (shipped 2026-10-24).** Read-only viewer with Monaco panel and bidirectional highlighting.
+
+**Milestones:**
+
+- v1.5 — finish the viewer (control flow, hub blocks) — in progress
+- v2a — Monaco + tabs
+- v2b — Editable blocks (the big one)
+- v2c — Intellisense (pyodide + jedi + ide-docs)
+- v2d — Polish (icons, comments, categories, snap-to-grid)
+- v2 wrap-up — PWA + Tauri
+- v3 — Hardware integration, terminal, full API coverage
+
+Realistic effort from v1.1.0 to end of v2: **~3–5 months** of focused work at a sustainable pace. v2b alone (full round-trip editing) is the bulk of it.
+
 Steps are listed in build order. Each step is a self-contained Copilot prompt.
 
 **Mark a step ✅ only when the code is present AND `npm run test` passes.**
@@ -102,9 +116,9 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ## v1.5 — make infrastructure legible
 
-**Goal:** `run.py` and `main.py` render mostly as blocks. Both currently fall back to `pybricks_raw_code` for every construct listed below.
+**v1.5 goal:** `run.py` and `main.py` render with **0 raw-code blocks**. Control flow and hub API blocks only — no editing, no new UI.
 
-**Recommended batching:** 2–3 steps per PR. The walker is fragile and control flow is the highest-risk change. Do not attempt all 10 steps in one branch.
+**Recommended batching:** 2–3 steps per PR. The walker is fragile and control flow is the highest-risk change. Do not attempt all steps in one branch.
 
 ### Control flow
 
@@ -130,11 +144,85 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ---
 
-## v2 — editable blocks and native app
+## v2 — Editable IDE (feature-flagged on `main`)
 
-- Editable blocks → Python generation (round-trip)
-- Tauri desktop build (per-user NSIS install, no admin) — if school Windows policy allows running unsigned exes
-- Per-function block types (like Pybricks Code's palette)
-- Custom field renderers for pink chips
-- Multiline raw-code rendering
-- Lists as real blocks
+**v2 is gated behind `?editable=1`.** `readOnly: true` remains the default on `main` throughout v2 development. The flag flips to default-on when v2 ships. Individual steps land on short-lived feature branches and merge to `main` normally — no persistent v2-dev branch, no second ruleset.
+
+**Sequence:** v2a → v2b → v2c → v2d → wrap-up. No skipping.
+
+---
+
+### v2a — Monaco + Tabs (est. 1–2 weeks)
+
+VS Code pattern: sidebar keeps file list, clicking a file opens it as a tab, tabs can be closed, clicking an already-open file just focuses its tab.
+
+- ⬜ **Step v2a.1** — Tab bar UI above Monaco; clicking a sidebar file opens it as a tab; close button per tab; state persists across file switches
+- ⬜ **Step v2a.2** — Token colors match block palette: Python tokens colored by the block they'd become (DriveBase calls blue, Flow orange, Variables pink, etc.). Uses `monaco.editor.defineTheme`. Does not require pyodide.
+- ⬜ **Step v2a.3** — Split editor (two Monaco panes side-by-side, optional)
+
+---
+
+### v2b — Editable blocks (est. 6–10 weeks, the biggest cluster)
+
+Full round-trip: any block change produces correct Python, any Python change produces correct blocks, both stay in sync.
+
+**Feature flag:** `?editable=1` flips `readOnly: false`, shows toolbox, enables gesture editing.
+
+- ⬜ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly`, shows a "readonly/editable" indicator, gates all v2b features
+- ⬜ **Step v2b.2** — Toolbox: read-only palette grouped by category (Setup, Output, Flow, Tasks, Data, Variables), drag-to-workspace enabled
+- ⬜ **Step v2b.3** — Block drag, connect, delete, undo/redo. Basic gesture editing working end-to-end.
+- ⬜ **Step v2b.4** — Python generator: blocks → Python, exact output, verified against all fixtures byte-for-byte
+- ⬜ **Step v2b.5** — Reverse sync: Python edits in Monaco re-render blocks (the hardest step — potentially splits into 2b.5a–2b.5c)
+- ⬜ **Step v2b.6** — Save/load: download edited `.py` files, upload to replace project state
+- ⬜ **Step v2b.7** — Error recovery: invalid block arrangements block the generator and show clear errors
+
+**Note:** Full round-trip is the single largest workstream in the project. Pybricks' own `python-program-analysis` library is one-directional and took years. Realistic timeline assumes scope reduction may be needed (e.g., blocks→Python only) if v2b.5 proves too large.
+
+---
+
+### v2c — Intellisense (est. 2–4 weeks)
+
+Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached after first fetch.
+
+**Architecture:** Hosted version preloads pyodide; single-file version lazy-loads on demand via a "Enable intellisense" button (requires network).
+
+- ⬜ **Step v2c.1** — Pyodide bootstrap in a Web Worker; feature-detect and lazy-load from the "Enable intellisense" button
+- ⬜ **Step v2c.2** — Wire `@pybricks/jedi` (5.2 MB) for autocomplete, hover, signature help
+- ⬜ **Step v2c.3** — Wire `@pybricks/ide-docs` (22.2 MB) for inline documentation
+- ⬜ **Step v2c.4** — Wire `@pybricks/python-program-analysis` (1.9 MB, pure TS) for parse-time error checking
+- ⬜ **Step v2c.5** — Error markers on blocks that don't round-trip correctly (integration with v2b)
+
+---
+
+### v2d — Polish (est. 2–3 weeks)
+
+- ⬜ **Step v2d.1** — Block icons (replaces the current comment question mark with a proper icon set; consider Pybricks' actual icons or MD symbols)
+- ⬜ **Step v2d.2** — Comment revamp: TurboWarp-style speech-bubble shape, subtle shadow, small rounded corners; matches modern Blockly feel rather than the current yellow default
+- ⬜ **Step v2d.3** — Snap-to-grid for dragged blocks
+- ⬜ **Step v2d.4** — "Clean up blocks" + "Clean up blocks+" in the right-click context menu (TurboWarp has both — basic stacks top-blocks, + also aligns within nested groups)
+- ⬜ **Step v2d.5** — Block categories properly assigned; use_gyro moves from Output to Input; category colors verified against `docs/BLOCK_DESIGN.md`
+- ⬜ **Step v2d.6** — Motors as dropdowns instead of chips (dropdown arrow visible; values changeable in editable mode)
+- ⬜ **Step v2d.7** — Sounds: connect, disconnect, delete, snap. Use default Blockly sounds initially; optionally Pybricks/SPIKE audio if licensing permits
+- ⬜ **Step v2d.8** — Keyboard shortcuts: Ctrl+Z/Y undo/redo, Ctrl+C/V copy/paste, Delete to remove, Ctrl+A select all, Escape to deselect
+- ⬜ **Step v2d.9** — Multi-select blocks (rectangular selection, drag-move, cut, copy)
+
+---
+
+### v2 wrap-up — PWA + Tauri (est. 1–2 weeks)
+
+- ⬜ **Step v2w.1** — PWA: install prompt, offline cache (intellisense excluded — requires network), service worker
+- ⬜ **Step v2w.2** — Tauri: per-user NSIS installer, no admin, targets Windows (school) and Linux (Ubuntu Chromebook)
+- ⬜ **Step v2w.3** — v2.0.0 release: flip feature flag default-on, tag, publish to GitHub Releases
+
+---
+
+## v3 — Full IDE replacement
+
+Pybricks Code parity for FLL teams. Realistic effort: 2–4 months.
+
+- ⬜ Bluetooth: Web Bluetooth connection to the hub, live file upload/download
+- ⬜ Terminal: stdout/stderr capture, REPL, program output display
+- ⬜ Full API coverage: every feasible Pybricks API call has a block (uses `@pybricks/ide-docs` to auto-generate block definitions from current API)
+- ⬜ PID block, sensor blocks (color/distance/force), Sound, Light Matrix, etc.
+- ⬜ Menu / program-picker integration (select run from the tool, send to hub)
+- ⬜ Any other Pybricks Code feature not yet covered
