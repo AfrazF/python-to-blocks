@@ -1111,7 +1111,15 @@ function collectBody(
       const commentText = source.slice(commentNode.from, commentNode.to);
 
       if (!isStandalone && statements.length > 0) {
-        const target = statements.at(-1)!;
+        // `await` is a transparent wrapper: the block is a container, but the
+        // comment describes the command inside it. Descend so the icon lands on
+        // the inner block instead of the purple await wrapper. No other block
+        // type is transparent — multitask, task, function, and import blocks
+        // keep the comment on themselves.
+        let target = statements.at(-1)!;
+        while (target.type === "pybricks_await" && target.inputs?.INNER?.[0]) {
+          target = target.inputs.INNER[0];
+        }
         target.commentText = commentText.replace(/^# ?/, "");
         target.commentSourceStart = commentNode.from;
         target.commentSourceEnd = commentNode.to;
