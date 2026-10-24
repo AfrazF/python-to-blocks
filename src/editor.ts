@@ -5,6 +5,13 @@ export interface PyEditor {
   setTheme: (theme: "light" | "dark") => void;
   revealRange: (start: number, end: number) => void;
   clearSelection: () => void;
+  /**
+   * Paints a highlight over a character range without touching the cursor,
+   * the selection, or focus. Safe to call from a Blockly click handler.
+   */
+  highlightComment: (start: number, end: number) => void;
+  /** Removes the highlight painted by `highlightComment`. */
+  clearCommentHighlight: () => void;
   /** Calls back with the cursor's character offset. Returns a detach function. */
   onCursorChange: (callback: (offset: number) => void) => () => void;
   dispose: () => void;
@@ -119,6 +126,14 @@ export function createEditor(container: HTMLElement): PyEditor {
   // clearSelection so its own collapse does not kick off reverse sync.
   let suppressCursorChangesUntil = 0;
 
+  // Decorations live on the model, not the view. Setting them goes straight to
+  // model.changeDecorations(), which never moves the cursor, never changes the
+  // selection, and never calls focus(). That is what lets a comment-icon click
+  // paint a highlight while Blockly's comment bubble stays open — setSelection()
+  // and revealRange() both focus the editor, which blurs the SVG and closes the
+  // bubble.
+  const commentDecorations = editor.createDecorationsCollection();
+
   return {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
@@ -184,6 +199,44 @@ export function createEditor(container: HTMLElement): PyEditor {
       });
       return () => disposable.dispose();
     },
+    highlightComment: (start, end) => {
+      const model = editor.getModel();
+      if (!model) {
+        return;
+      }
+      const startPos = model.getPositionAt(start);
+      const endPos = model.getPositionAt(end);
+      commentDecorations.set([
+        {
+          range: new monaco.Range(
+            startPos.lineNumber,
+            startPos.column,
+            endPos.lineNumber,
+            endPos.column,
+          ),
+          options: {
+            inlineClassName: "pybricks-comment-highlight",
+            // The editor is read-only, so stickiness only decides how the
+            // range behaves if the model is ever replaced. Keep it pinned.
+            stickiness:
+              monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          },
+        },
+      ]);
+
+      // Monaco only paints decorations on rendered lines, so a comment below
+      // the fold would highlight invisibly. Scroll it into view with
+      // setScrollTop(), which moves the viewport without touching the cursor,
+      // the selection, or focus — unlike revealRange(), which focuses.
+      const lineTop = editor.getTopForLineNumber(startPos.lineNumber);
+      const lineBottom = editor.getTopForLineNumber(endPos.lineNumber + 1);
+      const viewTop = editor.getScrollTop();
+      const viewBottom = viewTop + editor.getLayoutInfo().height;
+      if (lineTop < viewTop || lineBottom > viewBottom) {
+        editor.setScrollTop(Math.max(0, lineTop - 40));
+      }
+    },
+    clearCommentHighlight: () => commentDecorations.clear(),
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };

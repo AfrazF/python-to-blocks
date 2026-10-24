@@ -10,6 +10,9 @@ type ParseNode = ReturnType<typeof parser.parse>["topNode"];
 /** One argument of a call, with the source range it came from. */
 type Argument = { text: string; start: number; end: number };
 
+/** One comment, with the source range it came from. */
+type CommentSpan = { text: string; from: number; to: number };
+
 /**
  * A block that has not been built yet. `collectBlocks` produces these, then
  * `materialize` turns them into real Blockly blocks. Splitting the walk from
@@ -25,6 +28,9 @@ export interface BlockDescriptor {
   statementStart?: number;
   statementEnd?: number;
   commentText?: string;
+  /** Source range of the comment text, set whenever `commentText` is set. */
+  commentSourceStart?: number;
+  commentSourceEnd?: number;
   taskCount?: number;
 }
 
@@ -40,6 +46,8 @@ type BlockWithSourceRange = Blockly.Block & {
   sourceEnd: number;
   statementStart?: number;
   statementEnd?: number;
+  commentSourceStart?: number;
+  commentSourceEnd?: number;
 };
 
 /** What one body contains: statements to chain, plus functions to float. */
@@ -483,9 +491,9 @@ function getMultitaskComments(
   source: string,
   argumentList: ParseNode,
   argumentNodes: ParseNode[],
-): { multitask: string[]; perArg: string[][] } {
-  const multitask: string[] = [];
-  const perArg: string[][] = argumentNodes.map(() => []);
+): { multitask: CommentSpan[]; perArg: CommentSpan[][] } {
+  const multitask: CommentSpan[] = [];
+  const perArg: CommentSpan[][] = argumentNodes.map(() => []);
   const argumentStarts = argumentNodes.map((node) => node.from);
   let argsSeen = 0;
 
@@ -496,11 +504,15 @@ function getMultitaskComments(
 
   do {
     if (cursor.name === "Comment") {
-      const text = stripComment(source.slice(cursor.node.from, cursor.node.to));
+      const span: CommentSpan = {
+        text: stripComment(source.slice(cursor.node.from, cursor.node.to)),
+        from: cursor.node.from,
+        to: cursor.node.to,
+      };
       if (argsSeen === 0) {
-        multitask.push(text);
+        multitask.push(span);
       } else {
-        perArg[argsSeen - 1].push(text);
+        perArg[argsSeen - 1].push(span);
       }
       continue;
     }
@@ -828,13 +840,19 @@ function collectExpressionStatement(
       );
 
       if (multitask.length > 0) {
-        descriptor.commentText = multitask.join("\n");
+        descriptor.commentText = multitask.map((span) => span.text).join("\n");
+        descriptor.commentSourceStart = multitask[0].from;
+        descriptor.commentSourceEnd = multitask.at(-1)!.to;
       }
 
       argumentDescriptors.forEach((argumentDescriptor, index) => {
         const comments = perArg[index];
         if (comments.length > 0) {
-          argumentDescriptor.commentText = comments.join("\n");
+          argumentDescriptor.commentText = comments
+            .map((span) => span.text)
+            .join("\n");
+          argumentDescriptor.commentSourceStart = comments[0].from;
+          argumentDescriptor.commentSourceEnd = comments.at(-1)!.to;
         }
         descriptor.inputs![`TASK${index}`] = [argumentDescriptor];
       });
@@ -1093,7 +1111,10 @@ function collectBody(
       const commentText = source.slice(commentNode.from, commentNode.to);
 
       if (!isStandalone && statements.length > 0) {
-        statements.at(-1)!.commentText = commentText.replace(/^# ?/, "");
+        const target = statements.at(-1)!;
+        target.commentText = commentText.replace(/^# ?/, "");
+        target.commentSourceStart = commentNode.from;
+        target.commentSourceEnd = commentNode.to;
         continue;
       }
 
@@ -1133,6 +1154,8 @@ function collectBody(
         const stripped = raw.replace(/^['"]{3}|['"]{3}$/g, "").trim();
         if (parent.block) {
           parent.block.commentText = stripped;
+          parent.block.commentSourceStart = cursor.node.from;
+          parent.block.commentSourceEnd = cursor.node.to;
         }
         docstringConsumed = true;
         previousNonCommentNode = cursor.node;
@@ -1280,6 +1303,13 @@ function createBlock(
   ) {
     ranged.statementStart = descriptor.statementStart;
     ranged.statementEnd = descriptor.statementEnd;
+  }
+  if (
+    descriptor.commentSourceStart !== undefined &&
+    descriptor.commentSourceEnd !== undefined
+  ) {
+    ranged.commentSourceStart = descriptor.commentSourceStart;
+    ranged.commentSourceEnd = descriptor.commentSourceEnd;
   }
   return block;
 }

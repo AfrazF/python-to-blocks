@@ -149,6 +149,31 @@ function startWorkspace(): void {
   const canvas = workspace.getCanvas();
   canvas.addEventListener("click", (event: MouseEvent) => {
     let el = event.target as Element | null;
+
+    // A comment icon sits inside the block's <g data-id>, so it would otherwise
+    // fall through to the block-body branch and reveal the whole block. Handle
+    // it first: paint the comment's own range and stop. highlightComment() is a
+    // model decoration, so it does not focus Monaco and the bubble stays open.
+    // If the block carries no comment range, fall through to the block reveal
+    // so that icon keeps its old behaviour.
+    const icon = el?.closest?.(".blocklyCommentIcon");
+    if (icon) {
+      const owner = icon.closest("[data-id]");
+      const ownerId = owner?.getAttribute("data-id");
+      const ownerBlock = ownerId ? workspace.getBlockById(ownerId) : null;
+      const { commentSourceStart, commentSourceEnd } = (ownerBlock ?? {}) as {
+        commentSourceStart?: number;
+        commentSourceEnd?: number;
+      };
+      if (
+        typeof commentSourceStart === "number" &&
+        typeof commentSourceEnd === "number"
+      ) {
+        editor.highlightComment(commentSourceStart, commentSourceEnd);
+        return;
+      }
+    }
+
     while (el && el !== canvas && !el.hasAttribute("data-id")) {
       el = el.parentElement;
     }
@@ -159,10 +184,12 @@ function startWorkspace(): void {
       // An element inside the block canvas that is not part of a block: drop
       // both highlights left over from the last block.
       editor.clearSelection();
+      editor.clearCommentHighlight();
       clearBlockHighlight();
       return;
     }
 
+    editor.clearCommentHighlight();
     revealBlockSource(block);
   });
 
@@ -176,6 +203,7 @@ function startWorkspace(): void {
     .querySelector<SVGElement>(".blocklyMainBackground");
   backgroundRect?.addEventListener("click", () => {
     editor.clearSelection();
+    editor.clearCommentHighlight();
     clearBlockHighlight();
   });
 
