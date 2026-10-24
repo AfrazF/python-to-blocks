@@ -12,6 +12,7 @@ alwaysApply: false
 - `at(-1)` is the last descriptor, not the last rendered block. `drive.settings()` expands to several descriptors.
 - `docstringConsumed` is set by every non-comment statement. Do not reset it mid-body.
 - Mutator blocks: call `loadExtraState({ taskCount })` before `initSvg()`, or the inputs do not exist yet.
+- `getMultitaskComments` matches arguments by **start offset** against `getCallArgumentNodes`, not by node-type counting. Keyword args (`race=True`) are three separate `ArgList` children, so counting node types misaligns every later comment. Do not refactor to node-type counting. See AGENTS.md.
 - `materialize` measures `getBlocksBoundingBox()` before creating each block. Keep that order.
 - Literal args go in `fields` under the input name and land on the `math_number` shadow via `applyFieldValue`.
 - Unmapped constructs must fall back to `pybricks_raw_code`. Never drop a statement.

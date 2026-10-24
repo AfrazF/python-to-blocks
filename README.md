@@ -31,8 +31,7 @@ npm run build      # single-file dist/index.html
 
 ## Status
 
-**v1 shipped** — read-only viewer. See [Releases](../../releases).
-**v1.25** — Monaco panel with bidirectional highlighting.
+**v1.1.0 shipped** — read-only viewer with a Monaco panel and bidirectional highlighting. See [Releases](../../releases).
 **v1.5** — control flow + hub display blocks.
 **v2** — editable blocks → Python.
 

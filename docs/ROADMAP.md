@@ -88,6 +88,11 @@ the app offline as a single `.html`, and reach a hosted URL.
 - ✅ **Step 27.6** — Per-name source ranges for import blocks (`statementStart`/`statementEnd` in `src/walk.ts`)
 - ✅ **Step 28** — Click in Monaco → Blockly highlights the block whose range contains the cursor (`onCursorChange` in `src/main.ts`)
 - ✅ **Step 28.1** — Import-line fallback + deselect on blank canvas click (`src/main.ts`)
+- ✅ **Step 28.2** (partial) — Background click clears both panels (`.blocklyMainBackground` listener in `src/main.ts`); await/task reverse-sync precision (`revealRange` anchors at the end and puts the caret at the start via `new monaco.Selection(endLine, endCol, startLine, startCol)` in `src/editor.ts`); cascade glow to descendants (`highlightSubtree` in `src/main.ts`)
+- ✅ **Step 28.5** — Multitask argument comments + hide the mutator gear (`getMultitaskComments` and `block.removeIcon(Blockly.icons.IconType.MUTATOR)` in `src/walk.ts`)
+- ✅ **Step 28.5b** — Per-argument comment icons on multitask inner blocks (`getMultitaskComments` returns `{ multitask, perArg }`; argument descriptors receive `commentText` in `collectExpressionStatement`)
+
+**v1.25 is done when** the Monaco panel and both sync directions work on every fixture. Every step above is done and shipped as **v1.1.0**. Step 29 was optional and was not needed.
 
 ### Tabs (only if the sidebar alone isn't enough)
 
@@ -98,6 +103,8 @@ the app offline as a single `.html`, and reach a hosted URL.
 ## v1.5 — make infrastructure legible
 
 **Goal:** `run.py` and `main.py` render mostly as blocks. Both currently fall back to `pybricks_raw_code` for every construct listed below.
+
+**Recommended batching:** 2–3 steps per PR. The walker is fragile and control flow is the highest-risk change. Do not attempt all 10 steps in one branch.
 
 ### Control flow
 
@@ -112,7 +119,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 - ⬜ **Step 35** — Nested member expression dispatch. `readMember` in `src/walk.ts` only reads a direct `VariableName` child, so `hub.display.image(...)`, `hub.display.off()`, `hub.display.char(...)`, `hub.buttons.pressed()`, `hub.light.on(...)`, `hub.light.off()` all fall through to raw.
 - ⬜ **Step 36** — Subscript expressions. Needed for `ATTACHMENTS[i][0]` and `ICONS[i % len(ICONS)]`.
 - ⬜ **Step 37** — Chained call member. Needed for `run_task(attach_main()).wait()`.
-- ⬜ **Step 38** — Non-literal assignment RHS and tuple unpacking. `collectVariableBlock` only accepts `Number`/`String`/`Boolean`, so `next_index = (index + 1) % len(ATTACHMENTS)`, `i = (i - 1) % len(ATTACHMENTS)`, and `index, attach_main = pick(next_index)` are raw.
+- ⬜ **Step 38** — Non-literal assignment RHS, list literals, and tuple unpacking. `collectVariableBlock` only accepts `Number`/`String`/`Boolean`, so `next_index = (index + 1) % len(ATTACHMENTS)`, `i = (i - 1) % len(ATTACHMENTS)`, `index, attach_main = pick(next_index)`, `i = start`, `pressed = hub.buttons.pressed()`, `ICONS = [Image.ARROW_RIGHT, ...]`, and `ATTACHMENTS = [("1", a1_main)]` are all raw.
 
 ### Hub API blocks
 

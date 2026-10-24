@@ -1,0 +1,13 @@
+---
+description: Guardrails for main.ts app wiring
+globs: src/main.ts
+alwaysApply: false
+---
+
+Before editing this file:
+
+1. Read the click listener block end-to-end. It has three branches: block-body click (reveal source), empty-background click (clear both panels), and comment-icon fall-through. Do not add a fourth branch for `.blocklyCommentIcon` that calls `editor.revealRange()` — that closes the bubble.
+2. `highlightSubtree` skips the block's next-sibling (`includeNext = false` on root). See AGENTS.md.
+3. `lastHighlightedBlockId` is declared once in `startWorkspace` and shared between the forward and reverse sync handlers. Do not redeclare it inside a closure.
+4. `clearSelection()` moves the Monaco cursor. Any call site must be wrapped in the `suppressCursorChangesUntil` pattern (`src/editor.ts`) or reverse-sync will re-glow the block that was just cleared.
+5. Run `npm run test` after every edit.
