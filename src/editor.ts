@@ -5,6 +5,13 @@ export interface PyEditor {
   setTheme: (theme: "light" | "dark") => void;
   revealRange: (start: number, end: number) => void;
   clearSelection: () => void;
+  /**
+   * Paints a highlight over a character range without touching the cursor,
+   * the selection, or focus. Safe to call from a Blockly click handler.
+   */
+  highlightComment: (start: number, end: number) => void;
+  /** Removes the highlight painted by `highlightComment`. */
+  clearCommentHighlight: () => void;
   /** Calls back with the cursor's character offset. Returns a detach function. */
   onCursorChange: (callback: (offset: number) => void) => () => void;
   dispose: () => void;
@@ -116,8 +123,22 @@ export function createEditor(container: HTMLElement): PyEditor {
   });
 
   // Epoch (ms) until which programmatic cursor moves are ignored. Bumped by
-  // clearSelection so its own collapse does not kick off reverse sync.
+  // clearSelection and clearCommentHighlight so their own collapse does not
+  // kick off reverse sync.
   let suppressCursorChangesUntil = 0;
+
+  // True while highlightComment's selection is on screen. clearCommentHighlight
+  // is a no-op otherwise, so a block-body click does not collapse the selection
+  // that revealRange is about to set.
+  let commentHighlightActive = false;
+
+  // The comment range currently selected by highlightComment, or null. Reverse
+  // sync ignores cursor events that land inside it: a comment icon click must
+  // not glow a block, and for a docstring the comment range sits inside the
+  // owning block's range, so reverse sync would light up the whole subtree.
+  // Matching on the offset (rather than a one-shot flag) means a cursor move
+  // anywhere else is never swallowed.
+  let suppressedCommentRange: { start: number; end: number } | null = null;
 
   return {
     setValue: (text) => editor.setValue(text),
@@ -180,9 +201,71 @@ export function createEditor(container: HTMLElement): PyEditor {
         if (!model) {
           return;
         }
-        callback(model.getOffsetAt(event.position));
+        const offset = model.getOffsetAt(event.position);
+        // A cursor move inside the comment highlight is the highlight itself,
+        // not the user navigating. Ignore it so the icon click does not glow.
+        if (
+          suppressedCommentRange &&
+          offset >= suppressedCommentRange.start &&
+          offset <= suppressedCommentRange.end
+        ) {
+          return;
+        }
+        callback(offset);
       });
       return () => disposable.dispose();
+    },
+    highlightComment: (start, end) => {
+      const model = editor.getModel();
+      if (!model) {
+        return;
+      }
+      const startPos = model.getPositionAt(start);
+      const endPos = model.getPositionAt(end);
+      // A real selection, anchored at the end with the caret at the start (the
+      // same shape revealRange uses). setSelection() only reaches
+      // viewModel.setSelections -> cursor.setStates, which emits cursor/view
+      // events and never calls focus(). That is what keeps Blockly's comment
+      // bubble open: revealRangeInCenterIfOutsideViewport() is the call that
+      // focuses, not setSelection().
+      //
+      // The cursor event this emits is ignored by reverse sync (see
+      // suppressedCommentRange): a comment icon click must not glow a block.
+      suppressedCommentRange = { start, end };
+      editor.setSelection(
+        new monaco.Selection(
+          endPos.lineNumber,
+          endPos.column,
+          startPos.lineNumber,
+          startPos.column,
+        ),
+      );
+      commentHighlightActive = true;
+
+      // setSelection() does not scroll, so a comment below the fold would be
+      // selected invisibly. setScrollTop() moves the viewport without touching
+      // the cursor, the selection, or focus.
+      const lineTop = editor.getTopForLineNumber(startPos.lineNumber);
+      const lineBottom = editor.getTopForLineNumber(endPos.lineNumber + 1);
+      const viewTop = editor.getScrollTop();
+      const viewBottom = viewTop + editor.getLayoutInfo().height;
+      if (lineTop < viewTop || lineBottom > viewBottom) {
+        editor.setScrollTop(Math.max(0, lineTop - 40));
+      }
+    },
+    clearCommentHighlight: () => {
+      if (!commentHighlightActive) {
+        return;
+      }
+      commentHighlightActive = false;
+      suppressedCommentRange = null;
+      // Deliberately does NOT touch the selection. Every caller follows this
+      // with a selection change of its own: the block-body path calls
+      // revealRange(), and the background path calls clearSelection(). Both
+      // set the selection themselves, so collapsing here was redundant — and
+      // worse, the collapse fired a cursor event that had to be suppressed,
+      // and that suppression then swallowed the revealRange() cursor event,
+      // so the block never glowed.
     },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),

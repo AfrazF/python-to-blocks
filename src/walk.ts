@@ -10,6 +10,9 @@ type ParseNode = ReturnType<typeof parser.parse>["topNode"];
 /** One argument of a call, with the source range it came from. */
 type Argument = { text: string; start: number; end: number };
 
+/** One comment, with the source range it came from. */
+type CommentSpan = { text: string; from: number; to: number };
+
 /**
  * A block that has not been built yet. `collectBlocks` produces these, then
  * `materialize` turns them into real Blockly blocks. Splitting the walk from
@@ -25,6 +28,9 @@ export interface BlockDescriptor {
   statementStart?: number;
   statementEnd?: number;
   commentText?: string;
+  /** Source range of the comment text, set whenever `commentText` is set. */
+  commentSourceStart?: number;
+  commentSourceEnd?: number;
   taskCount?: number;
 }
 
@@ -40,6 +46,8 @@ type BlockWithSourceRange = Blockly.Block & {
   sourceEnd: number;
   statementStart?: number;
   statementEnd?: number;
+  commentSourceStart?: number;
+  commentSourceEnd?: number;
 };
 
 /** What one body contains: statements to chain, plus functions to float. */
@@ -483,9 +491,9 @@ function getMultitaskComments(
   source: string,
   argumentList: ParseNode,
   argumentNodes: ParseNode[],
-): { multitask: string[]; perArg: string[][] } {
-  const multitask: string[] = [];
-  const perArg: string[][] = argumentNodes.map(() => []);
+): { multitask: CommentSpan[]; perArg: CommentSpan[][] } {
+  const multitask: CommentSpan[] = [];
+  const perArg: CommentSpan[][] = argumentNodes.map(() => []);
   const argumentStarts = argumentNodes.map((node) => node.from);
   let argsSeen = 0;
 
@@ -496,13 +504,15 @@ function getMultitaskComments(
 
   do {
     if (cursor.name === "Comment") {
-      const text = stripComment(
-        source.slice(cursor.node.from, cursor.node.to),
-      );
+      const span: CommentSpan = {
+        text: stripComment(source.slice(cursor.node.from, cursor.node.to)),
+        from: cursor.node.from,
+        to: cursor.node.to,
+      };
       if (argsSeen === 0) {
-        multitask.push(text);
+        multitask.push(span);
       } else {
-        perArg[argsSeen - 1].push(text);
+        perArg[argsSeen - 1].push(span);
       }
       continue;
     }
@@ -830,13 +840,19 @@ function collectExpressionStatement(
       );
 
       if (multitask.length > 0) {
-        descriptor.commentText = multitask.join("\n");
+        descriptor.commentText = multitask.map((span) => span.text).join("\n");
+        descriptor.commentSourceStart = multitask[0].from;
+        descriptor.commentSourceEnd = multitask.at(-1)!.to;
       }
 
       argumentDescriptors.forEach((argumentDescriptor, index) => {
         const comments = perArg[index];
         if (comments.length > 0) {
-          argumentDescriptor.commentText = comments.join("\n");
+          argumentDescriptor.commentText = comments
+            .map((span) => span.text)
+            .join("\n");
+          argumentDescriptor.commentSourceStart = comments[0].from;
+          argumentDescriptor.commentSourceEnd = comments.at(-1)!.to;
         }
         descriptor.inputs![`TASK${index}`] = [argumentDescriptor];
       });
@@ -997,6 +1013,62 @@ function collectFunctionBlock(
 }
 
 /**
+ * Reads `for <loop var> in <iterable>:` into a C-shaped block.
+ *
+ * The loop variable and the iterable are kept as raw source text: tuple forms
+ * (`i, mission`) and calls (`enumerate(missions)`) both survive verbatim.
+ * A `for ... else:` has no block shape yet, so it returns undefined and the
+ * caller falls back to a raw-code block.
+ */
+function collectForBlock(
+  source: string,
+  node: ParseNode,
+  resolved: ResolvedTable,
+): { descriptor: BlockDescriptor; functions: BlockDescriptor[] } | undefined {
+  const cursor = node.cursor();
+  let forTokenEnd: number | undefined;
+  let inToken: ParseNode | undefined;
+  let body: ParseNode | undefined;
+  let hasElse = false;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "for" && forTokenEnd === undefined) {
+        forTokenEnd = cursor.node.to;
+      } else if (cursor.name === "in" && inToken === undefined) {
+        inToken = cursor.node;
+      } else if (cursor.name === "Body" && body === undefined) {
+        body = cursor.node;
+      } else if (cursor.name === "else") {
+        hasElse = true;
+      }
+    } while (cursor.nextSibling());
+  }
+
+  if (forTokenEnd === undefined || !inToken || !body || hasElse) {
+    return undefined;
+  }
+
+  const descriptor: BlockDescriptor = {
+    type: "pybricks_for",
+    fields: {
+      LOOP_VAR: source.slice(forTokenEnd, inToken.from).trim(),
+      ITERABLE: source.slice(inToken.to, body.from).trim(),
+    },
+    inputs: {},
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+
+  const collected = collectBody(source, body, resolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  descriptor.inputs = { BODY: collected.statements };
+  return { descriptor, functions: collected.functions };
+}
+
+/**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
  */
@@ -1019,15 +1091,38 @@ function collectBody(
   do {
     if (cursor.name === "Comment") {
       const commentNode = cursor.node;
+      // Compound statements (`for`, `while`, `if`, `try`) end at the newline
+      // that closes their last line, so the gap to a following comment is
+      // empty even though the comment sits on its own line. Treat a previous
+      // node that already ends in a newline as "the comment is below it".
+      const previousText =
+        previousNonCommentNode === undefined
+          ? ""
+          : source.slice(
+              previousNonCommentNode.from,
+              previousNonCommentNode.to,
+            );
       const isStandalone =
         previousNonCommentNode === undefined ||
+        previousText.endsWith("\n") ||
         source
           .slice(previousNonCommentNode.to, commentNode.from)
           .includes("\n");
       const commentText = source.slice(commentNode.from, commentNode.to);
 
       if (!isStandalone && statements.length > 0) {
-        statements.at(-1)!.commentText = commentText.replace(/^# ?/, "");
+        // `await` is a transparent wrapper: the block is a container, but the
+        // comment describes the command inside it. Descend so the icon lands on
+        // the inner block instead of the purple await wrapper. No other block
+        // type is transparent — multitask, task, function, and import blocks
+        // keep the comment on themselves.
+        let target = statements.at(-1)!;
+        while (target.type === "pybricks_await" && target.inputs?.INNER?.[0]) {
+          target = target.inputs.INNER[0];
+        }
+        target.commentText = commentText.replace(/^# ?/, "");
+        target.commentSourceStart = commentNode.from;
+        target.commentSourceEnd = commentNode.to;
         continue;
       }
 
@@ -1067,6 +1162,8 @@ function collectBody(
         const stripped = raw.replace(/^['"]{3}|['"]{3}$/g, "").trim();
         if (parent.block) {
           parent.block.commentText = stripped;
+          parent.block.commentSourceStart = cursor.node.from;
+          parent.block.commentSourceEnd = cursor.node.to;
         }
         docstringConsumed = true;
         previousNonCommentNode = cursor.node;
@@ -1105,6 +1202,14 @@ function collectBody(
         blocks = collectDriveSettingsBlocks(source, expression, resolved) ?? [
           collectExpressionStatement(source, expression, resolved),
         ];
+      }
+    } else if (cursor.name === "ForStatement") {
+      const collectedFor = collectForBlock(source, cursor.node, resolved);
+      if (collectedFor) {
+        blocks = [collectedFor.descriptor];
+        functions.push(...collectedFor.functions);
+      } else {
+        blocks = [rawDescriptor(source, cursor.node)];
       }
     } else {
       blocks = [rawDescriptor(source, cursor.node)];
@@ -1206,6 +1311,13 @@ function createBlock(
   ) {
     ranged.statementStart = descriptor.statementStart;
     ranged.statementEnd = descriptor.statementEnd;
+  }
+  if (
+    descriptor.commentSourceStart !== undefined &&
+    descriptor.commentSourceEnd !== undefined
+  ) {
+    ranged.commentSourceStart = descriptor.commentSourceStart;
+    ranged.commentSourceEnd = descriptor.commentSourceEnd;
   }
   return block;
 }

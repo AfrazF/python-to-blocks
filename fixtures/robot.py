@@ -37,10 +37,10 @@ def normal():
 def fast():
     """Long drives with no obstacles."""
     drive.settings(
-        straight_speed=500,
-        straight_acceleration=1000,
-        turn_rate=200,
-        turn_acceleration=500,
+        straight_speed=430,
+        straight_acceleration=750,
+        turn_rate=180,
+        turn_acceleration=450,
     )
 
 

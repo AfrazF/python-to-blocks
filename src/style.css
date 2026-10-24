@@ -80,6 +80,18 @@ body,
   transition: background-color 300ms linear;
 }
 
+/* Comment-icon click highlight. Applied as a Monaco inline decoration, so it
+   paints a background behind the comment text without moving the cursor or
+   taking focus. Amber matches the Flow block colour family. */
+.monaco-editor .pybricks-comment-highlight {
+  background-color: rgba(255, 171, 25, 0.35);
+  border-radius: 2px;
+}
+
+body.dark .monaco-editor .pybricks-comment-highlight {
+  background-color: rgba(255, 171, 25, 0.28);
+}
+
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
   font-weight: normal;
