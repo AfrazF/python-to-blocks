@@ -3,7 +3,7 @@
 ## Goal
 
 A browser tool that shows Pybricks Python (LEGO SPIKE Prime, FLL robot) as Blockly blocks.
-v1 is **read-only**: Python → blocks. Editing and Python-out is v2.
+v1.x is read-only by default. Editing (v2) is gated behind a ?editable=1 URL parameter; read-only remains the default on main until v2 ships.
 Mainly for a teammate who prefers blocks.
 
 ## Robot and code
@@ -84,6 +84,6 @@ Pybricks Code treats each file in isolation. We do not.
 
 - **v1.25** — Monaco read-only panel with bidirectional highlighting; refactor `walk.ts` to carry `sourceStart`/`sourceEnd`
 - **v1.5** — Control flow, nested member dispatch, hub display/button/light blocks
-- **v2** — Editable blocks, Tauri, per-function block types
+- **v2** — Sequenced in five clusters: v2a (Monaco+tabs), v2b (editable blocks, round-trip), v2c (intellisense via pyodide), v2d (polish: icons, comments, snap, categories), v2 wrap-up (PWA + Tauri). See docs/ROADMAP.md for full breakdown.
 
 See `docs/ROADMAP.md` for full detail.
