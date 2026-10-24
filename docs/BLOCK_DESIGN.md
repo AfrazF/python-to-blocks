@@ -12,7 +12,7 @@ Reference: Pybricks Code block editor (user's screenshots and generated Python, 
 | Setup hat         | `#ffbf00` | `#bf8f00` | `set up` hat only                                                              |
 | Tasks             | `#9a72a2` | `#74567a` | task (`async def`) block, `await` wrapper, multitask                           |
 | Output            | `#4c97ff` | `#3971bf` | motor, drive base, setup blocks, print                                         |
-| Input             | `#5cb1d6` | `#4585a1` | sensors (not needed in v1)                                                     |
+| Input             | `#5cb1d6` | `#4585a1` | sensors, or changing something related to them (drive.use_gyro(True))                                                     |
 | Flow              | `#ffab19` | `#bf8013` | if/else, wait, repeat, for, while                                              |
 | Variables / Calls | `#ff6680` | `#bf4d60` | variables, imports, plain `def` functions, call blocks                         |
 | Hardware objects  | `#46BAEC` | `#358BB0` | Motor and DriveBase object chips (`drive`, `attachment_a`, `left`, `right`, …) |
