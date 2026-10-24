@@ -123,16 +123,14 @@ export function createEditor(container: HTMLElement): PyEditor {
   });
 
   // Epoch (ms) until which programmatic cursor moves are ignored. Bumped by
-  // clearSelection so its own collapse does not kick off reverse sync.
+  // clearSelection and clearCommentHighlight so their own collapse does not
+  // kick off reverse sync.
   let suppressCursorChangesUntil = 0;
 
-  // Decorations live on the model, not the view. Setting them goes straight to
-  // model.changeDecorations(), which never moves the cursor, never changes the
-  // selection, and never calls focus(). That is what lets a comment-icon click
-  // paint a highlight while Blockly's comment bubble stays open — setSelection()
-  // and revealRange() both focus the editor, which blurs the SVG and closes the
-  // bubble.
-  const commentDecorations = editor.createDecorationsCollection();
+  // True while highlightComment's selection is on screen. clearCommentHighlight
+  // is a no-op otherwise, so a block-body click does not collapse the selection
+  // that revealRange is about to set.
+  let commentHighlightActive = false;
 
   return {
     setValue: (text) => editor.setValue(text),
@@ -206,28 +204,25 @@ export function createEditor(container: HTMLElement): PyEditor {
       }
       const startPos = model.getPositionAt(start);
       const endPos = model.getPositionAt(end);
-      commentDecorations.set([
-        {
-          range: new monaco.Range(
-            startPos.lineNumber,
-            startPos.column,
-            endPos.lineNumber,
-            endPos.column,
-          ),
-          options: {
-            inlineClassName: "pybricks-comment-highlight",
-            // The editor is read-only, so stickiness only decides how the
-            // range behaves if the model is ever replaced. Keep it pinned.
-            stickiness:
-              monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-          },
-        },
-      ]);
+      // A real selection, anchored at the end with the caret at the start (the
+      // same shape revealRange uses). setSelection() only reaches
+      // viewModel.setSelections -> cursor.setStates, which emits cursor/view
+      // events and never calls focus(). That is what keeps Blockly's comment
+      // bubble open: revealRangeInCenterIfOutsideViewport() is the call that
+      // focuses, not setSelection().
+      editor.setSelection(
+        new monaco.Selection(
+          endPos.lineNumber,
+          endPos.column,
+          startPos.lineNumber,
+          startPos.column,
+        ),
+      );
+      commentHighlightActive = true;
 
-      // Monaco only paints decorations on rendered lines, so a comment below
-      // the fold would highlight invisibly. Scroll it into view with
-      // setScrollTop(), which moves the viewport without touching the cursor,
-      // the selection, or focus — unlike revealRange(), which focuses.
+      // setSelection() does not scroll, so a comment below the fold would be
+      // selected invisibly. setScrollTop() moves the viewport without touching
+      // the cursor, the selection, or focus.
       const lineTop = editor.getTopForLineNumber(startPos.lineNumber);
       const lineBottom = editor.getTopForLineNumber(endPos.lineNumber + 1);
       const viewTop = editor.getScrollTop();
@@ -236,7 +231,31 @@ export function createEditor(container: HTMLElement): PyEditor {
         editor.setScrollTop(Math.max(0, lineTop - 40));
       }
     },
-    clearCommentHighlight: () => commentDecorations.clear(),
+    clearCommentHighlight: () => {
+      // Nothing to clear: leave the selection alone so a block-body click's
+      // revealRange() is not collapsed by this call.
+      if (!commentHighlightActive) {
+        return;
+      }
+      commentHighlightActive = false;
+      const position = editor.getPosition();
+      if (!position) {
+        return;
+      }
+      // Collapsing the selection is a programmatic cursor move, so it fires
+      // onDidChangeCursorPosition. Suppress reverse sync for the same 100 ms
+      // window clearSelection uses, or the block under the caret re-glows
+      // right after the caller cleared it.
+      suppressCursorChangesUntil = Date.now() + 100;
+      editor.setSelection(
+        new monaco.Selection(
+          position.lineNumber,
+          position.column,
+          position.lineNumber,
+          position.column,
+        ),
+      );
+    },
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };
