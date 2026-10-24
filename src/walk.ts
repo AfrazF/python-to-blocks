@@ -496,9 +496,7 @@ function getMultitaskComments(
 
   do {
     if (cursor.name === "Comment") {
-      const text = stripComment(
-        source.slice(cursor.node.from, cursor.node.to),
-      );
+      const text = stripComment(source.slice(cursor.node.from, cursor.node.to));
       if (argsSeen === 0) {
         multitask.push(text);
       } else {
@@ -997,6 +995,62 @@ function collectFunctionBlock(
 }
 
 /**
+ * Reads `for <loop var> in <iterable>:` into a C-shaped block.
+ *
+ * The loop variable and the iterable are kept as raw source text: tuple forms
+ * (`i, mission`) and calls (`enumerate(missions)`) both survive verbatim.
+ * A `for ... else:` has no block shape yet, so it returns undefined and the
+ * caller falls back to a raw-code block.
+ */
+function collectForBlock(
+  source: string,
+  node: ParseNode,
+  resolved: ResolvedTable,
+): { descriptor: BlockDescriptor; functions: BlockDescriptor[] } | undefined {
+  const cursor = node.cursor();
+  let forTokenEnd: number | undefined;
+  let inToken: ParseNode | undefined;
+  let body: ParseNode | undefined;
+  let hasElse = false;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "for" && forTokenEnd === undefined) {
+        forTokenEnd = cursor.node.to;
+      } else if (cursor.name === "in" && inToken === undefined) {
+        inToken = cursor.node;
+      } else if (cursor.name === "Body" && body === undefined) {
+        body = cursor.node;
+      } else if (cursor.name === "else") {
+        hasElse = true;
+      }
+    } while (cursor.nextSibling());
+  }
+
+  if (forTokenEnd === undefined || !inToken || !body || hasElse) {
+    return undefined;
+  }
+
+  const descriptor: BlockDescriptor = {
+    type: "pybricks_for",
+    fields: {
+      LOOP_VAR: source.slice(forTokenEnd, inToken.from).trim(),
+      ITERABLE: source.slice(inToken.to, body.from).trim(),
+    },
+    inputs: {},
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+
+  const collected = collectBody(source, body, resolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  descriptor.inputs = { BODY: collected.statements };
+  return { descriptor, functions: collected.functions };
+}
+
+/**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
  */
@@ -1019,8 +1073,20 @@ function collectBody(
   do {
     if (cursor.name === "Comment") {
       const commentNode = cursor.node;
+      // Compound statements (`for`, `while`, `if`, `try`) end at the newline
+      // that closes their last line, so the gap to a following comment is
+      // empty even though the comment sits on its own line. Treat a previous
+      // node that already ends in a newline as "the comment is below it".
+      const previousText =
+        previousNonCommentNode === undefined
+          ? ""
+          : source.slice(
+              previousNonCommentNode.from,
+              previousNonCommentNode.to,
+            );
       const isStandalone =
         previousNonCommentNode === undefined ||
+        previousText.endsWith("\n") ||
         source
           .slice(previousNonCommentNode.to, commentNode.from)
           .includes("\n");
@@ -1105,6 +1171,14 @@ function collectBody(
         blocks = collectDriveSettingsBlocks(source, expression, resolved) ?? [
           collectExpressionStatement(source, expression, resolved),
         ];
+      }
+    } else if (cursor.name === "ForStatement") {
+      const collectedFor = collectForBlock(source, cursor.node, resolved);
+      if (collectedFor) {
+        blocks = [collectedFor.descriptor];
+        functions.push(...collectedFor.functions);
+      } else {
+        blocks = [rawDescriptor(source, cursor.node)];
       }
     } else {
       blocks = [rawDescriptor(source, cursor.node)];
