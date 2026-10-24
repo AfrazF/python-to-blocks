@@ -462,52 +462,58 @@ function readCallExpression(
   return callee && argumentList ? { callee, argumentList } : undefined;
 }
 
+/** Drops the leading `#` from every line of a comment node. */
+function stripComment(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^# ?/, ""))
+    .join("\n");
+}
+
 /**
- * Collects every inline comment inside a call's argument list, joined with
- * newlines. `multitask(...)` spreads its calls over several lines, so each
- * argument carries its own `# ...` comment. `getCallArgumentValues` skips
- * `Comment` nodes, so they never reach a block on their own.
+ * Splits the comments inside `multitask(...)` by the argument they describe.
+ *
+ * Lezer flattens an argument list to `( Comment arg , Comment arg , Comment )`,
+ * so a comment that follows argument N belongs to argument N, while anything
+ * before the first argument describes the whole call. Keyword arguments span
+ * several nodes (`race` `=` `True`), so "is this a new argument?" is decided by
+ * matching the child's start offset against the positional argument nodes.
  */
-function getCallComments(
+function getMultitaskComments(
   source: string,
-  callNode: ParseNode,
   argumentList: ParseNode,
-): string | undefined {
-  const comments: string[] = [];
+  argumentNodes: ParseNode[],
+): { multitask: string[]; perArg: string[][] } {
+  const multitask: string[] = [];
+  const perArg: string[][] = argumentNodes.map(() => []);
+  const argumentStarts = argumentNodes.map((node) => node.from);
+  let argsSeen = 0;
 
-  const collectFrom = (node: ParseNode) => {
-    const cursor = node.cursor();
-    if (!cursor.firstChild()) {
-      return;
-    }
-    do {
-      if (cursor.name === "Comment") {
-        comments.push(
-          source.slice(cursor.node.from, cursor.node.to).replace(/^# ?/, ""),
-        );
-      }
-    } while (cursor.nextSibling());
-  };
-
-  collectFrom(argumentList);
-
-  // A comment right after `multitask(` can sit beside the ArgList rather than
-  // inside it, so scan the call's direct children too. Skip the callee.
-  const callCursor = callNode.cursor();
-  if (callCursor.firstChild()) {
-    do {
-      if (callCursor.name === "Comment") {
-        const text = source
-          .slice(callCursor.node.from, callCursor.node.to)
-          .replace(/^# ?/, "");
-        if (!comments.includes(text)) {
-          comments.push(text);
-        }
-      }
-    } while (callCursor.nextSibling());
+  const cursor = argumentList.cursor();
+  if (!cursor.firstChild()) {
+    return { multitask, perArg };
   }
 
-  return comments.length > 0 ? comments.join("\n") : undefined;
+  do {
+    if (cursor.name === "Comment") {
+      const text = stripComment(
+        source.slice(cursor.node.from, cursor.node.to),
+      );
+      if (argsSeen === 0) {
+        multitask.push(text);
+      } else {
+        perArg[argsSeen - 1].push(text);
+      }
+      continue;
+    }
+
+    // Keyword arguments are not in argumentNodes, so they do not count here.
+    if (argumentStarts.includes(cursor.from)) {
+      argsSeen += 1;
+    }
+  } while (cursor.nextSibling());
+
+  return { multitask, perArg };
 }
 
 /** Returns the expression inside `await ...`. */
@@ -799,30 +805,40 @@ function collectExpressionStatement(
       call?.callee.type.name === "VariableName" &&
       source.slice(call.callee.from, call.callee.to) === "multitask"
     ) {
-      const arguments_ = getCallArgumentNodes(call.argumentList);
+      const argumentNodes = getCallArgumentNodes(call.argumentList);
       const { keywords } = getCallArgumentValues(source, call.argumentList);
       const descriptor: BlockDescriptor = {
         type: "pybricks_multitask",
         fields: { MODE: keywords.race?.text === "True" ? "any" : "all" },
         inputs: {},
-        taskCount: Math.max(1, arguments_.length),
+        taskCount: Math.max(1, argumentNodes.length),
         sourceStart: expression.from,
         sourceEnd: expression.to,
       };
 
-      const commentText = getCallComments(
-        source,
-        innerExpression,
-        call.argumentList,
+      // Build each argument once, then hand the same descriptor to the comment
+      // pass and to the TASK inputs, so the comment lands on the block that
+      // actually renders inside the slot.
+      const argumentDescriptors = argumentNodes.map((argument) =>
+        collectExpressionStatement(source, argument, resolved),
       );
-      if (commentText !== undefined) {
-        descriptor.commentText = commentText;
+
+      const { multitask, perArg } = getMultitaskComments(
+        source,
+        call.argumentList,
+        argumentNodes,
+      );
+
+      if (multitask.length > 0) {
+        descriptor.commentText = multitask.join("\n");
       }
 
-      arguments_.forEach((argument, index) => {
-        descriptor.inputs![`TASK${index}`] = [
-          collectExpressionStatement(source, argument, resolved),
-        ];
+      argumentDescriptors.forEach((argumentDescriptor, index) => {
+        const comments = perArg[index];
+        if (comments.length > 0) {
+          argumentDescriptor.commentText = comments.join("\n");
+        }
+        descriptor.inputs![`TASK${index}`] = [argumentDescriptor];
       });
       return descriptor;
     }
