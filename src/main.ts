@@ -21,6 +21,7 @@ import "./blocks/while";
 import "./blocks/if";
 import "./blocks/tryExcept";
 import "./blocks/returnRaise";
+import "./blocks/hub";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
 import runSource from "../fixtures/run.py?raw";
