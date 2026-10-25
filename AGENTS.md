@@ -174,3 +174,14 @@ These were decided 2026-10-24 and should not be re-litigated without cause:
 - **The variable chit is one chit with a dropdown, not one chit per variable** (v2d.6b). `{variable icon} | (WHEEL_DIAMETER ▾)` — the dropdown lists every variable in scope and picking one changes the chit in place. v1.1.0 keeps the current `pybricks_var_reporter` block with a fixed `NAME` field; the single-chit dropdown is a v2 change. Because it is a dropdown, it can be dropped into any slot regardless of that slot's shape. **Split from v2d.6a** (argument dropdowns, one chit per variable) because it needs the walker to pass the full variable list to every reporter, live dropdown updates when a variable is added, and serialization that stores a selection reference rather than a name.
 - **PID blocks (v2e.1) mirror the `drive.settings()` pattern.** One block per parameter, a dropdown picks the parameter, a circular value slot holds the number. `collectDriveSettingsBlocks` in `src/walk.ts` is the dispatch shape to copy. Friendly parameter names (proportional/integral/derivative/integral deadzone/integral rate) map to `kp`/`ki`/`kd`/`integral_deadzone`/`integral_rate`. PID getters (`kp, ki, kd = ...pid()`) stay raw until v2e.2 — they need tuple unpacking that `collectVariableBlock` does not support.
 - **Intellisense packages are npm-wrapped pyodide wheels** (~29 MB combined). Not pure JS. Cache after first fetch. Excluded from single-file `file://` build.
+
+## Roadmap discipline
+
+Every step prompt updates `docs/ROADMAP.md` before the PR is opened:
+
+1. Flip the corresponding step to ✅ if the work merged to `main`.
+2. Verify the ✅ against `git log` — do not check off a step whose commit isn't in the log.
+3. Add the file citation (e.g. `src/blocks/for.ts`, `collectForBlock`) next to the ✅.
+4. If a step was repurposed mid-stream, update its description to match what was actually built. Do not leave stale wording.
+
+PR descriptions must list every roadmap step flipped, with the commit SHA.
