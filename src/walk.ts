@@ -1250,6 +1250,108 @@ function collectIfBlock(
 }
 
 /**
+ * Reads `try:` / `except <type>:` into one C-shaped block with two slots.
+ *
+ * Lezer keeps the whole statement in one `TryStatement` node, with `try` and
+ * `except` as sibling tokens and one `Body` child per clause. The exception
+ * type is a `VariableName` sitting between the `except` token and its body;
+ * a bare `except:` has no such node, so the field is left empty.
+ *
+ * The exception text is kept verbatim, so `Exception` and `ValueError` both
+ * survive as written. The slice stops at the type node, so neither the
+ * `except` keyword nor the `:` is included.
+ *
+ * Anything we cannot draw returns undefined and the caller falls back to a
+ * raw-code block: `finally`, `else`, multiple `except` clauses, and any
+ * exception clause that is not exactly one `VariableName` (for example
+ * `except ValueError as e:`, whose tree shape is unverified).
+ */
+function collectTryExceptBlock(
+  source: string,
+  node: ParseNode,
+  resolved: ResolvedTable,
+): { descriptor: BlockDescriptor; functions: BlockDescriptor[] } | undefined {
+  const cursor = node.cursor();
+  const bodies: ParseNode[] = [];
+  let tryTokenEnd: number | undefined;
+  let exceptTokenEnd: number | undefined;
+  let exceptionType: ParseNode | undefined;
+  let exceptCount = 0;
+  let unsupported = false;
+
+  if (cursor.firstChild()) {
+    do {
+      if (cursor.name === "try" && tryTokenEnd === undefined) {
+        tryTokenEnd = cursor.node.to;
+        continue;
+      }
+      if (cursor.name === "except") {
+        exceptCount += 1;
+        exceptTokenEnd = cursor.node.to;
+        continue;
+      }
+      if (cursor.name === "else" || cursor.name === "finally") {
+        unsupported = true;
+        continue;
+      }
+      if (cursor.name === "Body") {
+        bodies.push(cursor.node);
+        continue;
+      }
+      // Between `except` and its body only a single exception type is allowed.
+      if (exceptTokenEnd !== undefined && bodies.length === 1) {
+        if (cursor.name === "VariableName" && exceptionType === undefined) {
+          exceptionType = cursor.node;
+        } else {
+          unsupported = true;
+        }
+      }
+    } while (cursor.nextSibling());
+  }
+
+  if (
+    tryTokenEnd === undefined ||
+    exceptTokenEnd === undefined ||
+    exceptCount !== 1 ||
+    bodies.length !== 2 ||
+    unsupported
+  ) {
+    return undefined;
+  }
+
+  const descriptor: BlockDescriptor = {
+    type: "pybricks_try_except",
+    fields: {
+      EXCEPTION:
+        exceptionType === undefined
+          ? ""
+          : source.slice(exceptionType.from, exceptionType.to).trim(),
+    },
+    inputs: {},
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+
+  const tryCollected = collectBody(source, bodies[0], resolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  const exceptCollected = collectBody(source, bodies[1], resolved, {
+    topLevel: false,
+    block: descriptor,
+  });
+  descriptor.inputs = {
+    TRY: tryCollected.statements,
+    EXCEPT: exceptCollected.statements,
+  };
+
+  return {
+    descriptor,
+    functions: [...tryCollected.functions, ...exceptCollected.functions],
+  };
+}
+
+/**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
  */
@@ -1405,6 +1507,14 @@ function collectBody(
       if (collectedIf) {
         blocks = [collectedIf.descriptor];
         functions.push(...collectedIf.functions);
+      } else {
+        blocks = [rawDescriptor(source, cursor.node)];
+      }
+    } else if (cursor.name === "TryStatement") {
+      const collectedTry = collectTryExceptBlock(source, cursor.node, resolved);
+      if (collectedTry) {
+        blocks = [collectedTry.descriptor];
+        functions.push(...collectedTry.functions);
       } else {
         blocks = [rawDescriptor(source, cursor.node)];
       }
