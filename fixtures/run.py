@@ -4,42 +4,55 @@ Call it at the end of an attachment file's main():
 
     await run_missions(mission1, mission2, mission3)
 
-Adding a mission = write an async def and add one argument above.
-Icons live in ICONS below — edit them here, not in the attachment files.
+First mission auto-starts (menu already confirmed the choice).
+Between missions: show NEXT_ICON, wait for any button.
+While a mission runs: show RUNNING_ICON (static, not a spinner).
+On error: show FAIL_ICON, wait for a button, end this attachment's run.
 """
 
-from pybricks.parameters import Color, Image
+from pybricks.parameters import Icon
+from pybricks.tools import wait
 from robot import hub
 
-# Icon shown before each mission, in order. Cycles if there are more missions than icons.
-# Change these freely; they are the only display logic in the project.
-ICONS = [
-    Image.ARROW_RIGHT,
-    Image.ARROW_LEFT,
-    Image.ARROW_UP,
-    Image.ARROW_DOWN,
-]
+
+# Built-in icons are already Matrix objects, so display.icon() accepts them
+# directly — no pybricks.geometry.Matrix wrapping needed.
+NEXT_ICON = Icon.LEFT + Icon.RIGHT   # "press a button"
+RUNNING_ICON = Icon.HAPPY            # shown while a mission runs
+FAIL_ICON = Icon.SAD
+
+
+async def wait_for_button():
+    """Block until any button is pressed, then wait for release.
+
+    hub.buttons.pressed() is synchronous — it returns the set of buttons
+    pressed right now. To *wait*, poll with a small delay.
+    The second loop debounces so the next call doesn't fire on the same press.
+    """
+    while not hub.buttons.pressed():
+        await wait(20)
+    while hub.buttons.pressed():
+        await wait(20)
 
 
 async def run_missions(*missions):
-    """For each mission: show an icon, wait for any button, run it.
-
-    Any button advances — no LEFT/RIGHT branching.
-    If a mission raises, show a sad face, wait for a button, and end this
-    attachment's run so the menu comes back up.
-    """
+    """Run each mission in order."""
     for i, mission in enumerate(missions):
-        hub.display.image(ICONS[i % len(ICONS)])
-        await hub.buttons.pressed()
-        hub.display.off()
+        # Prompt before every mission except the first.
+        if i > 0:
+            hub.display.icon(NEXT_ICON)
+            await wait_for_button()
+
+        # Static icon while the mission runs.
+        hub.display.icon(RUNNING_ICON)
 
         try:
             await mission()
-        except Exception:
-            # As written, a bad mission stops that attachment cleanly and the
-            # menu comes back — the safe choice mid-competition.
-            hub.display.image(Image.SAD)
-            hub.light.on(Color.RED)
-            await hub.buttons.pressed()
-            hub.light.off()
-            raise
+        except Exception as e:
+            print("Mission error:", e)
+            hub.display.icon(FAIL_ICON)
+            await wait_for_button()
+            hub.display.off()
+            return
+
+    hub.display.off()
