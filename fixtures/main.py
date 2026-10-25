@@ -50,11 +50,9 @@ while True:
     index, attach_main = pick(next_index)
     hub.display.off()
 
-    # TODO: if run_task(...).wait() is not available on your firmware,
-    # use:   task = run_task(attach_main())
-    #        while not task.done():
-    #            wait(10)
-    run_task(attach_main()).wait()
+    # Blocks until the attachment's main() returns. No .wait() — run_task
+    # is itself the blocking call (it returns bool, not a Task).
+    run_task(attach_main())
 
     # Make sure nothing keeps running after an attachment ends.
     drive.stop()
