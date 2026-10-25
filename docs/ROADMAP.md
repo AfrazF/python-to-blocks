@@ -9,8 +9,9 @@
 - v2b — Editable blocks (the big one)
 - v2c — Intellisense (pyodide + jedi + ide-docs)
 - v2d — Polish (icons, comments, categories, snap-to-grid)
+- v2e — Full Pybricks API coverage (PID, getters, sensors)
 - v2 wrap-up — PWA + Tauri
-- v3 — Hardware integration, terminal, full API coverage
+- v3 — Hardware integration, terminal, remaining API surface
 
 Realistic effort from v1.1.0 to end of v2: **~3–5 months** of focused work at a sustainable pace. v2b alone (full round-trip editing) is the bulk of it.
 
@@ -122,11 +123,11 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Control flow
 
-- ⬜ **Step 30** — `for` loops. `run.py` has `for i, mission in enumerate(missions):` — needs tuple unpacking in the loop target.
-- ⬜ **Step 31** — `while` loops. `main.py` has `while True:` at module level and inside `pick()`.
-- ⬜ **Step 32** — `if` / `elif` / `else` with `in` operator support. `main.py` has `if Button.LEFT in pressed:` / `elif` / `elif`.
-- ⬜ **Step 33** — `try` / `except` blocks. `run.py` has `try: await mission() except Exception:`.
-- ⬜ **Step 34** — `return` block (tuple values: `return i, ATTACHMENTS[i][1]`) and `raise` block (`run.py` re-raises).
+- ✅ **Step 30** — `for` loops (`src/blocks/for.ts`, `collectForBlock` in `src/walk.ts`). `run.py` has `for i, mission in enumerate(missions):` — needs tuple unpacking in the loop target.
+- ✅ **Step 31** — `while` loops (`src/blocks/while.ts`, `collectWhileBlock` in `src/walk.ts`). `main.py` has `while True:` at module level and inside `pick()`.
+- ✅ **Step 32** — `if` / `elif` / `else` with `in` operator support (`src/blocks/if.ts`, `collectIfBlock` in `src/walk.ts`). `main.py` has `if Button.LEFT in pressed:` / `elif` / `elif`.
+- ✅ **Step 33** — `try` / `except` blocks (`src/blocks/tryExcept.ts`, `collectTryExceptBlock` in `src/walk.ts`). `run.py` has `try: await mission() except Exception:`. **Limitation:** the exception text is kept verbatim and only a single `VariableName` is read, so `except ValueError as e:` (an `AsPattern`) is not handled — the `as e` binding is dropped.
+- ✅ **Step 34** — `return` block (tuple values: `return i, ATTACHMENTS[i][1]`) and `raise` block (`run.py` re-raises) (`src/blocks/returnRaise.ts`).
 
 ### Expression depth
 
@@ -148,7 +149,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 **v2 is gated behind `?editable=1`.** `readOnly: true` remains the default on `main` throughout v2 development. The flag flips to default-on when v2 ships. Individual steps land on short-lived feature branches and merge to `main` normally — no persistent v2-dev branch, no second ruleset.
 
-**Sequence:** v2a → v2b → v2c → v2d → wrap-up. No skipping.
+**Sequence:** v2a → v2b → v2c → v2d → v2e → wrap-up. No skipping.
 
 ---
 
@@ -157,7 +158,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 VS Code pattern: sidebar keeps file list, clicking a file opens it as a tab, tabs can be closed, clicking an already-open file just focuses its tab.
 
 - ⬜ **Step v2a.1** — Tab bar UI above Monaco; clicking a sidebar file opens it as a tab; close button per tab; state persists across file switches
-- ⬜ **Step v2a.2** — Token colors match block palette: Python tokens colored by the block they'd become (DriveBase calls blue, Flow orange, Variables pink, etc.). Uses `monaco.editor.defineTheme`. Does not require pyodide.
+- ⬜ **Step v2a.2** — Token colors match block palette at **category level**: every DriveBase call is Output blue, every Motor call is Output blue, every Flow block is Flow orange. Not method-level — `drive.straight(...)` and `drive.settings(...)` share the same blue because both are DriveBase calls. Categories and hex values come from `docs/BLOCK_DESIGN.md` (the source of truth), not from this file. Uses `monaco.editor.defineTheme`. Does not require pyodide.
 - ⬜ **Step v2a.3** — Split editor (two Monaco panes side-by-side, optional)
 
 ---
@@ -170,6 +171,20 @@ Full round-trip: any block change produces correct Python, any Python change pro
 
 - ⬜ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly`, shows a "readonly/editable" indicator, gates all v2b features
 - ⬜ **Step v2b.2** — Toolbox: read-only palette grouped by category (Setup, Output, Flow, Tasks, Data, Variables), drag-to-workspace enabled
+- ⬜ **Step v2b.2b** — Input shapes: four field styles so a slot's expected type is visible without reading the Python. **Shape is fixed by the parameter's expected type, not by the current contents.**
+  - **Circular slot** — numeric literal (`500` in `drive.straight(500)`)
+  - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Button.LEFT`, `Port.A`)
+  - **Square dropdown** — text enum (`Stop.COAST` → `coast`, `Direction.CLOCKWISE` → `clockwise`)
+  - **Square slot** — free text or complex expression (`print("hello")`, `(i - 1) % len(ATTACHMENTS)`, f-strings, variables used as values)
+  - **Colour field** — a circular chit filled with the chosen colour and carrying no text, `(●)`. Clicking it opens a **grid of colour swatches** (SPIKE Prime pattern), not a text list. `Color.RED` → a red circle. This is a fifth shape, not a circular dropdown, so a reader knows "this is a colour" without reading the text.
+  - **Unit suffixes are static text after the field, never inside it.** Pybricks renders `{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — the number sits in a circular field and `mm/s` is plain text after it. Suffixes vary by parameter: `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms`. Verified against `docs/images/drive-settings-blocks.png`.
+  - **Field fill is not white.** `()` is circular, `[]` is square, `{}` is an icon. Every circular dropdown and editable field uses a **darker shade of the block's own colour** with white text — Output's is `#4180d9` and Variables/Calls' is `#d9576d` (both confirmed), and the same rule applies to the `mm/s` / `°/s` value fields in `drive.settings()`. The `configure` parameter dropdown uses the **same** blue as the block. A number typed into a circular field renders as a **white square with dark text** inside a dark-blue circle with **no stroke**. Today every field is a white rect with dark text (`src/pybricks.css`), so this is a CSS + theme change, not just a shape change. Verified against `docs/images/setup-blocks.png`, `docs/images/drive-settings-blocks.png`, and `docs/images/variable-set-blocks.png`.
+  - **The parameter-name dropdown in `drive.settings()` uses the same blue as the block**, not the darker field shade — it reads as part of the block body rather than as a field.
+  - **Scope is selective:** migrate the Pybricks blocks first (`driveBase`, `motor`, `hardware`, `pid`). `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
+  - **Every new block from here on follows this design.** A block added in v1.5 or v2e uses the darker field fill, the correct shape per parameter type, and unit suffixes where Pybricks has them — not a white `field_input`. The v1.5 hub blocks (Steps 39–41) ship with `field_input` because v1.5 is blocks-only, and v2b.2b converts them.
+  - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.
+  - **Variables are square.** Parse time cannot know a variable's type, so it never claims a numeric shape. Variable chips can be dropped into any slot; the slot keeps its parameter's shape.
+  - See the "Field types" section in `docs/BLOCK_DESIGN.md` for the full mapping.
 - ⬜ **Step v2b.3** — Block drag, connect, delete, undo/redo. Basic gesture editing working end-to-end.
 - ⬜ **Step v2b.4** — Python generator: blocks → Python, exact output, verified against all fixtures byte-for-byte
 - ⬜ **Step v2b.5** — Reverse sync: Python edits in Monaco re-render blocks (the hardest step — potentially splits into 2b.5a–2b.5c)
@@ -196,15 +211,33 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 
 ### v2d — Polish (est. 2–3 weeks)
 
-- ⬜ **Step v2d.1** — Block icons (replaces the current comment question mark with a proper icon set; consider Pybricks' actual icons or MD symbols)
+- ⬜ **Step v2d.1** — Block icons (replaces the current comment question mark with a proper icon set; consider Pybricks' actual icons or MD symbols). Reference: `docs/images/setup-blocks.png` shows the spike prime, motor, drive-base, wheel-diameter, axle-length, and rotation-direction icons. Target shape for the drive base setup block is `docs/images/drivebase-setup-mockup.svg` (approved 2026-10-25). Once icons land, drop the `new` prefix from the setup blocks so they read `{spike prime icon} \| [hub name]` and `{motor icon} \| [left] on (A ▾) with forward ({clockwise motor icon}▾)` like Pybricks. Also: drop the Hardware objects color mismatch — object chips are `pybricks_var_reporter` blocks hardcoded to `#ff6680` in `src/blocks/variable.ts` and forced pink by `src/pybricks.css`, so the cyan `#46BAEC` in `src/theme.ts` never renders. Chips should inherit the Hardware objects cyan once icons land.
 - ⬜ **Step v2d.2** — Comment revamp: TurboWarp-style speech-bubble shape, subtle shadow, small rounded corners; matches modern Blockly feel rather than the current yellow default
 - ⬜ **Step v2d.3** — Snap-to-grid for dragged blocks
 - ⬜ **Step v2d.4** — "Clean up blocks" + "Clean up blocks+" in the right-click context menu (TurboWarp has both — basic stacks top-blocks, + also aligns within nested groups)
-- ⬜ **Step v2d.5** — Block categories properly assigned; use_gyro moves from Output to Input; category colors verified against `docs/BLOCK_DESIGN.md`
-- ⬜ **Step v2d.6** — Motors as dropdowns instead of chips (dropdown arrow visible; values changeable in editable mode)
+- ⬜ **Step v2d.5** — Block categories properly assigned; category colors verified against `docs/BLOCK_DESIGN.md`
+- ⬜ **Step v2d.6a** — Argument dropdowns: motors as dropdowns instead of chips (dropdown arrow visible; values changeable in editable mode). Pybricks also puts a **drive base name dropdown** at the front of every configure block (`{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — `docs/images/drive-settings-blocks.png`), and lists variables in the `left`/`right`/`wheel diameter`/`axle length` slots of the drive-base setup block. **Keeps one chit per variable** — this step is mechanical, no serialization change.
+- ⬜ **Step v2d.6b** — Unified variable chit: **one chit with a dropdown**, not one chit per variable (`docs/images/variable-chit.png`): `{variable icon} \| (WHEEL_DIAMETER ▾)`. The dropdown lists every variable in scope; picking a different one changes the chit in place. This replaces the v1.1.0 `pybricks_var_reporter` block, which hardcodes a single `NAME` field per variable. Because the chit is a dropdown, it can be dropped into any slot regardless of that slot's shape.
+  - **Why this is split from 6a:** it is architecturally heavier. The walker must pass the full variable list to every reporter at render time; adding a variable in editable mode must update every chit's dropdown; and serialization stores a _selection reference_ rather than a name. That deserves its own PR and its own test, not a ride-along on mechanical dropdown work.
 - ⬜ **Step v2d.7** — Sounds: connect, disconnect, delete, snap. Use default Blockly sounds initially; optionally Pybricks/SPIKE audio if licensing permits
 - ⬜ **Step v2d.8** — Keyboard shortcuts: Ctrl+Z/Y undo/redo, Ctrl+C/V copy/paste, Delete to remove, Ctrl+A select all, Escape to deselect
 - ⬜ **Step v2d.9** — Multi-select blocks (rectangular selection, drag-move, cut, copy)
+
+---
+
+### v2e — Full Pybricks API coverage (est. 2–3 weeks)
+
+Every feasible Pybricks API call gets a block. Uses `@pybricks/ide-docs` to auto-generate block definitions from the current API where practical.
+
+- ⬜ **Step v2e.1** — PID blocks (`src/blocks/pid.ts`). Pybricks' `Control.pid(kp, ki, kd, integral_deadzone, integral_rate)` sets or gets PID constants, reachable through `drive.heading_control`, `drive.distance_control`, and `motor.control`.
+  - **Mirrors the `drive.settings()` pattern** (Step 11a.5): one block per parameter, a dropdown picks the parameter, a value slot holds the number. `collectDriveSettingsBlocks` in `src/walk.ts` is the dispatch shape to copy — it splits one Python call into several descriptors, each with its own `WHAT` field.
+  - Block: `pid of [heading/distance/motor] [proportional/integral/derivative/integral deadzone/integral rate] set to (__)`. The value slot is **circular** (numeric literal).
+  - Friendly parameter names map to the API: proportional → `kp`, integral → `ki`, derivative → `kd`, integral deadzone → `integral_deadzone`, integral rate → `integral_rate`. The mapping table lives in `docs/BLOCK_DESIGN.md`.
+  - New block file, imported for side effects in `src/main.ts` (AGENTS.md: an unimported block file throws `Unknown block type` at render time).
+- ⬜ **Step v2e.2** — Control getters. `kp, ki, kd = drive.heading_control.pid()` needs tuple-unpacking support that `collectVariableBlock` does not have (it only accepts `Number`/`String`/`Boolean` RHS). **Deferred: these stay raw until this step.**
+- ⬜ **Step v2e.3** — Sensor blocks: color, distance, force
+- ⬜ **Step v2e.4** — Sound and Light Matrix blocks
+- ⬜ **Step v2e.5** — Remaining API surface not covered by v1.5 or v2e.1–v2e.4
 
 ---
 
@@ -222,7 +255,7 @@ Pybricks Code parity for FLL teams. Realistic effort: 2–4 months.
 
 - ⬜ Bluetooth: Web Bluetooth connection to the hub, live file upload/download
 - ⬜ Terminal: stdout/stderr capture, REPL, program output display
-- ⬜ Full API coverage: every feasible Pybricks API call has a block (uses `@pybricks/ide-docs` to auto-generate block definitions from current API)
-- ⬜ PID block, sensor blocks (color/distance/force), Sound, Light Matrix, etc.
 - ⬜ Menu / program-picker integration (select run from the tool, send to hub)
 - ⬜ Any other Pybricks Code feature not yet covered
+
+Full API coverage and PID blocks moved to **v2e** (2026-10-25) — they are block work, not hardware work.

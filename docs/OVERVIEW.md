@@ -67,23 +67,22 @@ Pybricks Code treats each file in isolation. We do not.
 - Resizable sidebar + fixture refresh (Step 19)
 - Single-file HTML export (Step 20) — 872 kB `index.html`, opens via `file://`
 - File upload + drag-drop (Step 21) — first upload clears fixtures, subsequent merge
+- Docker deployment + `v1.0.0` release (Steps 22–22.5)
+- **v1.25 shipped as v1.1.0** — read-only Monaco panel, bidirectional highlighting, multitask argument comments, cascade glow (Steps 25a–28.5b)
+- **v1.5 control flow** — `for`, `while`, `if`/`elif`/`else`, `try`/`except`, `return`/`raise` (Steps 30–34)
 
 ### Tests
 
 - 6 Vitest tests pass, including the zero-raw-block acceptance test
 - `npm run build` succeeds; Vite's large-chunk advisory (Blockly ~860 kB) is accepted
 
-### Next (v1 closeout)
+### Next
 
-- **Step 22** — Docker files (`Dockerfile`, `nginx.conf`, `.dockerignore`, `docker-compose.yml`); no local build
-- **Step 22.5** — `npm version 1.0.0`, tag `v1.0.0`, push
-- **Step 23** — NPM proxy host → `LXC-IP:8080`, SSL via Let's Encrypt
-- **Step 24** — Verify on school Windows (single-file) and Ubuntu Chromebook (both paths)
+- **v1.5 remainder** — Steps 35–42: nested member dispatch, subscripts, chained call member, non-literal assignment RHS, then the hub display/button/light blocks and `wait`
+- **Then v2a–v2e** per `docs/ROADMAP.md`
 
 ### Post-v1
 
-- **v1.25** — Monaco read-only panel with bidirectional highlighting; refactor `walk.ts` to carry `sourceStart`/`sourceEnd`
-- **v1.5** — Control flow, nested member dispatch, hub display/button/light blocks
-- **v2** — Sequenced in five clusters: v2a (Monaco+tabs), v2b (editable blocks, round-trip), v2c (intellisense via pyodide), v2d (polish: icons, comments, snap, categories), v2 wrap-up (PWA + Tauri). See docs/ROADMAP.md for full breakdown.
+- **v2** — six clusters: v2a (Monaco+tabs), v2b (editable blocks, round-trip), v2c (intellisense via pyodide), v2d (polish: icons, comments, snap, categories), v2e (full Pybricks API coverage: PID, getters, sensors), v2 wrap-up (PWA + Tauri). See `docs/ROADMAP.md` for the full breakdown.
 
 See `docs/ROADMAP.md` for full detail.
