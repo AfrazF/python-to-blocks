@@ -131,16 +131,16 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Expression depth
 
-- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is Step 40; `hub.light.*` is v2e.
+- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is Step 39; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
 - ⬜ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.)
 - ⬜ **Step 38** — Non-literal assignment RHS, list literals, and tuple unpacking. `collectVariableBlock` only accepts `Number`/`String`/`Boolean`, so `next_index = (index + 1) % len(ATTACHMENTS)`, `i = (i - 1) % len(ATTACHMENTS)`, `index, attach_main = pick(next_index)`, `i = start`, `pressed = hub.buttons.pressed()`, `ICONS = [Image.ARROW_RIGHT, ...]`, and `ATTACHMENTS = [("1", a1_main)]` are all raw.
 
 ### Hub API blocks
 
-- ⬜ **Step 39** — Hub display blocks: `.image`, `.off`, `.char`, `.text`
-- ⬜ **Step 40** — Hub button block: `.pressed`
-- ⬜ **Step 41** — Hub light blocks: `.on`, `.off`
-- ⬜ **Step 42** — `wait` block. Not used by the current fixtures; `main.py` only mentions `wait(10)` in a comment.
+- ⬜ **Step 39** — Hub button value block: `hub.buttons.pressed()`. Used by `main.py` and `run.py`'s `wait_for_button`. Renders today as a generic method-call block, not raw — this step upgrades it to a dedicated value block.
+- ⬜ **Step 40** — `wait` block. `run.py` uses `await wait(20)` twice; renders today as an await-wrapped call block (not raw), so this step is cosmetic for the raw count.
+- ⬜ **Step 41** — Extend Step 33 for `except X as e:` — read `AsPattern`. `run.py` uses `except Exception as e:`; currently falls back to a raw block via `collectTryExceptBlock` in `src/walk.ts`. Real blocker for the 0-raw goal.
+- ⬜ **Step 42** — Final v1.5 sweep.
 
 **Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
 
@@ -241,6 +241,7 @@ Every feasible Pybricks API call gets a block. Uses `@pybricks/ide-docs` to auto
 - ⬜ **Step v2e.4** — Sound and Light Matrix blocks
 - ⬜ **Step v2e.5** — Remaining API surface not covered by v1.5 or v2e.1–v2e.4
 - ⬜ **Step v2e.6** — Chained call member. `run_task(attach_main()).wait()` — a `CallExpression` whose callee is itself a `CallExpression`'s `MemberExpression`. Moved here from v1.5 Step 37: the current fixtures no longer use `.wait()`, so nothing in v1.5 depends on it, but real Pybricks code does.
+- ⬜ **Step v2e.7** — Hub display `.image` and `.text`. Not used by any fixture; moved out of v1.5.
 
 ---
 
