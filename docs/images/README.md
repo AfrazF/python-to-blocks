@@ -10,6 +10,8 @@ Screenshots of Pybricks Code blocks, used as the visual reference for `docs/BLOC
 | ---------------------------- | ------------------------------------------------------ |
 | `setup-blocks.png`           | hub, motor, drive base setup blocks                    |
 | `drive-settings-blocks.png`  | `configure` blocks from `drive.settings()`             |
+| `variable-set-blocks.png`    | `starting at` / `set to` variable blocks               |
+| `variable-chit.png`          | The single variable chit with its dropdown             |
 | `drivebase-setup-mockup.svg` | Proposed drive base setup shape (hand-drawn, approved) |
 | `drivebase-straight.png`     | `drive base straight for … then …`                     |
 | `motor-run-angle.png`        | `motor run at … °/s by … ° then …`                     |

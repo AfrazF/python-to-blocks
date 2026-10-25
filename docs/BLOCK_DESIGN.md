@@ -20,7 +20,7 @@ This table is the **source of truth for the palette**. `docs/ROADMAP.md` v2a.2 (
 | Data                | `#00cc99` | `#009973` | `#00ad82`  | lists, geometry                                                                |
 | Other               | `#9a72a2` | `#74567a` | `#83618a`  | (unused in v1)                                                                 |
 
-**Field fill** is the colour of every circular dropdown and editable field on that block — a darker shade of the block's own fill, with white text. Output's `#4180d9` is confirmed; the rest are derived from the same 85% brightness rule and should be eyeballed against a screenshot before shipping.
+**Field fill** is the colour of every circular dropdown and editable field on that block — a darker shade of the block's own fill, with white text. **Confirmed:** Output `#4180d9` and Variables/Calls `#d9576d`. The rest are derived from the same 85% brightness rule and should be eyeballed against a screenshot before shipping.
 
 - Workspace background `#ecf0f1`.
 - No icons in v1 (user decision).
@@ -47,8 +47,10 @@ These are places where our blocks differ from real Pybricks Code. Each is tracke
 | Motor direction     | `clockwise` / `counterclockwise` words                                                                  | rotation-direction **icon** in a circular dropdown                                                                                                                              | v2d.1                                                       |
 | DriveBase settings  | `configure [WHAT ▾] to [VALUE]`                                                                         | `{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s`                                                                                                      | v2d.6 (name dropdown), v2b.2b (circular slot + unit suffix) |
 | Unit suffixes       | none                                                                                                    | `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms` after the field                                                                                                                 | v2b.2b                                                      |
-| Field fill          | white rect, dark text                                                                                   | darker shade of the block colour (`#4180d9` on Output), white text                                                                                                              | v2b.2b                                                      |
+| Field fill          | white rect, dark text                                                                                   | darker shade of the block colour (`#4180d9` on Output, `#d9576d` on Variables), white text                                                                                      | v2b.2b                                                      |
 | Variable dropdowns  | `input_value` slots holding chips                                                                       | dropdowns listing variables (`left`, `right`, `WHEEL_DIAMETER`, `AXLE_TRACK`)                                                                                                   | v2d.6                                                       |
+| Variable chit       | one `pybricks_var_reporter` block per variable, fixed `NAME` field                                      | **one** chit with a dropdown listing every variable in scope                                                                                                                    | v2d.6                                                       |
+| Variable declare    | `create variable [NAME] = [VALUE]`, both white fields                                                   | `{variable icon} \| [X] starting at (56)` — name in darker pink, value in a white circular slot                                                                                 | v2b.2b                                                      |
 
 ## Rules
 
@@ -109,6 +111,19 @@ Rules:
 
 Current state (v1.1.0): numeric arguments are `input_value` slots holding a `math_number` shadow block (white rounded rectangle), and enums are `field_dropdown` (white rectangle plus text). Nothing is circular, and nothing uses the darker-shade fill yet. The shape work is `docs/ROADMAP.md` **Step v2b.2**.
 
+### Variable chit
+
+A variable used as an argument renders as **one chit with a dropdown**, not one chit per variable (verified — `docs/images/variable-chit.png`):
+
+```
+{variable icon} | (WHEEL_DIAMETER ▾)
+```
+
+- The chit is a **circular dropdown** in the darker pink `#d9576d`, with a leading variable icon and a `|` divider.
+- The dropdown lists every variable in scope. Picking a different one changes the chit in place.
+- This replaces the v1.1.0 behaviour, where each variable got its own `pybricks_var_reporter` block with a fixed `NAME` field. **v1.1.0 stays as-is** — the single-chit dropdown is a v2 change (see `docs/ROADMAP.md` v2d.6).
+- Because the chit is a dropdown, it can be dropped into any slot regardless of that slot's shape. The slot keeps its own shape; the chit sits inside it.
+
 ## Reference images
 
 Screenshots of real Pybricks Code blocks live in `docs/images/`. They are the evidence behind a **Verified** marker — if a row has an image, the mapping was confirmed against Pybricks Code output, not guessed. Naming and cropping rules are in `docs/images/README.md`.
@@ -118,6 +133,8 @@ Screenshots of real Pybricks Code blocks live in `docs/images/`. They are the ev
 | Setup (hub, motor)               | `docs/images/setup-blocks.png`           |
 | DriveBase settings               | `docs/images/drive-settings-blocks.png`  |
 | DriveBase setup (proposed shape) | `docs/images/drivebase-setup-mockup.svg` |
+| Variable declare / set           | `docs/images/variable-set-blocks.png`    |
+| Variable chit                    | `docs/images/variable-chit.png`          |
 
 `drivebase-setup-mockup.svg` is a hand-drawn SVG of the target shape, approved 2026-10-25. It is a design mockup, not a screenshot — spacing is approximate and Blockly will handle the real layout.
 
@@ -126,7 +143,7 @@ Screenshots of real Pybricks Code blocks live in `docs/images/`. They are the ev
 | Python                                                     | Block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `from m import a`                                          | `from [m] import [a]`, one block per name (verified). Optional `as [alias]` field (our extension, for `attachment1 as attachment_a`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `X = 56`                                                   | `X starting at 56` for the first assignment, `X set to` after (inference)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `X = 56`                                                   | `{variable icon} \| [X] starting at (56)` for the first assignment, `[X] set to (56)` after (verified — `docs/images/variable-set-blocks.png`). The name is a **square field** in the darker pink `#d9576d`; the value is a **circular slot** with a white fill and dark text. |
 | `hub = PrimeHub()`                                         | `{spike prime icon} \| [hub name]` — the variable name is the only field (verified — `docs/images/setup-blocks.png`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `m = Motor(Port.A, Direction.X)`                           | `{motor icon} \| [left] on (A ▾) with forward ({clockwise motor icon}▾)` (verified — `docs/images/setup-blocks.png`). Motor name is a square field; port is a **circular dropdown**; `with forward` is static text; the trailing **circular dropdown shows a rotation-direction icon** (clockwise / counterclockwise), not a word.                                                                                                                                                                                                                                                        |
 | `d = DriveBase(l, r, wd, at)`                              | `{drive base icon} \| [drive base name] left (l ▾) right (r ▾) with {wheel diameter icon} (wheel diameter) and {axle length icon} (axle length)` (verified — `docs/images/setup-blocks.png`; target shape in `docs/images/drivebase-setup-mockup.svg`). The four value fields are **circular dropdowns** listing variables.                                                                                                                                                                                                                                                               |
