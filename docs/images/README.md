@@ -36,6 +36,7 @@ When writing a block's shape in `docs/BLOCK_DESIGN.md`, use this shorthand so th
 | `[name ▾]`   | Square field with a dropdown arrow.                                      |
 | `(name)`     | Circular field.                                                          |
 | `(name ▾)`   | Circular field with a dropdown arrow.                                    |
+| `(●)`        | Colour field — a circular chit filled with the chosen colour, no text.   |
 | `{icon}`     | An icon, not text.                                                       |
 | `\|`         | Vertical divider separating the leading icon from the rest of the block. |
 

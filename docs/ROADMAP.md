@@ -123,11 +123,11 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Control flow
 
-- ⬜ **Step 30** — `for` loops. `run.py` has `for i, mission in enumerate(missions):` — needs tuple unpacking in the loop target.
-- ⬜ **Step 31** — `while` loops. `main.py` has `while True:` at module level and inside `pick()`.
-- ⬜ **Step 32** — `if` / `elif` / `else` with `in` operator support. `main.py` has `if Button.LEFT in pressed:` / `elif` / `elif`.
-- ⬜ **Step 33** — `try` / `except` blocks. `run.py` has `try: await mission() except Exception:`.
-- ⬜ **Step 34** — `return` block (tuple values: `return i, ATTACHMENTS[i][1]`) and `raise` block (`run.py` re-raises).
+- ✅ **Step 30** — `for` loops (`src/blocks/for.ts`, `collectForBlock` in `src/walk.ts`). `run.py` has `for i, mission in enumerate(missions):` — needs tuple unpacking in the loop target.
+- ✅ **Step 31** — `while` loops (`src/blocks/while.ts`, `collectWhileBlock` in `src/walk.ts`). `main.py` has `while True:` at module level and inside `pick()`.
+- ✅ **Step 32** — `if` / `elif` / `else` with `in` operator support (`src/blocks/if.ts`, `collectIfBlock` in `src/walk.ts`). `main.py` has `if Button.LEFT in pressed:` / `elif` / `elif`.
+- ✅ **Step 33** — `try` / `except` blocks (`src/blocks/tryExcept.ts`, `collectTryExceptBlock` in `src/walk.ts`). `run.py` has `try: await mission() except Exception:`. **Limitation:** the exception text is kept verbatim and only a single `VariableName` is read, so `except ValueError as e:` (an `AsPattern`) is not handled — the `as e` binding is dropped.
+- ✅ **Step 34** — `return` block (tuple values: `return i, ATTACHMENTS[i][1]`) and `raise` block (`run.py` re-raises) (`src/blocks/returnRaise.ts`).
 
 ### Expression depth
 
@@ -176,10 +176,12 @@ Full round-trip: any block change produces correct Python, any Python change pro
   - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Button.LEFT`, `Port.A`)
   - **Square dropdown** — text enum (`Stop.COAST` → `coast`, `Direction.CLOCKWISE` → `clockwise`)
   - **Square slot** — free text or complex expression (`print("hello")`, `(i - 1) % len(ATTACHMENTS)`, f-strings, variables used as values)
+  - **Colour field** — a circular chit filled with the chosen colour and carrying no text, `(●)`. Clicking it opens a **grid of colour swatches** (SPIKE Prime pattern), not a text list. `Color.RED` → a red circle. This is a fifth shape, not a circular dropdown, so a reader knows "this is a colour" without reading the text.
   - **Unit suffixes are static text after the field, never inside it.** Pybricks renders `{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — the number sits in a circular field and `mm/s` is plain text after it. Suffixes vary by parameter: `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms`. Verified against `docs/images/drive-settings-blocks.png`.
   - **Field fill is not white.** `()` is circular, `[]` is square, `{}` is an icon. Every circular dropdown and editable field uses a **darker shade of the block's own colour** with white text — Output's is `#4180d9` and Variables/Calls' is `#d9576d` (both confirmed), and the same rule applies to the `mm/s` / `°/s` value fields in `drive.settings()`. The `configure` parameter dropdown uses the **same** blue as the block. A number typed into a circular field renders as a **white square with dark text** inside a dark-blue circle with **no stroke**. Today every field is a white rect with dark text (`src/pybricks.css`), so this is a CSS + theme change, not just a shape change. Verified against `docs/images/setup-blocks.png`, `docs/images/drive-settings-blocks.png`, and `docs/images/variable-set-blocks.png`.
   - **The parameter-name dropdown in `drive.settings()` uses the same blue as the block**, not the darker field shade — it reads as part of the block body rather than as a field.
   - **Scope is selective:** migrate the Pybricks blocks first (`driveBase`, `motor`, `hardware`, `pid`). `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
+  - **Every new block from here on follows this design.** A block added in v1.5 or v2e uses the darker field fill, the correct shape per parameter type, and unit suffixes where Pybricks has them — not a white `field_input`. The v1.5 hub blocks (Steps 39–41) ship with `field_input` because v1.5 is blocks-only, and v2b.2b converts them.
   - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.
   - **Variables are square.** Parse time cannot know a variable's type, so it never claims a numeric shape. Variable chips can be dropped into any slot; the slot keeps its parameter's shape.
   - See the "Field types" section in `docs/BLOCK_DESIGN.md` for the full mapping.
@@ -214,8 +216,9 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 - ⬜ **Step v2d.3** — Snap-to-grid for dragged blocks
 - ⬜ **Step v2d.4** — "Clean up blocks" + "Clean up blocks+" in the right-click context menu (TurboWarp has both — basic stacks top-blocks, + also aligns within nested groups)
 - ⬜ **Step v2d.5** — Block categories properly assigned; category colors verified against `docs/BLOCK_DESIGN.md`
-- ⬜ **Step v2d.6** — Motors as dropdowns instead of chips (dropdown arrow visible; values changeable in editable mode). Pybricks also puts a **drive base name dropdown** at the front of every configure block (`{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — `docs/images/drive-settings-blocks.png`), and lists variables in the `left`/`right`/`wheel diameter`/`axle length` slots of the drive-base setup block.
-  - **Variable chit becomes one chit with a dropdown**, not one chit per variable (`docs/images/variable-chit.png`): `{variable icon} \| (WHEEL_DIAMETER ▾)`. The dropdown lists every variable in scope; picking a different one changes the chit in place. This replaces the v1.1.0 `pybricks_var_reporter` block, which hardcodes a single `NAME` field per variable. Because the chit is a dropdown, it can be dropped into any slot regardless of that slot's shape.
+- ⬜ **Step v2d.6a** — Argument dropdowns: motors as dropdowns instead of chips (dropdown arrow visible; values changeable in editable mode). Pybricks also puts a **drive base name dropdown** at the front of every configure block (`{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — `docs/images/drive-settings-blocks.png`), and lists variables in the `left`/`right`/`wheel diameter`/`axle length` slots of the drive-base setup block. **Keeps one chit per variable** — this step is mechanical, no serialization change.
+- ⬜ **Step v2d.6b** — Unified variable chit: **one chit with a dropdown**, not one chit per variable (`docs/images/variable-chit.png`): `{variable icon} \| (WHEEL_DIAMETER ▾)`. The dropdown lists every variable in scope; picking a different one changes the chit in place. This replaces the v1.1.0 `pybricks_var_reporter` block, which hardcodes a single `NAME` field per variable. Because the chit is a dropdown, it can be dropped into any slot regardless of that slot's shape.
+  - **Why this is split from 6a:** it is architecturally heavier. The walker must pass the full variable list to every reporter at render time; adding a variable in editable mode must update every chit's dropdown; and serialization stores a _selection reference_ rather than a name. That deserves its own PR and its own test, not a ride-along on mechanical dropdown work.
 - ⬜ **Step v2d.7** — Sounds: connect, disconnect, delete, snap. Use default Blockly sounds initially; optionally Pybricks/SPIKE audio if licensing permits
 - ⬜ **Step v2d.8** — Keyboard shortcuts: Ctrl+Z/Y undo/redo, Ctrl+C/V copy/paste, Delete to remove, Ctrl+A select all, Escape to deselect
 - ⬜ **Step v2d.9** — Multi-select blocks (rectangular selection, drag-move, cut, copy)
