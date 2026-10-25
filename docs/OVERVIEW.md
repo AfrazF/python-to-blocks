@@ -84,6 +84,6 @@ Pybricks Code treats each file in isolation. We do not.
 
 - **v1.25** — Monaco read-only panel with bidirectional highlighting; refactor `walk.ts` to carry `sourceStart`/`sourceEnd`
 - **v1.5** — Control flow, nested member dispatch, hub display/button/light blocks
-- **v2** — Sequenced in five clusters: v2a (Monaco+tabs), v2b (editable blocks, round-trip), v2c (intellisense via pyodide), v2d (polish: icons, comments, snap, categories), v2 wrap-up (PWA + Tauri). See docs/ROADMAP.md for full breakdown.
+- **v2** — Sequenced in six clusters: v2a (Monaco+tabs), v2b (editable blocks, round-trip), v2c (intellisense via pyodide), v2d (polish: icons, comments, snap, categories), v2e (full Pybricks API coverage: PID, getters, sensors), v2 wrap-up (PWA + Tauri). See docs/ROADMAP.md for full breakdown.
 
 See `docs/ROADMAP.md` for full detail.
