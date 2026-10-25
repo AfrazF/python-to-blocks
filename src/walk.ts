@@ -1352,6 +1352,33 @@ function collectTryExceptBlock(
 }
 
 /**
+ * Reads the value that follows a leading keyword token (`return`, `raise`).
+ *
+ * Lezer puts the keyword first and the value as flat siblings after it, so
+ * `return i, ATTACHMENTS[i][1]` is `return`, `VariableName`, `,`,
+ * `MemberExpression` — not one tuple node. Slicing from the first value child
+ * to the last keeps the text verbatim, commas included. A bare `return` has no
+ * value children and yields an empty string.
+ */
+function collectKeywordValueText(source: string, node: ParseNode): string {
+  const cursor = node.cursor();
+  if (!cursor.firstChild()) {
+    return "";
+  }
+
+  let valueStart: number | undefined;
+  let valueEnd: number | undefined;
+  while (cursor.nextSibling()) {
+    valueStart ??= cursor.node.from;
+    valueEnd = cursor.node.to;
+  }
+
+  return valueStart === undefined || valueEnd === undefined
+    ? ""
+    : source.slice(valueStart, valueEnd).trim();
+}
+
+/**
  * Walks one body (the whole file, or a function body) and returns the
  * statements to chain plus any functions, which float on their own.
  */
@@ -1518,6 +1545,24 @@ function collectBody(
       } else {
         blocks = [rawDescriptor(source, cursor.node)];
       }
+    } else if (cursor.name === "ReturnStatement") {
+      blocks = [
+        {
+          type: "pybricks_return",
+          fields: { VALUE: collectKeywordValueText(source, cursor.node) },
+          sourceStart: cursor.node.from,
+          sourceEnd: cursor.node.to,
+        },
+      ];
+    } else if (cursor.name === "RaiseStatement") {
+      blocks = [
+        {
+          type: "pybricks_raise",
+          fields: { VALUE: collectKeywordValueText(source, cursor.node) },
+          sourceStart: cursor.node.from,
+          sourceEnd: cursor.node.to,
+        },
+      ];
     } else {
       blocks = [rawDescriptor(source, cursor.node)];
     }
