@@ -562,6 +562,94 @@ function readMember(
   return { objectName, memberName };
 }
 
+/**
+ * Turns a `hub.display.<method>(...)` call into a hub display block.
+ *
+ * Only the exact shape `hub . display . <method>` is accepted. Anything else —
+ * `hub.buttons.pressed()`, `hub.light.on()`, a deeper chain like
+ * `hub.display.something.else`, or a bare `hub.something` — returns `undefined`
+ * so the caller falls through to the existing dispatch.
+ *
+ * Never throws on an unexpected shape.
+ */
+function collectHubDisplayCall(
+  source: string,
+  expression: ParseNode,
+): BlockDescriptor | undefined {
+  const call = readCallExpression(expression);
+  if (!call || call.callee.type.name !== "MemberExpression") {
+    return undefined;
+  }
+
+  // The callee must be `hub.display.<method>`: an outer MemberExpression whose
+  // first child is itself a MemberExpression reading `hub.display`.
+  const outerCursor = call.callee.cursor();
+  let innerMember: ParseNode | undefined;
+  let methodName: string | undefined;
+
+  if (outerCursor.firstChild()) {
+    do {
+      if (
+        outerCursor.name === "MemberExpression" &&
+        innerMember === undefined
+      ) {
+        innerMember = outerCursor.node;
+      } else if (outerCursor.name === "PropertyName") {
+        methodName = source.slice(outerCursor.node.from, outerCursor.node.to);
+      }
+    } while (outerCursor.nextSibling());
+  }
+
+  if (!innerMember || !methodName) {
+    return undefined;
+  }
+
+  const { objectName, memberName } = readMember(source, innerMember);
+  if (objectName !== "hub" || memberName !== "display") {
+    return undefined;
+  }
+
+  const argumentNodes = getCallArgumentNodes(call.argumentList);
+  const range = { sourceStart: expression.from, sourceEnd: expression.to };
+
+  const argumentText = (index: number) =>
+    source.slice(argumentNodes[index].from, argumentNodes[index].to).trim();
+
+  if (methodName === "icon" && argumentNodes.length === 1) {
+    return {
+      type: "pybricks_hub_display_icon",
+      fields: { METHOD: "icon", ICON: argumentText(0) },
+      ...range,
+    };
+  }
+
+  if (methodName === "char" && argumentNodes.length === 1) {
+    return {
+      type: "pybricks_hub_display_char",
+      fields: { METHOD: "char", CHAR: argumentText(0) },
+      ...range,
+    };
+  }
+
+  if (methodName === "number" && argumentNodes.length === 1) {
+    return {
+      type: "pybricks_hub_display_number",
+      fields: { METHOD: "number", NUMBER: argumentText(0) },
+      ...range,
+    };
+  }
+
+  if (methodName === "off" && argumentNodes.length === 0) {
+    return {
+      type: "pybricks_hub_display_off",
+      fields: { METHOD: "off" },
+      ...range,
+    };
+  }
+
+  return undefined;
+}
+
 function collectDriveSettingsBlocks(
   source: string,
   expression: ParseNode,
@@ -628,6 +716,13 @@ function collectExpression(
 
   if (expression.type.name === "CallExpression") {
     const call = readCallExpression(expression);
+
+    // Hub display calls are three-level members (`hub.display.icon`), so they
+    // must be checked before the two-level DriveBase/Motor dispatch below.
+    const hubDisplayDescriptor = collectHubDisplayCall(source, expression);
+    if (hubDisplayDescriptor) {
+      return hubDisplayDescriptor;
+    }
 
     if (call?.callee.type.name === "VariableName") {
       return {
