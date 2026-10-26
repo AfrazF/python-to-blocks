@@ -131,17 +131,18 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Expression depth
 
-- ⬜ **Step 35** — Nested member expression dispatch. `readMember` in `src/walk.ts` only reads a direct `VariableName` child, so `hub.display.image(...)`, `hub.display.off()`, `hub.display.char(...)`, `hub.buttons.pressed()`, `hub.light.on(...)`, `hub.light.off()` all fall through to raw.
-- ⬜ **Step 36** — Subscript expressions. Needed for `ATTACHMENTS[i][0]` and `ICONS[i % len(ICONS)]`.
-- ⬜ **Step 37** — Chained call member. Needed for `run_task(attach_main()).wait()`.
+- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is Step 39; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
+- ⬜ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.)
 - ⬜ **Step 38** — Non-literal assignment RHS, list literals, and tuple unpacking. `collectVariableBlock` only accepts `Number`/`String`/`Boolean`, so `next_index = (index + 1) % len(ATTACHMENTS)`, `i = (i - 1) % len(ATTACHMENTS)`, `index, attach_main = pick(next_index)`, `i = start`, `pressed = hub.buttons.pressed()`, `ICONS = [Image.ARROW_RIGHT, ...]`, and `ATTACHMENTS = [("1", a1_main)]` are all raw.
 
 ### Hub API blocks
 
-- ⬜ **Step 39** — Hub display blocks: `.image`, `.off`, `.char`, `.text`
-- ⬜ **Step 40** — Hub button block: `.pressed`
-- ⬜ **Step 41** — Hub light blocks: `.on`, `.off`
-- ⬜ **Step 42** — `wait` block. Not used by the current fixtures; `main.py` only mentions `wait(10)` in a comment.
+- ⬜ **Step 39** — Hub button value block: `hub.buttons.pressed()`. Used by `main.py` and `run.py`'s `wait_for_button`. Renders today as a generic method-call block, not raw — this step upgrades it to a dedicated value block.
+- ⬜ **Step 40** — `wait` block. `run.py` uses `await wait(20)` twice; renders today as an await-wrapped call block (not raw), so this step is cosmetic for the raw count.
+- ⬜ **Step 41** — Extend Step 33 for `except X as e:` — read `AsPattern`. `run.py` uses `except Exception as e:`; currently falls back to a raw block via `collectTryExceptBlock` in `src/walk.ts`. Real blocker for the 0-raw goal.
+- ⬜ **Step 42** — Final v1.5 sweep.
+
+**Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
 
 ---
 
@@ -181,6 +182,7 @@ Full round-trip: any block change produces correct Python, any Python change pro
   - **Field fill is not white.** `()` is circular, `[]` is square, `{}` is an icon. Every circular dropdown and editable field uses a **darker shade of the block's own colour** with white text — Output's is `#4180d9` and Variables/Calls' is `#d9576d` (both confirmed), and the same rule applies to the `mm/s` / `°/s` value fields in `drive.settings()`. The `configure` parameter dropdown uses the **same** blue as the block. A number typed into a circular field renders as a **white square with dark text** inside a dark-blue circle with **no stroke**. Today every field is a white rect with dark text (`src/pybricks.css`), so this is a CSS + theme change, not just a shape change. Verified against `docs/images/setup-blocks.png`, `docs/images/drive-settings-blocks.png`, and `docs/images/variable-set-blocks.png`.
   - **The parameter-name dropdown in `drive.settings()` uses the same blue as the block**, not the darker field shade — it reads as part of the block body rather than as a field.
   - **Scope is selective:** migrate the Pybricks blocks first (`driveBase`, `motor`, `hardware`, `pid`). `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
+  - **Subscript expressions** (`ATTACHMENTS[i][0]`) become real Data-green reporter blocks once `CHAR` / `VALUE` fields are `input_value` slots. Currently text in v1.5.
   - **Every new block from here on follows this design.** A block added in v1.5 or v2e uses the darker field fill, the correct shape per parameter type, and unit suffixes where Pybricks has them — not a white `field_input`. The v1.5 hub blocks (Steps 39–41) ship with `field_input` because v1.5 is blocks-only, and v2b.2b converts them.
   - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.
   - **Variables are square.** Parse time cannot know a variable's type, so it never claims a numeric shape. Variable chips can be dropped into any slot; the slot keeps its parameter's shape.
@@ -222,6 +224,9 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 - ⬜ **Step v2d.7** — Sounds: connect, disconnect, delete, snap. Use default Blockly sounds initially; optionally Pybricks/SPIKE audio if licensing permits
 - ⬜ **Step v2d.8** — Keyboard shortcuts: Ctrl+Z/Y undo/redo, Ctrl+C/V copy/paste, Delete to remove, Ctrl+A select all, Escape to deselect
 - ⬜ **Step v2d.9** — Multi-select blocks (rectangular selection, drag-move, cut, copy)
+- ⬜ **Step v2d.10** — Synchronized scrolling between blocks and Monaco. Anchor by source position, not by pixel scroll: find the block whose `sourceStart` is closest to the top of the Blockly viewport, look up its line number, scroll Monaco to that line. Reverse for the other direction. Must suppress the feedback loop — reuse the `suppressCursorChangesUntil` pattern from `src/editor.ts`. Test both directions against `exampleattach.py`.
+- ⬜ **Step v2d.11** — Sync visibility improvements. Novice usability test found two problems: (a) the `.blocklyHighlighted` glow is invisible on a busy workspace, (b) reverse-sync does not scroll the block into view when it is off-screen. Fix: scroll the block into view when reverse sync fires, and strengthen the glow or draw a visible connector line from the Monaco selection to the block. Test with a fixture that has blocks off-screen.
+- ⬜ **Step v2d.12** — Monaco panel discoverability. The same test found the panel was not noticed as interactive — the user had to be pointed at it three times. Fix: add a first-run hint ("click a line in the code to find its block") that dismisses after one use, or a persistent affordance (subtle arrow, panel border accent, etc.).
 
 ---
 
@@ -238,6 +243,8 @@ Every feasible Pybricks API call gets a block. Uses `@pybricks/ide-docs` to auto
 - ⬜ **Step v2e.3** — Sensor blocks: color, distance, force
 - ⬜ **Step v2e.4** — Sound and Light Matrix blocks
 - ⬜ **Step v2e.5** — Remaining API surface not covered by v1.5 or v2e.1–v2e.4
+- ⬜ **Step v2e.6** — Chained call member. `run_task(attach_main()).wait()` — a `CallExpression` whose callee is itself a `CallExpression`'s `MemberExpression`. Moved here from v1.5 Step 37: the current fixtures no longer use `.wait()`, so nothing in v1.5 depends on it, but real Pybricks code does.
+- ⬜ **Step v2e.7** — Hub display `.image` and `.text`. Not used by any fixture; moved out of v1.5.
 
 ---
 
