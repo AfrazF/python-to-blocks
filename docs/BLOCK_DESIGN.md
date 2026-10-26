@@ -7,20 +7,22 @@ Reference: Pybricks Code block editor (user's screenshots and generated Python, 
 
 This table is the **source of truth for the palette**. `docs/ROADMAP.md` v2a.2 (token colors) and v2d.5 (category assignment) both reference it rather than restating colors.
 
-| Category            | Fill      | Stroke    | Field fill | Used for                                                                       |
-| ------------------- | --------- | --------- | ---------- | ------------------------------------------------------------------------------ |
-| Setup hat           | `#ffbf00` | `#bf8f00` | `#d9a200`  | `set up` hat only                                                              |
-| Python functions    | `#9a72a2` | `#74567a` | `#83618a`  | task (`async def`), `await` wrapper, multitask, `print`                        |
-| Output              | `#4c97ff` | `#3971bf` | `#4180d9`  | motor, drive base, setup blocks, `drive.settings()`                            |
-| Input               | `#5cb1d6` | `#4585a1` | `#4e96b6`  | reserved for v2e.3 sensor blocks (color/distance/force); no members in v1.5    |
-| Flow                | `#ffab19` | `#bf8013` | `#d99115`  | if/else, wait, repeat, for, while                                              |
-| Variables / Calls   | `#ff6680` | `#bf4d60` | `#d9576d`  | variables, imports, plain `def` functions, call blocks                         |
-| Hardware objects    | `#46BAEC` | `#358BB0` | `#3c9ec9`  | Motor and DriveBase object chips (`drive`, `attachment_a`, `left`, `right`, …) |
-| Hub display / light | `#9b6af6` | `#691ff0` | `#8459d1`  | `hub.display.*`, `hub.light.*`                                                 |
-| Data                | `#00cc99` | `#009973` | `#00ad82`  | lists, geometry                                                                |
-| Other               | `#9a72a2` | `#74567a` | `#83618a`  | (unused in v1)                                                                 |
+| Category            | Fill                | Stroke              | Field fill          | Used for                                                                                                  |
+| ------------------- | ------------------- | ------------------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Setup hat           | `#ffbf00` (derived) | `#bf8f00` (derived) | `#d9a200` (derived) | `set up` hat only                                                                                         |
+| Python functions    | `#9a72a2` (derived) | `#74567a` (derived) | `#83618a` (derived) | task (`async def`), `await` wrapper, multitask, `print`                                                   |
+| Output              | `#4c97ff` (user)    | `#3971bf` (user)    | `#4180d9` (user)    | motor, drive base, setup blocks, `drive.settings()`                                                       |
+| Input               | `#5cb1d6` (derived) | `#4585a1` (derived) | `#4e96b6` (derived) | reserved for v2e.3 sensor blocks (color/distance/force); no members in v1.5                               |
+| Flow                | `#ffab19` (pybricks-svg) | `#bf8013` (pybricks-svg) | `#d99115` (pybricks-svg) | `if`, `elif`, `else`, `wait`, `for`, `while` — one Flow colour, deliberate deviation from Pybricks' two oranges |
+| Variables / Calls   | `#ff6680` (user)    | `#bf4d60` (user)    | `#d9576d` (user)    | variables, imports, plain `def` functions, call blocks                                                    |
+| Hardware objects    | `#46BAEC` (ours)    | `#358BB0` (ours)    | `#3c9ec9` (ours)    | Motor and DriveBase object chips (`drive`, `attachment_a`, `left`, `right`, …)                            |
+| Hub display / light | `#9b6af6` (user)    | `#691ff0` (user)    | `#845ad1` (derived) | `hub.display.*`, `hub.light.*`                                                                            |
+| Data                | `#00cc99` (derived) | `#009973` (derived) | `#00ad82` (derived) | lists, geometry                                                                                           |
+| Other               | `#9a72a2` (derived) | `#74567a` (derived) | `#83618a` (derived) | (unused in v1)                                                                                            |
 
-**Field fill** is the colour of every circular dropdown and editable field on that block — a darker shade of the block's own fill, with white text. **Confirmed:** Output `#4180d9` and Variables/Calls `#d9576d`. The rest are derived from the same 85% brightness rule and should be eyeballed against a screenshot before shipping.
+Source tags: `(user)` = confirmed by the repo owner from a real screenshot; `(pybricks-svg)` = extracted from a Pybricks block SVG; `(ours)` = our own choice, not from Pybricks; `(derived)` = computed by the ×0.85 (field fill) or ×0.75 (stroke) rule.
+
+**Field fill** is the pill fill only — block × 0.85. Square dropdowns and square fields are not darker; they use `fill="transparent"`. See `docs/FIELD_DESIGN.md` for the full rules.
 
 - Workspace background `#ecf0f1`.
 - No icons in v1 (user decision).
@@ -46,8 +48,6 @@ These are places where our blocks differ from real Pybricks Code. Each is tracke
 | Icons               | none                                                                                                    | spike prime, motor, drive base, wheel diameter, axle length, rotation direction                                                                                                 | v2d.1                                                        |
 | Motor direction     | `clockwise` / `counterclockwise` words                                                                  | rotation-direction **icon** in a circular dropdown                                                                                                                              | v2d.1                                                        |
 | DriveBase settings  | `configure [WHAT ▾] to [VALUE]`                                                                         | `{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s`                                                                                                      | v2d.6a (name dropdown), v2b.2b (circular slot + unit suffix) |
-| Unit suffixes       | none                                                                                                    | `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms` after the field                                                                                                                 | v2b.2b                                                       |
-| Field fill          | white rect, dark text                                                                                   | darker shade of the block colour (`#4180d9` on Output, `#d9576d` on Variables), white text                                                                                      | v2b.2b                                                       |
 | Variable dropdowns  | `input_value` slots holding chips                                                                       | dropdowns listing variables (`left`, `right`, `WHEEL_DIAMETER`, `AXLE_TRACK`)                                                                                                   | v2d.6a                                                       |
 | Variable chit       | one `pybricks_var_reporter` block per variable, fixed `NAME` field                                      | **one** chit with a dropdown listing every variable in scope                                                                                                                    | v2d.6b                                                       |
 | Variable declare    | `create variable [NAME] = [VALUE]`, both white fields                                                   | `{variable icon} \| [X] starting at (56)` — name in darker pink, value in a white circular slot                                                                                 | v2b.2b                                                       |
@@ -66,82 +66,7 @@ These are places where our blocks differ from real Pybricks Code. Each is tracke
 
 ## Field types
 
-Five input shapes, so a reader can tell what kind of value a slot wants without reading the Python. **The shape is fixed by the parameter's expected type, not by what is currently inside it** — a circular slot stays circular when a variable chip is dropped into it.
-
-### Notation used in this document
-
-| Notation     | Means                                                                      |
-| ------------ | -------------------------------------------------------------------------- |
-| `plain text` | Static label on the block. Not editable.                                   |
-| `[name]`     | **Square field.**                                                          |
-| `[name ▾]`   | **Square field** with a dropdown arrow.                                    |
-| `(name)`     | **Circular field.**                                                        |
-| `(name ▾)`   | **Circular field** with a dropdown arrow.                                  |
-| `(●)`        | **Colour field** — a circular chit filled with the chosen colour, no text. |
-| `{icon}`     | An icon, not text. No icons in v1 (v2d.1).                                 |
-| `\|`         | A vertical divider separating the leading icon from the rest of the block. |
-
-**`()` is circular, `[]` is square, `{}` is an icon, `(●)` is a colour.** The fill varies by role:
-
-| Fill                             | Used for                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Darker shade of the block colour | Every circular dropdown and editable field — `[left]`, `(A ▾)`, `({clockwise motor icon}▾)`, `(drive base ▾)` |
-| Same colour as the block         | The parameter dropdown in `configure` — `[drive speed ▾]`                                                     |
-| White                            | A number typed into a circular field — the `150` in `(150)`                                                   |
-| The chosen colour itself         | The colour field — `(●)`                                                                                      |
-
-All fields use white text, except the white number field, which uses dark text. A circular field has **no stroke**.
-
-### The five shapes
-
-| Shape                 | Notation    | Meaning                          | Python constructs                                                                   |
-| --------------------- | ----------- | -------------------------------- | ----------------------------------------------------------------------------------- |
-| **Circular slot**     | `(500)`     | Numeric literal                  | `500`, `-90`, `0.5`                                                                 |
-| **Circular dropdown** | `(A ▾)`     | Numeric enum or object reference | `Icon.HAPPY`, `Button.LEFT`, `Port.A`, `drive`                                      |
-| **Square dropdown**   | `[coast ▾]` | Text enum                        | `Stop.COAST` → `coast`, `Direction.CLOCKWISE` → `clockwise`                         |
-| **Square slot**       | `[hello]`   | Free text or complex expression  | `print("hello")`, `(i - 1) % len(ATTACHMENTS)`, f-strings, variables used as values |
-| **Colour field**      | `(●)`       | A colour from a fixed palette    | `Color.RED`, `Color.GREEN`, `Color.BLUE`, `Color.NONE`                              |
-
-Rules:
-
-- **Numeric enum → circular, text enum → square.** Enums whose values are numbers (`Icon`, `Button`, `Port`) read as numbers; enums whose values are words (`Stop`, `Direction`) read as words.
-- **Colour is its own shape, not a circular dropdown.** `Color` is a numeric enum by the rule above, but a reader should know "this is a colour" without reading the text. So `Color.RED` renders as a circular chit **filled with red and carrying no text**, and clicking it opens a **grid of colour swatches** (SPIKE Prime pattern). The picker is a grid of circles, not a text list.
-- **Creating a name → square; referencing an object → circular.** `drive = DriveBase(...)` creates a name, so the drive-base setup block uses a square `[drive]`. `drive.settings(...)` references an existing object, so the configure block uses a circular `(drive base ▾)`.
-- **Units are a static suffix label after the field, never inside it.** Pybricks renders `configure [drive speed ▾] (150) mm/s` — the number sits in a circular field and `mm/s` is plain text after it. The suffix changes with the parameter: `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms` (verified — `docs/images/drive-settings-blocks.png`).
-- **Variables are square.** At parse time a variable has no known type, so it never claims a numeric shape. The chip carries the variable's identity; the field keeps the shape its parameter expects.
-- **Complex expressions are square.** Anything that is not a literal, an enum, or a variable is free text.
-- **f-strings are square.** A formatted string is not a literal.
-- **Raw-code blocks keep the current white text field.** Raw code is by definition unclassified, so it does not claim one of the five shapes. No separate raw block type is added.
-- **Scope is selective.** The Pybricks blocks (`driveBase`, `motor`, `hardware`, `pid`) migrate first; `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
-
-Current state (v1.1.0): numeric arguments are `input_value` slots holding a `math_number` shadow block (white rounded rectangle), and enums are `field_dropdown` (white rectangle plus text). Nothing is circular, nothing uses the darker-shade fill, and there is no colour field. The shape work is `docs/ROADMAP.md` **Step v2b.2b**.
-
-### Field inventory
-
-Every field that exists in v1.5, what it is today, and what it becomes in v2b.2b. Verified against the block files.
-
-| Field       | Block(s)                                            | v1.5 type     | v2b.2b target                 | Notes                                                                                                |
-| ----------- | --------------------------------------------------- | ------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `ICON`      | `pybricks_hub_display_icon` (Step 39)               | `field_input` | Circular dropdown `(HAPPY ▾)` | `Icon.HAPPY`, `Icon.SAD` — numeric enums per the rule above                                          |
-| `COLOR`     | `pybricks_hub_light_on` (Step 41)                   | `field_input` | **Colour field** `(●)`        | Swatch-grid picker. Stays `field_input` showing `RED` / `GREEN` text until v2b.2b                    |
-| `EXCEPTION` | `pybricks_try_except`                               | `field_input` | **Square slot** `[Exception]` | Not a fixed enum — the user can catch arbitrary exception types. `as e` is not handled (see Step 33) |
-| `CONDITION` | `pybricks_if`, `pybricks_if_else`, `pybricks_while` | `field_input` | **Square slot** `[True]`      | Free expression — not a literal, not an enum, not a single variable                                  |
-| `ITERABLE`  | `pybricks_for`                                      | `field_input` | **Square slot** `[missions]`  | Same — arbitrary expression                                                                          |
-| `LOOP_VAR`  | `pybricks_for`                                      | `field_input` | **Square slot** `[i]`         | A name being created, so square. Tuple targets (`i, mission`) stay as text                           |
-| `VALUE`     | `pybricks_return`, `pybricks_raise`                 | `field_input` | **Square slot** `[value]`     | Arbitrary expression. Bare `return` / `raise` shows an empty field                                   |
-
-### Variable chit
-
-A variable used as an argument renders as **one chit with a dropdown**, not one chit per variable (verified — `docs/images/variable-chit.png`):
-
-```
-{variable icon} | (WHEEL_DIAMETER ▾)
-```
-
-- The chit is a **circular dropdown** in the darker pink `#d9576d`, with a leading variable icon and a `|` divider.
-- The dropdown lists every variable in scope. Picking a different one changes the chit in place.
-- This replaces the v1.1.0 behaviour, where each variable got its own `pybricks_var_reporter` block with a fixed `NAME` field. **v1.1.0 stays as-is** — the single-chit dropdown is a v2 change (see `docs/ROADMAP.md` v2d.6).
-- Because the chit is a dropdown, it can be dropped into any slot regardless of that slot's shape. The slot keeps its own shape; the chit sits inside it.
+Field shapes are specified in `docs/FIELD_DESIGN.md`.
 
 ## Reference images
 
