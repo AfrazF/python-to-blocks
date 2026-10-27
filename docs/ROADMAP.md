@@ -141,7 +141,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 - ⬜ **Step 39** — Hub button value block: `hub.buttons.pressed()`. Used by `main.py` and `run.py`'s `wait_for_button`. Renders today as a generic method-call block, not raw — this step upgrades it to a dedicated value block.
 - ⬜ **Step 40** — `wait` block. `run.py` uses `await wait(20)` twice; renders today as an await-wrapped call block (not raw), so this step is cosmetic for the raw count.
 - ✅ **Step 41** — `except X as e:` renders as a block. The parser emits the clause as three flat siblings (`VariableName`, `as`, `VariableName`) — there is no `AsPattern` node — so `collectTryExceptBlock` tracks an `as` flag and fills both `EXCEPTION` and `AS_NAME`. `run.py` drops to 0 raw blocks. (`src/blocks/tryExcept.ts`, `collectTryExceptBlock` in `src/walk.ts`, commit `f10fbde`)
-- ⬜ **Step 42** — Final v1.5 sweep.
+- ✅ **Step 42** — Final v1.5 sweep (`src/acceptance.test.ts`). v1.5 goal met: robot.py = 0, exampleattach.py = 0, run.py = 0, main.py = 1 (tuple unpack, deferred to optional Step 38.5).
 
 **Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
 

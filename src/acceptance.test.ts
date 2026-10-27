@@ -3,11 +3,13 @@ import { expect, it } from "vitest";
 import { resolveProject } from "./resolve";
 import { collectBlocks, type BlockDescriptor } from "./walk";
 
-// Current counts, NOT the v1.5 target. The v1.5 goal is 0 for every
-// fixture; these numbers are a regression guard only. Lower in the same
-// PR when a later step reduces the count. Never raise.
+// Current counts, NOT the v1.5 target. After Step 38+41 land:
+//   robot.py = 0, exampleattach.py = 0, run.py = 0,
+//   main.py = 1 (tuple unpack, deferred to optional Step 38.5).
+// Lower the baselines in the same PR when a later step reduces a
+// count. Never raise them.
 const BASELINE_MAIN = 1;
-const BASELINE_RUN = 1;
+const BASELINE_RUN = 0;
 
 function countRaw(descriptors: BlockDescriptor[]): number {
   return descriptors.reduce((sum, descriptor) => {
