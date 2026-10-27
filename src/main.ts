@@ -42,6 +42,104 @@ let currentFiles: Record<string, string> = {
 
 let hasUploaded = false;
 
+type CanvasControlAction = "zoom-in" | "zoom-out" | "zoom-fit" | "toggle-sound";
+
+interface CanvasControlSpec {
+  action: CanvasControlAction;
+  icon: string;
+  label: string;
+}
+
+// Zoom controls are grouped; sound sits apart at the bottom.
+const CANVAS_CONTROLS: CanvasControlSpec[] = [
+  { action: "zoom-in", icon: "zoom_in", label: "Zoom in" },
+  { action: "zoom-out", icon: "zoom_out", label: "Zoom out" },
+  { action: "zoom-fit", icon: "zoom_out_map", label: "Fit to view" },
+  { action: "toggle-sound", icon: "volume_up", label: "Mute block sounds" },
+];
+
+/**
+ * Mounts the custom Material Symbol controls in the top-right of the Blockly
+ * canvas. These replace Blockly's built-in zoom buttons, which do not render
+ * on Ubuntu Chromebook and do not match the app's icon style.
+ *
+ * `parentEl` must be the element Blockly.inject() was called on; style.css
+ * makes it position: relative so the controls anchor to the canvas corner.
+ */
+function mountCanvasControls(
+  workspace: Blockly.WorkspaceSvg,
+  parentEl: HTMLElement,
+): void {
+  const controls = document.createElement("div");
+  controls.className = "blockly-canvas-controls";
+
+  const audio = workspace.getAudioManager();
+  // Read the real state before the first paint so the icon and aria-pressed
+  // match whatever the audio manager already has.
+  let muted = audio.getMuted();
+
+  const buttons = new Map<CanvasControlAction, HTMLButtonElement>();
+
+  for (const spec of CANVAS_CONTROLS) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.action = spec.action;
+    button.setAttribute("aria-label", spec.label);
+    button.title = spec.label;
+
+    const icon = document.createElement("span");
+    icon.className = "material-symbols-outlined";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = spec.icon;
+    button.appendChild(icon);
+
+    buttons.set(spec.action, button);
+    controls.appendChild(button);
+  }
+
+  const soundButton = buttons.get("toggle-sound");
+  const soundIcon = soundButton?.querySelector("span");
+  if (!soundButton || !soundIcon) {
+    throw new Error("The sound control must exist.");
+  }
+
+  const renderSoundState = (): void => {
+    soundIcon.textContent = muted ? "volume_off" : "volume_up";
+    const label = muted ? "Unmute block sounds" : "Mute block sounds";
+    soundButton.setAttribute("aria-label", label);
+    soundButton.title = label;
+    soundButton.setAttribute("aria-pressed", String(muted));
+  };
+
+  renderSoundState();
+
+  controls.addEventListener("click", (event: MouseEvent) => {
+    const target = event.target as Element | null;
+    const button = target?.closest<HTMLButtonElement>("button[data-action]");
+    if (!button) {
+      return;
+    }
+    switch (button.dataset.action as CanvasControlAction) {
+      case "zoom-in":
+        workspace.zoomCenter(1);
+        break;
+      case "zoom-out":
+        workspace.zoomCenter(-1);
+        break;
+      case "zoom-fit":
+        workspace.zoomToFit();
+        break;
+      case "toggle-sound":
+        muted = !muted;
+        audio.setMuted(muted);
+        renderSoundState();
+        break;
+    }
+  });
+
+  parentEl.appendChild(controls);
+}
+
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
   const container = document.querySelector<HTMLElement>("#blockly");
@@ -53,6 +151,7 @@ function startWorkspace(): void {
     );
   }
   const workspace = createWorkspace(container);
+  mountCanvasControls(workspace, container);
   const editor = createEditor(editorContainer);
   let editorVisible = false;
   (window as any).__pybricks = { workspace, editor };
