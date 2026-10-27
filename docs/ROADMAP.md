@@ -132,31 +132,35 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Expression depth
 
-- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is Step 39; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
+- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is v1.75.4; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
 - ✅ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.) (`src/acceptance.test.ts`, commit `5548520`)
 - ⬜ **Step 38** — Non-literal assignment RHS. `collectVariableBlock` accepts any expression as the RHS, not just `Number`/`String`/`Boolean`. Fixes `i = start`, `pressed = hub.buttons.pressed()`, `i = (i-1) % len(ATT)`, and `NEXT_ICON = Icon.LEFT + Icon.RIGHT`. List literals render inside the existing VALUE field as text — not as a new block type — because Pybricks' own ListCreate block (`docs/pybricks-blocks/data/pybricks_blockListCreate_list_3.svg`) uses +/- mutator buttons that are v2b.2b work. Tuple unpacking is deliberately excluded (see Step 38.5).
 - ⬜ **Step 38.5** — Tuple unpacking (`index, attach_main = pick(...)`). Needs a new `pybricks_var_unpack` block that mirrors Pybricks' `pybricks_blockListUnpack` block (`docs/pybricks-blocks/data/pybricks_blockListUnpack.svg` — statement block, `unpack list [▾] to >`, expandable right side). Deferred from v1.5 because the block needs a mutator (variable count), which is v2b.2b scope. After Step 38+41 land, `main.py` has exactly 1 raw block (this tuple unpack) and `run.py` has 0. **Optional for v1.5** — if the mutator complexity is not worth it, v1.5 can ship without this step and the block stays raw indefinitely.
 
 ### Hub API blocks
 
-- ⬜ **Step 39** — Hub button value block: `hub.buttons.pressed()`. Used by `main.py` and `run.py`'s `wait_for_button`. Renders today as a generic method-call block, not raw — this step upgrades it to a dedicated value block.
-- ⬜ **Step 40** — `wait` block. `run.py` uses `await wait(20)` twice; renders today as an await-wrapped call block (not raw), so this step is cosmetic for the raw count.
 - ✅ **Step 41** — `except X as e:` renders as a block. The parser emits the clause as three flat siblings (`VariableName`, `as`, `VariableName`) — there is no `AsPattern` node — so `collectTryExceptBlock` tracks an `as` flag and fills both `EXCEPTION` and `AS_NAME`. `run.py` drops to 0 raw blocks. (`src/blocks/tryExcept.ts`, `collectTryExceptBlock` in `src/walk.ts`, commit `f10fbde`)
 - ✅ **Step 42** — Final v1.5 sweep (`src/acceptance.test.ts`). v1.5 goal met: robot.py = 0, exampleattach.py = 0, run.py = 0, main.py = 1 (tuple unpack, deferred to optional Step 38.5).
 
 **Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
 
+**Steps 39 and 40 were reclassified.** The `hub.buttons.pressed()` value block (was Step 39) and the dedicated `wait` block (was Step 40) were never part of the v1.5 goal: both render as non-raw blocks today (a generic method-call block and an await-wrapped call block). They were moved to v1.75 as polish work — see v1.75.4 and v1.75.5.
+
 ---
 
 ## v1.75 — UI polish (bridge)
 
-**Goal:** Close the visual gaps identified after v1.5 shipped and before v2 editable work begins. No editable features, no v2 dependencies. Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
+**Goal:** Close the remaining v1.5 polish work and visual gaps identified after v1.5 shipped, before v2 editable work begins. No editable features, no v2 dependencies. Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
 
 - ⬜ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook.
 
 - ⬜ **Step v1.75.2** — Code SVG morph animation fix. The existing chevron ↔ code-slash transition (Step 26.5c) has timing/path issues. Reserved for GitHub Copilot — animation work needs visual judgement.
 
 - ⬜ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right.
+
+- ⬜ **Step v1.75.4** — Hub button value block. Add a dedicated `pybricks_hub_buttons_pressed` value block for `hub.buttons.pressed()`. Currently renders as a generic `pybricks_method_call` block; upgrade it to a proper Pybricks-style value block. Used by `main.py` and `run.py`'s `wait_for_button`. Register the block in `src/main.ts` (AGENTS.md: an unimported block file throws `Unknown block type` at render time).
+
+- ⬜ **Step v1.75.5** — `wait` block. Add a dedicated `pybricks_wait` statement block for `await wait(ms)`. Currently renders as an await-wrapped `pybricks_call NAME=wait` block; upgrade it to a proper Pybricks-style block with a numeric field. `run.py` uses `await wait(20)` twice.
 
 ---
 
