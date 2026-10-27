@@ -6,8 +6,8 @@ import { collectBlocks, type BlockDescriptor } from "./walk";
 // Current counts, NOT the v1.5 target. The v1.5 goal is 0 for every
 // fixture; these numbers are a regression guard only. Lower in the same
 // PR when a later step reduces the count. Never raise.
-const BASELINE_MAIN = 7;
-const BASELINE_RUN = 4;
+const BASELINE_MAIN = 1;
+const BASELINE_RUN = 1;
 
 function countRaw(descriptors: BlockDescriptor[]): number {
   return descriptors.reduce((sum, descriptor) => {
