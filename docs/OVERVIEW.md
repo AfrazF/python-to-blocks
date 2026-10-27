@@ -23,7 +23,7 @@ Mainly for a teammate who prefers blocks.
 - Upload whole project, one sidebar item per file, one Blockly workspace per file.
 - Blocks for Pybricks calls, own functions, variables, math, comments, tasks, and `multitask`. Control flow (`if`/`for`/`while`) and `try/except` are deferred to v1.5.
 - Everything unmapped → raw-code block, kept exactly as written.
-- v1 is done when **robot.py** and **exampleattach.py** render with **0 raw-code blocks**, enforced by `src/acceptance.test.ts`. `run.py` and `main.py` are infrastructure and may contain raw blocks in v1 (v1.5 adds control-flow blocks to close this).
+- v1.5 is done when `robot.py`, `exampleattach.py`, and `run.py` render with 0 raw blocks, and `main.py` renders with at most 1 (the tuple unpack, deferred to optional Step 38.5). Rule: no simple construct becomes a raw block. Simple = literal, variable reference, call, method call, binary arithmetic, enum reference, subscript, list literal. Anything more complex may remain raw until a later milestone.
 - Separate test: `src/acceptance.test.ts` asserts zero raw blocks in `robot.py` and `exampleattach.py`. Currently uses an independent AST counter; v1.5 upgrades it to `collectBlocks` from `walk.ts` before the control-flow work.
 - No Monaco, no text panel, no click-to-Python in v1.
 - No icons on blocks in v1.

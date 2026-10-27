@@ -136,7 +136,7 @@ See `docs/ROADMAP.md` under "v2 — Editable IDE" for the full scope.
 
 ## 5. Testing
 
-- `src/acceptance.test.ts` is the product contract. It parses `fixtures/robot.py` and `fixtures/exampleattach.py`, runs `collectBlocks`, and asserts `countRaw(...) === 0` for both. `countRaw` recurses through `inputs`. If you add a Python construct to those fixtures, you must add a block for it.
+- `src/acceptance.test.ts` is the product contract. It parses all four fixtures (`robot.py`, `exampleattach.py`, `main.py`, `run.py`), runs `collectBlocks`, and asserts: `robot.py` === 0 raw, `exampleattach.py` === 0 raw, `main.py` <= BASELINE_MAIN, `run.py` <= BASELINE_RUN. Baselines are current counts, not goals — lower them in the same PR when a later step reduces the count; never raise them. Baselines at Step 36: main.py=7, run.py=4. Goal after Step 38+41: main.py=1, run.py=0.
 - `src/walk.test.ts` runs `renderFile` against a stub workspace and asserts a top-level `run_task(main())` becomes a `pybricks_call` with `NAME === "run_task"`.
 - `src/resolve.test.ts` covers cross-file resolution: aliased `Motor`, `DriveBase`, async-function kinds, `multitask` from `pybricks.tools`, local constants.
 - `src/symbols.test.ts` covers `buildSymbolTable` and `buildObjectTable` on `robot.py`.
