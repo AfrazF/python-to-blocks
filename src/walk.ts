@@ -111,12 +111,14 @@ function collectVariableBlock(
   let variableName: ParseNode | undefined;
   let value: ParseNode | undefined;
   let isRightHandSide = false;
+  let targetCount = 0;
 
   if (cursor.firstChild()) {
     do {
       if (!isRightHandSide) {
-        if (cursor.name === "VariableName" && variableName === undefined) {
-          variableName = cursor.node;
+        if (cursor.name === "VariableName") {
+          targetCount += 1;
+          variableName ??= cursor.node;
         } else if (cursor.name === "AssignOp") {
           isRightHandSide = true;
         }
@@ -128,11 +130,10 @@ function collectVariableBlock(
     } while (cursor.nextSibling());
   }
 
-  if (
-    !variableName ||
-    !value ||
-    !["Number", "String", "Boolean"].includes(value.type.name)
-  ) {
+  // Tuple unpacking (`index, attach_main = pick(...)`) has more than one
+  // target before the AssignOp. It needs a mutator-bearing block, which is
+  // Step 38.5 — fall back to raw until then.
+  if (!variableName || !value || targetCount !== 1) {
     return undefined;
   }
 
