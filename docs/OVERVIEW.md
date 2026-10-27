@@ -70,6 +70,7 @@ Pybricks Code treats each file in isolation. We do not.
 - Docker deployment + `v1.0.0` release (Steps 22–22.5)
 - **v1.25 shipped as v1.1.0** — read-only Monaco panel, bidirectional highlighting, multitask argument comments, cascade glow (Steps 25a–28.5b)
 - **v1.5 control flow** — `for`, `while`, `if`/`elif`/`else`, `try`/`except`, `return`/`raise` (Steps 30–34)
+- **v1.5** — control-flow blocks (for, while, if/elif/else, try/except, return/raise) and hub display blocks. 0 raw blocks in robot.py, exampleattach.py, run.py. main.py keeps 1 raw block (tuple unpack, deferred). Shipped as v1.5.0.
 
 ### Tests
 
@@ -78,8 +79,7 @@ Pybricks Code treats each file in isolation. We do not.
 
 ### Next
 
-- **v1.5 remainder** — Steps 35–42: nested member dispatch, subscripts, chained call member, non-literal assignment RHS, then the hub display/button/light blocks and `wait`
-- **Then v2a–v2e** per `docs/ROADMAP.md`
+- v1.5 complete. Next: v1.75 (UI polish) per docs/ROADMAP.md, then v2a–v2e.
 
 ### Post-v1
 
