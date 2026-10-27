@@ -300,6 +300,87 @@ body.dark #sidebar-handle:hover::before {
 #blockly {
   flex: 1;
   min-width: 0;
+  /* Anchor for the custom canvas controls. Blockly.inject() is called on this
+     element, so making it relative keeps the controls in the canvas corner
+     without affecting the flex layout. */
+  position: relative;
+  /* When the code panel squeezes the canvas narrower than the controls are
+     wide, an absolutely positioned child with `right: 12px` would overflow to
+     the left and paint over the sidebar. Clip it to the canvas instead. */
+  overflow: hidden;
+}
+
+/* Custom Blockly canvas controls (top-right). These replace Blockly's built-in
+   zoom buttons, which do not render on Ubuntu Chromebook and do not match the
+   app's Material Symbols style. */
+.blockly-canvas-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  /* Buttons inherit this; --sidebar-fg flips with the theme so the icons stay
+     legible on both the light and dark workspace backgrounds. */
+  color: var(--sidebar-fg);
+}
+
+.blockly-canvas-controls button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  /* Output blue (#4c97ff) accent so the buttons read as clickable on both
+     themes without competing with the block colours. */
+  border: 1px solid rgba(76, 151, 255, 0.22);
+  background: rgba(76, 151, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.blockly-canvas-controls button:hover {
+  background: rgba(76, 151, 255, 0.13);
+  border-color: rgba(76, 151, 255, 0.45);
+}
+
+.blockly-canvas-controls button:active {
+  background: rgba(76, 151, 255, 0.2);
+}
+
+/* Dark theme: same blue accent, slightly higher opacity so it reads against
+   the dark workspace background. */
+body.dark .blockly-canvas-controls button {
+  border-color: rgba(76, 151, 255, 0.28);
+  background: rgba(76, 151, 255, 0.08);
+}
+
+body.dark .blockly-canvas-controls button:hover {
+  background: rgba(76, 151, 255, 0.16);
+  border-color: rgba(76, 151, 255, 0.5);
+}
+
+body.dark .blockly-canvas-controls button:active {
+  background: rgba(76, 151, 255, 0.24);
+  border-color: rgba(76, 151, 255, 0.6);
+}
+
+.blockly-canvas-controls button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* The shared .material-symbols-outlined rule sets 24px; the controls spec is
+   22px. Matches the #app-controls icon sizing pattern. */
+.blockly-canvas-controls button .material-symbols-outlined {
+  font-size: 22px;
 }
 
 body.dark .blocklyMainBackground {
@@ -320,6 +401,9 @@ body.dark .blocklyScrollbarHandle:hover {
   cursor: col-resize;
   background: transparent;
   position: relative;
+  /* Above the canvas controls (z-index 10) so the splitter always draws on
+     top when the code panel is dragged over the canvas edge. */
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;

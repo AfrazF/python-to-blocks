@@ -14,7 +14,9 @@ export function createWorkspace(container: HTMLElement): Blockly.WorkspaceSvg {
       snap: false,
     },
     zoom: {
-      controls: true,
+      // Built-in zoom buttons are replaced by the custom Material Symbol
+      // controls mounted in main.ts (top-right of the canvas).
+      controls: false,
       wheel: true,
       startScale: 0.9,
     },
