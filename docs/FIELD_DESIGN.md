@@ -153,6 +153,7 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_for`                     | `LOOP_VAR`  | `i`                    | white-square                | white       | dark  |            | ours         |
 | `pybricks_for`                     | `ITERABLE`  | `missions`             | white-square                | white       | dark  |            | ours         |
 | `pybricks_try_except`              | `EXCEPTION` | `Exception`            | white-square                | white       | dark  |            | ours         |
+| `pybricks_try_except`              | `AS_NAME`   | `e`                    | white-square                | white       | dark  |            | user         |
 | `pybricks_return`                  | `VALUE`     | `i, ATTACHMENTS[i][1]` | white-square                | white       | dark  |            | ours         |
 | `pybricks_raise`                   | `VALUE`     | `Exception`            | white-square                | white       | dark  |            | ours         |
 | `pybricks_task`                    | `NAME`      | `run1`                 | white-square                | white       | dark  |            | ours         |
