@@ -1359,8 +1359,10 @@ function collectIfBlock(
  *
  * Anything we cannot draw returns undefined and the caller falls back to a
  * raw-code block: `finally`, `else`, multiple `except` clauses, and any
- * exception clause that is not exactly one `VariableName` (for example
- * `except ValueError as e:`, whose tree shape is unverified).
+ * exception clause that is not a single type optionally followed by `as`.
+ *
+ * The parser emits `except X as e:` as three flat siblings (`VariableName`,
+ * `as`, `VariableName`); the loop handles that sequence with a flag.
  */
 function collectTryExceptBlock(
   source: string,
@@ -1372,6 +1374,8 @@ function collectTryExceptBlock(
   let tryTokenEnd: number | undefined;
   let exceptTokenEnd: number | undefined;
   let exceptionType: ParseNode | undefined;
+  let asName: ParseNode | undefined;
+  let seenAsToken = false;
   let exceptCount = 0;
   let unsupported = false;
 
@@ -1394,10 +1398,25 @@ function collectTryExceptBlock(
         bodies.push(cursor.node);
         continue;
       }
-      // Between `except` and its body only a single exception type is allowed.
+      // Between `except` and its body only a single exception type is allowed,
+      // optionally followed by `as <name>`. The parser flattens that into
+      // `VariableName`, `as`, `VariableName` siblings, so a flag tracks which
+      // VariableName we are looking at.
       if (exceptTokenEnd !== undefined && bodies.length === 1) {
-        if (cursor.name === "VariableName" && exceptionType === undefined) {
-          exceptionType = cursor.node;
+        if (cursor.name === "as") {
+          if (seenAsToken || exceptionType === undefined) {
+            unsupported = true;
+          } else {
+            seenAsToken = true;
+          }
+        } else if (cursor.name === "VariableName") {
+          if (!seenAsToken && exceptionType === undefined) {
+            exceptionType = cursor.node;
+          } else if (seenAsToken && asName === undefined) {
+            asName = cursor.node;
+          } else {
+            unsupported = true;
+          }
         } else {
           unsupported = true;
         }
@@ -1410,7 +1429,8 @@ function collectTryExceptBlock(
     exceptTokenEnd === undefined ||
     exceptCount !== 1 ||
     bodies.length !== 2 ||
-    unsupported
+    unsupported ||
+    (seenAsToken && asName === undefined)
   ) {
     return undefined;
   }
@@ -1422,6 +1442,8 @@ function collectTryExceptBlock(
         exceptionType === undefined
           ? ""
           : source.slice(exceptionType.from, exceptionType.to).trim(),
+      AS_NAME:
+        asName === undefined ? "" : source.slice(asName.from, asName.to).trim(),
     },
     inputs: {},
     sourceStart: node.from,
