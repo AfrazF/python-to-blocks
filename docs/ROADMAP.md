@@ -1,10 +1,11 @@
 # Roadmap
 
-**Current version: v1.1.0 (shipped 2026-10-24).** Read-only viewer with Monaco panel and bidirectional highlighting.
+**Current version: v1.5.0 (shipped 2026-10-27).** v1.5 is complete — 0 raw blocks in `robot.py`, `exampleattach.py`, and `run.py`; 1 raw block in `main.py` (tuple unpack, deferred to optional Step 38.5).
 
 **Milestones:**
 
-- v1.5 — finish the viewer (control flow, hub blocks) — in progress
+- v1.5 — finish the viewer (control flow, hub blocks) — shipped as v1.5.0
+- v1.75 — UI polish (bridge) — in progress
 - v2a — Monaco + tabs
 - v2b — Editable blocks (the big one)
 - v2c — Intellisense (pyodide + jedi + ide-docs)
@@ -144,6 +145,18 @@ the app offline as a single `.html`, and reach a hosted URL.
 - ✅ **Step 42** — Final v1.5 sweep (`src/acceptance.test.ts`). v1.5 goal met: robot.py = 0, exampleattach.py = 0, run.py = 0, main.py = 1 (tuple unpack, deferred to optional Step 38.5).
 
 **Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
+
+---
+
+## v1.75 — UI polish (bridge)
+
+**Goal:** Close the visual gaps identified after v1.5 shipped and before v2 editable work begins. No editable features, no v2 dependencies. Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
+
+- ⬜ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook.
+
+- ⬜ **Step v1.75.2** — Code SVG morph animation fix. The existing chevron ↔ code-slash transition (Step 26.5c) has timing/path issues. Reserved for GitHub Copilot — animation work needs visual judgement.
+
+- ⬜ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right.
 
 ---
 
