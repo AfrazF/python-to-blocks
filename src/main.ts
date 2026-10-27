@@ -237,6 +237,39 @@ function startWorkspace(): void {
     editor.layout();
   });
 
+  const toggleBlocksButton = document.getElementById(
+    "toggle-blocks-btn",
+  ) as HTMLButtonElement | null;
+  if (!toggleBlocksButton) {
+    throw new Error("The blocks toggle button must exist.");
+  }
+
+  // Hiding the blocks is independent of the code panel: with the panel closed
+  // the result is a sidebar-only view, which is a valid state. The splitter's
+  // own `.visible` class still governs it once blocks come back, so nothing
+  // else needs restoring here.
+  let blocksHidden = false;
+
+  const applyBlocksHidden = (hidden: boolean): void => {
+    blocksHidden = hidden;
+    document.body.classList.toggle("blocks-hidden", blocksHidden);
+    const label = blocksHidden ? "Show blocks" : "Hide blocks";
+    toggleBlocksButton.title = label;
+    toggleBlocksButton.setAttribute("aria-label", label);
+    toggleBlocksButton.setAttribute("aria-pressed", String(blocksHidden));
+    const icon = toggleBlocksButton.querySelector(".material-symbols-outlined");
+    if (icon) {
+      icon.textContent = blocksHidden ? "visibility" : "visibility_off";
+    }
+    // automaticLayout is off, so both panels need an explicit relayout.
+    Blockly.svgResize(workspace);
+    editor.layout();
+  };
+
+  toggleBlocksButton.addEventListener("click", () => {
+    applyBlocksHidden(!blocksHidden);
+  });
+
   const revealBlockSource = (block: Blockly.Block): void => {
     // The setup hat spans the whole file, so highlighting it is noise.
     if (block.type === "pybricks_setup") {
