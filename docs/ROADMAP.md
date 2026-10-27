@@ -117,7 +117,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ## v1.5 — make infrastructure legible
 
-**v1.5 goal:** `run.py` and `main.py` render with **0 raw-code blocks**. Control flow and hub API blocks only — no editing, no new UI.
+**v1.5 is done when** `robot.py`, `exampleattach.py`, and `run.py` render with 0 raw blocks, and `main.py` renders with at most 1 raw block (the tuple-unpacking assignment, deferred to optional Step 38.5). Rule: no _simple_ construct becomes a raw block. Simple = literal, variable reference, call, method call, binary arithmetic, enum reference, subscript, list literal. Anything more complex may remain raw until a later milestone.
 
 **Recommended batching:** 2–3 steps per PR. The walker is fragile and control flow is the highest-risk change. Do not attempt all steps in one branch.
 
@@ -132,8 +132,9 @@ the app offline as a single `.html`, and reach a hosted URL.
 ### Expression depth
 
 - ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is Step 39; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
-- ⬜ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.)
-- ⬜ **Step 38** — Non-literal assignment RHS, list literals, and tuple unpacking. `collectVariableBlock` only accepts `Number`/`String`/`Boolean`, so `next_index = (index + 1) % len(ATTACHMENTS)`, `i = (i - 1) % len(ATTACHMENTS)`, `index, attach_main = pick(next_index)`, `i = start`, `pressed = hub.buttons.pressed()`, `ICONS = [Image.ARROW_RIGHT, ...]`, and `ATTACHMENTS = [("1", a1_main)]` are all raw.
+- ✅ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.) (`src/acceptance.test.ts`, commit `5548520`)
+- ⬜ **Step 38** — Non-literal assignment RHS. `collectVariableBlock` accepts any expression as the RHS, not just `Number`/`String`/`Boolean`. Fixes `i = start`, `pressed = hub.buttons.pressed()`, `i = (i-1) % len(ATT)`, and `NEXT_ICON = Icon.LEFT + Icon.RIGHT`. List literals render inside the existing VALUE field as text — not as a new block type — because Pybricks' own ListCreate block (`docs/pybricks-blocks/data/pybricks_blockListCreate_list_3.svg`) uses +/- mutator buttons that are v2b.2b work. Tuple unpacking is deliberately excluded (see Step 38.5).
+- ⬜ **Step 38.5** — Tuple unpacking (`index, attach_main = pick(...)`). Needs a new `pybricks_var_unpack` block that mirrors Pybricks' `pybricks_blockListUnpack` block (`docs/pybricks-blocks/data/pybricks_blockListUnpack.svg` — statement block, `unpack list [▾] to >`, expandable right side). Deferred from v1.5 because the block needs a mutator (variable count), which is v2b.2b scope. After Step 38+41 land, `main.py` has exactly 1 raw block (this tuple unpack) and `run.py` has 0. **Optional for v1.5** — if the mutator complexity is not worth it, v1.5 can ship without this step and the block stays raw indefinitely.
 
 ### Hub API blocks
 
