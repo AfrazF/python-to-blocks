@@ -5,6 +5,14 @@
   --sidebar-hover: #d7dce0;
   --sidebar-active-bg: #ced4d8;
   --sidebar-active-fg: #2c3138;
+  /* Workspace background (#ecf0f1) darkened ~6% for the tab strip. */
+  --tab-bar-bg: #dde1e2;
+  /* Active tab matches the workspace so it connects to the content below. */
+  --tab-active-bg: #ecf0f1;
+  --tab-hover-bg: rgba(0, 0, 0, 0.04);
+  --tab-close-hover-bg: rgba(0, 0, 0, 0.08);
+  --tab-fg: #2c3138;
+  --tab-fg-muted: #575e75;
 }
 
 body {
@@ -18,10 +26,20 @@ body.dark {
   --sidebar-hover: #353d47;
   --sidebar-active-bg: #3d4751;
   --sidebar-active-fg: #ffffff;
+  /* Workspace background (#343d46) darkened ~6% for the tab strip. */
+  --tab-bar-bg: #313942;
+  --tab-active-bg: #343d46;
+  --tab-hover-bg: rgba(255, 255, 255, 0.06);
+  --tab-close-hover-bg: rgba(255, 255, 255, 0.1);
+  --tab-fg: #e4e8ec;
+  --tab-fg-muted: #a9b1ba;
   background-color: #1e1e1e;
 }
 
-/* Smooth theme crossfade — applies to all theme-variable-driven elements */
+/* Smooth theme crossfade — applies to all theme-variable-driven elements.
+   v2a.1: the tab strip added a nesting level (#app > #sidebar + #editor-area >
+   #workspace-row + #tab-bar), so the tab elements are listed explicitly here
+   rather than relying on a descendant selector. */
 body,
 #sidebar,
 #sidebar-toolbar,
@@ -29,7 +47,18 @@ body,
 .sidebar-item,
 #upload-btn,
 #sidebar-handle::before,
+#editor-splitter,
 #editor-splitter::before,
+#editor-area,
+#workspace-row,
+#blockly,
+#editor,
+#tab-bar,
+.tab,
+.tab-label,
+.tab-close,
+.tab-underline,
+#empty-state,
 #app-controls button {
   transition:
     background-color 300ms linear,
@@ -290,9 +319,160 @@ body.dark #sidebar-handle:hover::before {
   background: var(--sidebar-hover);
 }
 
-#workspace-container {
+/* Right-hand column: tab strip on top, blocks + splitter + Monaco below. */
+#editor-area {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#workspace-row {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+/* --- Editor tabs (v2a.1) ------------------------------------------------ */
+
+.tab-bar {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  /* Tabs stretch to the full 38px so the active tab meets the content below. */
+  align-items: stretch;
+  height: 38px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  background: var(--tab-bar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+/* The `hidden` attribute must beat `display: flex` when no tab is open. */
+#tab-bar[hidden] {
+  display: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  /* Stretched by the bar; never squashed by the other tabs. */
+  height: auto;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 0 8px 0 12px;
+  border-right: 1px solid var(--sidebar-border);
+  max-width: 150px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--tab-fg-muted);
+  /* Hover stays snappy (locked design spec: 0.15s background), while the
+     theme crossfade still applies to the text and divider colours. A single
+     `transition` shorthand here would otherwise override the shared 300ms
+     theme rule above. */
+  transition:
+    background-color 0.15s ease,
+    color 300ms linear,
+    border-color 300ms linear;
+}
+
+.tab:hover:not(.tab-active) {
+  background: var(--tab-hover-bg);
+}
+
+.tab-active {
+  background: var(--tab-active-bg);
+  color: var(--tab-fg);
+  /* The active tab is the only tab with a theme-driven background, and it is
+     the largest colour delta in the strip. Inheriting .tab's 0.15s hover
+     transition made it finish in half the time of every other surface, so the
+     tab strip visibly snapped dark before the sidebar and canvas had faded.
+     Restore the shared 300ms crossfade here only. */
+  transition:
+    background-color 300ms linear,
+    color 300ms linear,
+    border-color 300ms linear;
+}
+
+.tab-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    13px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
+}
+
+.tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+  font: inherit;
+  line-height: 1;
+}
+
+.tab-close .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background: var(--tab-close-hover-bg);
+}
+
+.tab-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #4c97ff;
+  transition:
+    left 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  /* Painted over the 1px container border so the accent reads as flush. */
+  z-index: 1;
+}
+
+/* Blank state: no tab is open. */
+#empty-state {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--tab-fg-muted);
+  font:
+    13px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
+  pointer-events: none;
+}
+
+body.no-tab-open #empty-state {
   display: flex;
 }
 
@@ -460,6 +640,8 @@ body.dark #editor-splitter:hover::before {
   flex-shrink: 0;
   border-left: 1px solid var(--sidebar-border);
   display: none;
+  /* Anchor for the blank-state message, which overlays the Monaco surface. */
+  position: relative;
 }
 
 #editor.visible {

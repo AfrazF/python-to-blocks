@@ -32,6 +32,7 @@ import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
 import { renderFile } from "./walk";
 import { createEditor } from "./editor";
+import { createTabBar } from "./tabs";
 import { pybricksDark, pybricksTheme } from "./theme";
 
 let currentFiles: Record<string, string> = {
@@ -181,13 +182,32 @@ function mountCanvasControls(
 
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
+  const workspaceRow = document.querySelector<HTMLElement>("#workspace-row");
+  const tabBarContainer = document.querySelector<HTMLElement>("#tab-bar");
   const container = document.querySelector<HTMLElement>("#blockly");
   const splitter = document.querySelector<HTMLElement>("#editor-splitter");
   const editorContainer = document.querySelector<HTMLElement>("#editor");
-  if (!sidebarContainer || !container || !splitter || !editorContainer) {
+  if (
+    !sidebarContainer ||
+    !workspaceRow ||
+    !tabBarContainer ||
+    !container ||
+    !splitter ||
+    !editorContainer
+  ) {
     throw new Error(
-      "The sidebar, Blockly, splitter, and editor containers must exist.",
+      "The sidebar, tab bar, Blockly, splitter, and editor containers must " +
+        "exist.",
     );
+  }
+  // The splitter drag and the blocks-hidden rule both assume these three are
+  // siblings inside the workspace row.
+  for (const child of [container, splitter, editorContainer]) {
+    if (child.parentElement !== workspaceRow) {
+      throw new Error(
+        "Blockly, the splitter, and the editor must share #workspace-row.",
+      );
+    }
   }
   const workspace = createWorkspace(container);
   mountCanvasControls(workspace, container);
@@ -200,8 +220,43 @@ function startWorkspace(): void {
     "sidebar-error",
   ) as HTMLDivElement | null;
 
-  const { setActive, setFiles } = createSidebar(sidebarContainer, files, {
-    onSelect: (name) => {
+  // Assigned by createSidebar below; the tab bar calls it to keep the sidebar
+  // selection in step with the active tab.
+  let setActive = (_name: string): void => {};
+
+  const relayout = (): void => {
+    Blockly.svgResize(workspace);
+    editor.layout();
+  };
+
+  /** Clears both panels when the last tab closes. */
+  const clearPanels = (): void => {
+    workspace.clear();
+    editor.setValue("");
+    editor.clearSelection();
+    clearBlockHighlight();
+    closeMonacoOpenedBubble();
+    // No file is open, so no sidebar entry should read as selected.
+    setActive("");
+  };
+
+  const tabBar = createTabBar({
+    container: tabBarContainer,
+    editorContainer,
+    saveViewState: () => editor.saveViewState(),
+    restoreViewState: (state) => editor.restoreViewState(state),
+    // Blockly 13: `scrollX` / `scrollY` / `scale` are plain properties, and
+    // `scroll(x, y)` / `setScale(n)` are the setters (see workspace_svg.d.ts).
+    saveBlocklyViewState: () => ({
+      scrollX: workspace.scrollX,
+      scrollY: workspace.scrollY,
+      scale: workspace.scale,
+    }),
+    restoreBlocklyViewState: (state) => {
+      workspace.scroll(state.scrollX, state.scrollY);
+      workspace.setScale(state.scale);
+    },
+    loadFile: (name) => {
       const source = currentFiles[name];
       const fileResolution = resolved[name];
       if (!source || !fileResolution) {
@@ -216,6 +271,16 @@ function startWorkspace(): void {
       // that no longer exists.
       monacoOpenedBubbleBlockId = null;
     },
+    clearFile: clearPanels,
+    onLayout: relayout,
+  });
+
+  const sidebar = createSidebar(sidebarContainer, files, {
+    onSelect: (name) => {
+      // Opening a file that is already tabbed focuses that tab; the tab bar
+      // de-duplicates, so this never stacks two tabs for one file.
+      tabBar.open(name);
+    },
     onUpload: async (uploadedFiles) => {
       if (errorBanner) {
         errorBanner.hidden = true;
@@ -228,26 +293,28 @@ function startWorkspace(): void {
         for (const [name, content] of Object.entries(uploadedFiles)) {
           newFiles[name] = content;
         }
+        const firstUpload = !hasUploaded;
         const newResolved = resolveProject(newFiles);
         currentFiles = newFiles;
         resolved = newResolved;
         hasUploaded = true;
-        setFiles(Object.keys(currentFiles));
-        const activeEl = document.querySelector(
-          ".sidebar-item.active",
-        ) as HTMLButtonElement | null;
-        const currentActive = activeEl?.textContent;
-        const targetFile =
-          currentActive && currentActive in currentFiles
-            ? currentActive
-            : Object.keys(currentFiles)[0];
-        if (targetFile) {
-          workspace.clear();
-          renderFile(currentFiles[targetFile], workspace, resolved[targetFile]);
-          editor.setValue(currentFiles[targetFile]);
-          setActive(targetFile);
-          monacoOpenedBubbleBlockId = null;
+        const names = Object.keys(currentFiles);
+        sidebar.setFiles(names);
+
+        if (firstUpload) {
+          // The first upload replaces the fixture set, so the old tabs point at
+          // files that no longer exist. Drop every tab and open the first file
+          // of the new project.
+          tabBar.reset();
+          if (names[0]) {
+            tabBar.open(names[0]);
+          }
+        } else {
+          // Merge: the surviving files keep their tabs and their view state.
+          // A tab whose file vanished hands over to its left neighbour.
+          tabBar.retain(names);
         }
+        relayout();
       } catch (error) {
         if (error instanceof Error && errorBanner) {
           errorBanner.hidden = false;
@@ -256,6 +323,8 @@ function startWorkspace(): void {
       }
     },
   });
+
+  setActive = sidebar.setActive;
 
   const toggleEditorButton = document.getElementById(
     "toggle-editor-btn",
@@ -674,10 +743,8 @@ function startWorkspace(): void {
   });
   resizeObserver.observe(sidebarContainer);
 
-  workspace.clear();
-  renderFile(currentFiles["main.py"], workspace, resolved["main.py"]);
-  editor.setValue(currentFiles["main.py"]);
-  setActive("main.py");
+  // main.py opens as the only tab on load, matching the pre-tabs behaviour.
+  tabBar.open("main.py");
 }
 
 if (document.readyState === "loading") {
