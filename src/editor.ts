@@ -36,19 +36,27 @@ monaco.editor.defineTheme("one-dark", {
   inherit: true,
   rules: oneDarkTheme.rules,
   colors: {
-    "editor.background": "#2d2d2d",
-    "editorGutter.background": "#2d2d2d",
-    "editor.lineHighlightBackground": "#393939",
+    "editor.background": "#282c34",
+    "editorGutter.background": "#282c34",
+    "editor.lineHighlightBackground": "#2c313c",
+    "editor.foreground": "#abb2bf",
+    "editor.selectionBackground": "#3e4451",
   },
 });
 
-// No `colors` override: light chrome stays Monaco's built-in `vs` default, so
-// this step changes token rules only.
+// Background and foreground follow the same Atom One Light palette as the
+// token rules, so the panel does not read as stock Monaco under Atom colours.
 monaco.editor.defineTheme("one-light", {
   base: "vs",
   inherit: true,
   rules: oneLightTheme.rules,
-  colors: {},
+  colors: {
+    "editor.background": "#fafafa",
+    "editorGutter.background": "#fafafa",
+    "editor.lineHighlightBackground": "#f2f2f2",
+    "editor.foreground": "#383a42",
+    "editor.selectionBackground": "#e5e5e6",
+  },
 });
 
 const pythonKeywords = [
