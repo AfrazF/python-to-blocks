@@ -310,6 +310,20 @@ body.dark #sidebar-handle:hover::before {
   overflow: hidden;
 }
 
+/* Hide-blocks toggle (v1.75.3). The canvas and splitter disappear, leaving the
+   sidebar and — if it is open — the code panel. The splitter's own `.visible`
+   class still governs it once blocks come back, so nothing needs restoring. */
+body.blocks-hidden #blockly,
+body.blocks-hidden #editor-splitter {
+  display: none;
+}
+
+/* With the canvas gone the code panel takes the whole workspace row. flex-basis
+   wins over the inline width the splitter drag writes, so no !important. */
+body.blocks-hidden #editor.visible {
+  flex: 1;
+}
+
 /* Custom Blockly canvas controls (top-right). These replace Blockly's built-in
    zoom buttons, which do not render on Ubuntu Chromebook and do not match the
    app's Material Symbols style. */
