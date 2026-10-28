@@ -158,50 +158,39 @@ body.dark #theme-toggle-btn .theme-icon-moon {
   transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
-/* Code button: SVG morph between <> and </> */
+/* SVG controls share a 22px canvas and a drawn, Material-weight slash. */
 #toggle-editor-btn .code-icon {
   fill: currentColor;
   overflow: visible;
   clip-path: circle(50%);
 }
 
-/* Wipe animation driver — makes --reveal interpolable */
-@property --reveal {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 100%;
+#toggle-blocks-btn .blocks-icon,
+.blockly-canvas-controls .volume-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
 }
 
 #toggle-editor-btn .code-chevron-left,
 #toggle-editor-btn .code-chevron-right {
   transform: translateX(0);
-  transition: transform 500ms cubic-bezier(0.05, 0.7, 0.1, 1);
+  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Base (open) state */
-#toggle-editor-btn .code-slash {
-  --reveal: 100%;
-  transform: translate(0, 0);
-  mask-image: linear-gradient(
-    to top right,
-    black 0%,
-    black var(--reveal),
-    transparent var(--reveal),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to top right,
-    black 0%,
-    black var(--reveal),
-    transparent var(--reveal),
-    transparent 100%
-  );
-  transition:
-    transform 500ms cubic-bezier(0.05, 0.7, 0.1, 1),
-    --reveal 500ms cubic-bezier(0.05, 0.7, 0.1, 1);
+.icon-slash {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 80;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Closed state: chevrons pulled inward, slash sliding to bottom-left and wiped away */
+/* Opening restores the exact Material spacing as the slash draws in. */
 body:not(.code-visible) #toggle-editor-btn .code-chevron-left {
   transform: translateX(80px);
 }
@@ -210,9 +199,19 @@ body:not(.code-visible) #toggle-editor-btn .code-chevron-right {
   transform: translateX(-80px);
 }
 
-body:not(.code-visible) #toggle-editor-btn .code-slash {
-  --reveal: 0%;
-  transform: translate(-200px, 640px);
+body:not(.code-visible) #toggle-editor-btn .code-slash,
+#toggle-blocks-btn[aria-pressed="false"] .blocks-slash,
+.blockly-canvas-controls
+  button[data-action="toggle-sound"][aria-pressed="false"]
+  .volume-slash {
+  stroke-dashoffset: 1;
+}
+
+#toggle-blocks-btn[aria-pressed="true"] .blocks-slash,
+.blockly-canvas-controls
+  button[data-action="toggle-sound"][aria-pressed="true"]
+  .volume-slash {
+  stroke-dashoffset: 0;
 }
 
 html,

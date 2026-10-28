@@ -1,57 +1,29 @@
-# Hide-blocks toggle icon — design brief (v2d.14)
+# Hide-blocks toggle icon — shipped design (v1.75.2)
 
-Status: not yet implemented. v1.75.3 ships with Material Symbols
-`visibility_off` / `visibility`. This doc describes the eventual custom
-morph icon that replaces them in v2d.14.
+The v1.75.3 `visibility_off` / `visibility` ligature toggle was replaced
+with an inline SVG in v1.75.2. This was a design revision, not a bug fix.
 
-## Concept
+## Icon
 
-Same pattern as the code-panel toggle's SVG morph (Step 26.5c): one
-`<svg>` with two path groups that crossfade / slide between states,
-driven by CSS `:checked` or a `data-state` attribute.
+The base is the Material `code_blocks` path from `docs/icons/code_blocks.svg`.
+The hidden state draws a diagonal slash over the blocks; the shown state
+retracts it. The slash uses the same angle and visual weight as the slash in
+`docs/icons/volume_off.svg`.
 
-## States
+## Motion
 
-**Blocks visible (default):** reads as "blocks are visible, click to
-hide". Candidate design: a small grid of squares (representing blocks),
-static.
-
-**Blocks hidden:** the same grid, with a diagonal slash drawn across it
-(grayed), plus an eye-slash overlay if the grid alone doesn't read as
-"hidden".
-
-The two states must be distinguishable at 24×24px without text.
-
-## Animation
-
-- Duration: 300ms (matches the theme toggle crossfade)
-- Easing: match Step 26.5c — linear for path transforms,
-  cubic-bezier(0.4, 0, 0.2, 1) for opacity
-- The grid stays static; only the eye / slash overlay morphs
-- Slash draws from top-right to bottom-left (matches the Material
-  Symbols `visibility_off` slash direction, so the transition doesn't
-  feel like it flips orientation)
+- The slash draws/retracts via `stroke-dashoffset`.
+- Duration: 250ms.
+- Easing: `cubic-bezier(0.4, 0, 0.2, 1)`.
+- Slash stroke cap and join match the code-panel and volume slashes.
 
 ## Constraints
 
-- viewBox 24×24 (Material Symbols grid)
-- Icon uses `fill: currentColor` so it inherits from the button
-- No JS animation — CSS transitions only, matching Step 26.5c
-- Must be legible at the button's 22px rendered size
-
-## Mockup
-
-NOT YET DRAWN. A mockup SVG is required in v2d.14 prep — do not start
-implementation until it's approved. Reference:
-
-- `docs/mockups/drivebase-setup-mockup.svg` — the pattern we use for
-  mockups (hand-drawn, approved before implementation)
-- The code-panel toggle's morph icon (three paths,
-  chevron-left / code-slash / chevron-right)
+- One inline SVG, viewBox `0 -960 960 960`, rendered at 22px.
+- `currentColor` supplies the icon color in both themes.
+- CSS transitions only; no JavaScript animation or library.
 
 ## Related
 
-- v1.75.2 — the code-panel morph animation fix; the approach used there
-  should be the model for this
-- v2d.7 — sounds (unrelated but same polish milestone)
-- v2d.14 — where this lands
+- v1.75.2 — code-panel and volume slash animations use the same motion rules.
+- v1.75.3 — the original visibility-symbol toggle, revised here.
