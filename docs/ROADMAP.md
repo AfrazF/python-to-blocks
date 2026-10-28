@@ -1,12 +1,12 @@
 # Roadmap
 
-**Current version: v1.5.0 (shipped 2026-10-27).** v1.5 is complete — 0 raw blocks in `robot.py`, `exampleattach.py`, and `run.py`; 1 raw block in `main.py` (tuple unpack, deferred to optional Step 38.5).
+**Current version: v1.75.0 (shipped 2026-10-28).** v1.75 is complete — UI polish bridge between v1.5 and v2. Canvas controls (zoom in/out/fit/sound), hide-blocks toggle, dedicated `wait` block, and Material-style morph animations for code / volume / hide-blocks icons. No Docker deploy — tag + GitHub release only.
 
 **Milestones:**
 
 - v1.5 — finish the viewer (control flow, hub blocks) — shipped as v1.5.0
-- v1.75 — UI polish (bridge) — in progress
-- v2a — Monaco + tabs
+- v1.75 — UI polish (bridge) — shipped as v1.75.0
+- v2a — Monaco + tabs — next
 - v2b — Editable blocks (the big one)
 - v2c — Intellisense (pyodide + jedi + ide-docs)
 - v2d — Polish (icons, comments, categories, snap-to-grid)
@@ -152,13 +152,13 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 **Goal:** Close the remaining v1.5 polish work and visual gaps identified after v1.5 shipped, before v2 editable work begins. No editable features, no v2 dependencies. Three DeepSeek-implementable steps (v1.75.1, v1.75.3, v1.75.5) plus one Copilot animation fix (v1.75.2). Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
 
-- ⬜ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook.
+- ✅ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook. (`src/main.ts`, `src/style.css`, `src/blockly.ts`, commit `782a991`)
 
-- ⬜ **Step v1.75.2** — Refine the code SVG morph, animate the volume slash, and replace the v1.75.3 hide-blocks visibility ligatures with the Material `code_blocks` icon and matching slash. All three SVGs use a 250ms Material-eased dash-offset slash animation. The hide-blocks change is a design revision, not a bug fix. See `docs/HIDE_BLOCKS_ICON.md`.
+- ✅ **Step v1.75.2** — Refine the code SVG morph, animate the volume slash, and replace the v1.75.3 hide-blocks visibility ligatures with the Material `code_blocks` icon and matching slash. All three SVGs use a 250ms Material-eased dash-offset slash animation. The hide-blocks change is a design revision, not a bug fix. See `docs/HIDE_BLOCKS_ICON.md`. (`index.html`, `src/style.css`, `src/main.ts`, commit `2d315d5`)
 
-- ⬜ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right.
+- ✅ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right. (`index.html`, `src/main.ts`, `src/style.css`, commit `d6c6f18`)
 
-- ⬜ **Step v1.75.5** — `wait` block. Add a dedicated `pybricks_wait` statement block for `await wait(ms)`. Currently renders as an await-wrapped `pybricks_call NAME=wait` block; upgrade it to a proper Pybricks-style block with a numeric field. `run.py` uses `await wait(20)` twice.
+- ✅ **Step v1.75.5** — `wait` block. Add a dedicated `pybricks_wait` statement block for `await wait(ms)`. Currently renders as an await-wrapped `pybricks_call NAME=wait` block; upgrade it to a proper Pybricks-style block with a numeric field. `run.py` uses `await wait(20)` twice. (`src/blocks/wait.ts`, `collectWaitCall` in `src/walk.ts`, commit `077cfb3`)
 
 **Step v1.75.4 moved to v2b.2b.** The `hub.buttons.pressed()` value block was reclassified — routing it as a proper value block requires `input_value` slots on `var_set`, `while`, and `if`, which are part of the field-shape work (v2b.2b). v1.75 ships with 3 steps plus the Copilot animation fix (v1.75.2).
 

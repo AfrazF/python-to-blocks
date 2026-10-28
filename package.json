@@ -1,7 +1,7 @@
 {
   "name": "python-to-blocks",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.75.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
