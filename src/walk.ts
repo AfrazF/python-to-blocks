@@ -541,6 +541,45 @@ function readAwaitInner(node: ParseNode): ParseNode | undefined {
   return undefined;
 }
 
+/**
+ * Turns `await wait(<one positional argument>)` into a `pybricks_wait` block.
+ * Returns undefined when the shape does not match, so the caller can fall back
+ * to the generic await wrapper instead of throwing.
+ *
+ * The descriptor spans the whole `await wait(...)` expression, so revealing the
+ * block selects the full line rather than just the inner call.
+ */
+function collectWaitCall(
+  source: string,
+  expression: ParseNode,
+  innerExpression: ParseNode,
+): BlockDescriptor | undefined {
+  const call = readCallExpression(innerExpression);
+  if (call?.callee.type.name !== "VariableName") {
+    return undefined;
+  }
+  if (source.slice(call.callee.from, call.callee.to) !== "wait") {
+    return undefined;
+  }
+
+  const { positional, keywords } = getCallArgumentValues(
+    source,
+    call.argumentList,
+  );
+  // Exactly one positional argument and no keyword arguments: anything else is
+  // not the shape of Pybricks' wait block.
+  if (positional.length !== 1 || Object.keys(keywords).length > 0) {
+    return undefined;
+  }
+
+  return {
+    type: "pybricks_wait",
+    fields: { TIME: positional[0].text },
+    sourceStart: expression.from,
+    sourceEnd: expression.to,
+  };
+}
+
 /** Reads `object.member` into its two names. */
 function readMember(
   source: string,
@@ -705,6 +744,21 @@ function collectExpression(
     if (!innerExpression) {
       throw new Error("Await expressions must have an inner expression.");
     }
+
+    // `await wait(20)` becomes one Flow-orange block instead of an await wrapper
+    // around a `pybricks_call NAME=wait`. Matching the literal name is enough
+    // for v1.75.5 — the fixtures only ever call `wait` from `pybricks.tools`, so
+    // module resolution is not worth the extra machinery here. Anything other
+    // than exactly one positional argument falls through to the await wrapper.
+    const waitDescriptor = collectWaitCall(
+      source,
+      expression,
+      innerExpression,
+    );
+    if (waitDescriptor) {
+      return waitDescriptor;
+    }
+
     return {
       type: "pybricks_await",
       inputs: {

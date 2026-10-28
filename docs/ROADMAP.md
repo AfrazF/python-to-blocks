@@ -132,7 +132,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 ### Expression depth
 
-- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is v1.75.4; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
+- ✅ **Step 35** — Hub display blocks: `hub.display.icon`, `.char`, `.off`, `.number` (`src/blocks/hub.ts`, `collectHubDisplayCall` in `src/walk.ts`). `readMember` only reads a direct `VariableName` child, so the three-level `hub.display.icon` chain needed its own reader. Blocks render as `[hub ▾] display [method ▾] <arg>` in SPIKE purple. `hub.display.number` is not used by any fixture — it ships for future code. `hub.buttons.pressed()` is v2b.2b; `hub.light.*` is v2e. `hub.display.image` and `.text` are v2e.7.
 - ✅ **Step 36** — Acceptance test extension. Baseline raw-block count for `main.py` and `run.py`; hard-fail regression guard. (Subscripts stay as text inside existing fields in v1.5 — see v2b.2b.) (`src/acceptance.test.ts`, commit `5548520`)
 - ⬜ **Step 38** — Non-literal assignment RHS. `collectVariableBlock` accepts any expression as the RHS, not just `Number`/`String`/`Boolean`. Fixes `i = start`, `pressed = hub.buttons.pressed()`, `i = (i-1) % len(ATT)`, and `NEXT_ICON = Icon.LEFT + Icon.RIGHT`. List literals render inside the existing VALUE field as text — not as a new block type — because Pybricks' own ListCreate block (`docs/pybricks-blocks/data/pybricks_blockListCreate_list_3.svg`) uses +/- mutator buttons that are v2b.2b work. Tuple unpacking is deliberately excluded (see Step 38.5).
 - ⬜ **Step 38.5** — Tuple unpacking (`index, attach_main = pick(...)`). Needs a new `pybricks_var_unpack` block that mirrors Pybricks' `pybricks_blockListUnpack` block (`docs/pybricks-blocks/data/pybricks_blockListUnpack.svg` — statement block, `unpack list [▾] to >`, expandable right side). Deferred from v1.5 because the block needs a mutator (variable count), which is v2b.2b scope. After Step 38+41 land, `main.py` has exactly 1 raw block (this tuple unpack) and `run.py` has 0. **Optional for v1.5** — if the mutator complexity is not worth it, v1.5 can ship without this step and the block stays raw indefinitely.
@@ -144,13 +144,13 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 **Step 37 was skipped.** Chained call member (`run_task(attach_main()).wait()`) is not needed for v1.5: `fixtures/main.py` no longer calls `.wait()` — `run_task` is itself the blocking call. The step moved to **v2e.6** so the capability is not lost, but nothing in v1.5 depends on it. Step numbers are not renumbered; the gap is intentional.
 
-**Steps 39 and 40 were reclassified.** The `hub.buttons.pressed()` value block (was Step 39) and the dedicated `wait` block (was Step 40) were never part of the v1.5 goal: both render as non-raw blocks today (a generic method-call block and an await-wrapped call block). They were moved to v1.75 as polish work — see v1.75.4 and v1.75.5.
+**Steps 39 and 40 were reclassified.** The `hub.buttons.pressed()` value block (was Step 39) and the dedicated `wait` block (was Step 40) were never part of the v1.5 goal: both render as non-raw blocks today (a generic method-call block and an await-wrapped call block). The `wait` block moved to v1.75 as polish work — see v1.75.5. The `hub.buttons.pressed()` block moved to v2b.2b, because it needs `input_value` slots that v1.75 does not add.
 
 ---
 
 ## v1.75 — UI polish (bridge)
 
-**Goal:** Close the remaining v1.5 polish work and visual gaps identified after v1.5 shipped, before v2 editable work begins. No editable features, no v2 dependencies. Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
+**Goal:** Close the remaining v1.5 polish work and visual gaps identified after v1.5 shipped, before v2 editable work begins. No editable features, no v2 dependencies. Three DeepSeek-implementable steps (v1.75.1, v1.75.3, v1.75.5) plus one Copilot animation fix (v1.75.2). Ships as **v1.75.0** — tag + GitHub release, **no Docker deploy**.
 
 - ⬜ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook.
 
@@ -158,9 +158,9 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 - ⬜ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right.
 
-- ⬜ **Step v1.75.4** — Hub button value block. Add a dedicated `pybricks_hub_buttons_pressed` value block for `hub.buttons.pressed()`. Currently renders as a generic `pybricks_method_call` block; upgrade it to a proper Pybricks-style value block. Used by `main.py` and `run.py`'s `wait_for_button`. Register the block in `src/main.ts` (AGENTS.md: an unimported block file throws `Unknown block type` at render time).
-
 - ⬜ **Step v1.75.5** — `wait` block. Add a dedicated `pybricks_wait` statement block for `await wait(ms)`. Currently renders as an await-wrapped `pybricks_call NAME=wait` block; upgrade it to a proper Pybricks-style block with a numeric field. `run.py` uses `await wait(20)` twice.
+
+**Step v1.75.4 moved to v2b.2b.** The `hub.buttons.pressed()` value block was reclassified — routing it as a proper value block requires `input_value` slots on `var_set`, `while`, and `if`, which are part of the field-shape work (v2b.2b). v1.75 ships with 3 steps plus the Copilot animation fix (v1.75.2).
 
 ---
 
@@ -200,6 +200,7 @@ Full round-trip: any block change produces correct Python, any Python change pro
   - **Field fill is not white.** `()` is circular, `[]` is square, `{}` is an icon. Every circular dropdown and editable field uses a **darker shade of the block's own colour** with white text — Output's is `#4180d9` and Variables/Calls' is `#d9576d` (both confirmed), and the same rule applies to the `mm/s` / `°/s` value fields in `drive.settings()`. The `configure` parameter dropdown uses the **same** blue as the block. A number typed into a circular field renders as a **white square with dark text** inside a dark-blue circle with **no stroke**. Today every field is a white rect with dark text (`src/pybricks.css`), so this is a CSS + theme change, not just a shape change. Verified against `docs/images/setup-blocks.png`, `docs/images/drive-settings-blocks.png`, and `docs/images/variable-set-blocks.png`.
   - **The parameter-name dropdown in `drive.settings()` uses the same blue as the block**, not the darker field shade — it reads as part of the block body rather than as a field.
   - **Scope is selective:** migrate the Pybricks blocks first (`driveBase`, `motor`, `hardware`, `pid`). `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
+  - **`hub.buttons.pressed()` value block.** Reclassified from v1.75.4. Needs `input_value` slots on `var_set`, `while`, and `if` so a value block can plug in. When those slots exist, add a cyan `pybricks_hub_button_is_pressed` value block and route `Button.LEFT in hub.buttons.pressed()` to it. See `docs/pybricks-blocks/hub/pybricks_blockButtonIsPressed_PrimeHub.svg` for the reference shape.
   - **Subscript expressions** (`ATTACHMENTS[i][0]`) become real Data-green reporter blocks once `CHAR` / `VALUE` fields are `input_value` slots. Currently text in v1.5.
   - **Every new block from here on follows this design.** A block added in v1.5 or v2e uses the darker field fill, the correct shape per parameter type, and unit suffixes where Pybricks has them — not a white `field_input`. The v1.5 hub blocks (Steps 39–41) ship with `field_input` because v1.5 is blocks-only, and v2b.2b converts them.
   - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.

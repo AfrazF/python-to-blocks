@@ -9,6 +9,7 @@ import "./blocks/task";
 import "./blocks/function";
 import "./blocks/call";
 import "./blocks/await";
+import "./blocks/wait";
 import "./blocks/multitask";
 import "./blocks/driveBase";
 import "./blocks/motor";

@@ -163,6 +163,7 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_multitask`               | `MODE`      | `race=True`            | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_call`                    | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
 | `pybricks_method_call`             | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
+| `pybricks_wait`                    | `TIME`      | `20`                   | white-square                | white       | dark  | `ms`       | pybricks-svg |
 | `pybricks_import`                  | `MODULE`    | `pybricks.tools`       | white-square                | white       | dark  |            | ours         |
 | `pybricks_import`                  | `NAME`      | `wait`                 | white-square                | white       | dark  |            | ours         |
 | `pybricks_import_as`               | `MODULE`    | `robot`                | white-square                | white       | dark  |            | ours         |
@@ -172,6 +173,8 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_raw_code`                | `CODE`      | `ATTACHMENTS = [`      | white-square                | white       | dark  |            | ours         |
 
 `field_label` fields (`pybricks_call.NAME`, `pybricks_method_call.OBJ` / `METHOD`) are static text, not editable fields, so they have no row.
+
+`pybricks_wait`'s `TIME` field ships as a plain white `field_input` in v1.75.5. Pybricks renders it as a number inside a pill with `ms` as a separate static label after it (`docs/pybricks-blocks/flow/pybricks_blockWaitTime.svg`), so v2b.2b converts it to the pill-with-white-square shape plus the `ms` suffix.
 
 ## Not yet implemented
 
