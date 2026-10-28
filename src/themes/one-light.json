@@ -1,0 +1,20 @@
+{
+  "rules": [
+    { "token": "comment", "foreground": "a0a1a7", "fontStyle": "italic" },
+    { "token": "keyword", "foreground": "a626a4" },
+    { "token": "keyword.control", "foreground": "a626a4" },
+    { "token": "keyword.operator", "foreground": "0184bc" },
+    { "token": "string", "foreground": "50a14f" },
+    { "token": "string.escape", "foreground": "0184bc" },
+    { "token": "number", "foreground": "986801" },
+    { "token": "constant.numeric", "foreground": "986801" },
+    { "token": "function", "foreground": "4078f2" },
+    { "token": "entity.name.function", "foreground": "4078f2" },
+    { "token": "type", "foreground": "c18401" },
+    { "token": "type.identifier", "foreground": "c18401" },
+    { "token": "variable", "foreground": "e45649" },
+    { "token": "identifier", "foreground": "383a42" },
+    { "token": "operator", "foreground": "0184bc" },
+    { "token": "delimiter", "foreground": "383a42" }
+  ]
+}
