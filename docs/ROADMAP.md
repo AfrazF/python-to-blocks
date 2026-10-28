@@ -154,7 +154,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 
 - ⬜ **Step v1.75.1** — Blockly canvas controls. Hide Blockly's built-in zoom buttons and add Material Symbol buttons in the top-right of the block canvas: zoom in, zoom out, zoom to fit, sound mute. Uses `workspace.zoomCenter(±1)`, `workspace.zoomToFit()`, `workspace.getAudioManager().setMuted()`. Fixes missing zoom icons on Ubuntu Chromebook.
 
-- ⬜ **Step v1.75.2** — Code SVG morph animation fix AND volume icon morph animation. The existing chevron ↔ code-slash transition (Step 26.5c) has timing/path issues. Additionally, add a morph animation for the volume icon: circle arcs fade out as the slash draws through (volume_up ↔ volume_off). Both animations are one Copilot task — same skill, same file area, same 'does it look right?' acceptance test. Reserved for GitHub Copilot.
+- ⬜ **Step v1.75.2** — Refine the code SVG morph, animate the volume slash, and replace the v1.75.3 hide-blocks visibility ligatures with the Material `code_blocks` icon and matching slash. All three SVGs use a 250ms Material-eased dash-offset slash animation. The hide-blocks change is a design revision, not a bug fix. See `docs/HIDE_BLOCKS_ICON.md`.
 
 - ⬜ **Step v1.75.3** — Hide-blocks toggle. A button that hides the Blockly canvas and the splitter, leaving only the sidebar and Monaco. Toggling back restores both. Coexists with the existing code-panel toggle at bottom-right.
 
@@ -246,7 +246,6 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 - ⬜ **Step v2d.10** — Synchronized scrolling between blocks and Monaco. Anchor by source position, not by pixel scroll: find the block whose `sourceStart` is closest to the top of the Blockly viewport, look up its line number, scroll Monaco to that line. Reverse for the other direction. Must suppress the feedback loop — reuse the `suppressCursorChangesUntil` pattern from `src/editor.ts`. Test both directions against `exampleattach.py`.
 - ⬜ **Step v2d.11** — Sync visibility improvements. Novice usability test found two problems: (a) the `.blocklyHighlighted` glow is invisible on a busy workspace, (b) reverse-sync does not scroll the block into view when it is off-screen. Fix: scroll the block into view when reverse sync fires, and strengthen the glow or draw a visible connector line from the Monaco selection to the block. Test with a fixture that has blocks off-screen.
 - ⬜ **Step v2d.12** — Monaco panel discoverability. The same test found the panel was not noticed as interactive — the user had to be pointed at it three times. Fix: add a first-run hint ("click a line in the code to find its block") that dismisses after one use, or a persistent affordance (subtle arrow, panel border accent, etc.).
-- ⬜ **Step v2d.14** — Custom morph icon for the hide-blocks toggle. Replaces the Material Symbols `visibility_off` / `visibility` placeholders from v1.75.3 with a hand-drawn SVG morph. See `docs/HIDE_BLOCKS_ICON.md` for the design brief and constraints.
 
 ---
 

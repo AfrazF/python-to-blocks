@@ -47,7 +47,7 @@ type CanvasControlAction = "zoom-in" | "zoom-out" | "zoom-fit" | "toggle-sound";
 
 interface CanvasControlSpec {
   action: CanvasControlAction;
-  icon: string;
+  icon?: string;
   label: string;
 }
 
@@ -56,8 +56,43 @@ const CANVAS_CONTROLS: CanvasControlSpec[] = [
   { action: "zoom-in", icon: "zoom_in", label: "Zoom in" },
   { action: "zoom-out", icon: "zoom_out", label: "Zoom out" },
   { action: "zoom-fit", icon: "zoom_out_map", label: "Fit to view" },
-  { action: "toggle-sound", icon: "volume_up", label: "Mute block sounds" },
+  { action: "toggle-sound", label: "Mute block sounds" },
 ];
+
+function createVolumeIcon(): SVGSVGElement {
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  icon.classList.add("volume-icon");
+  icon.setAttribute("viewBox", "0 -960 960 960");
+  icon.setAttribute("aria-hidden", "true");
+
+  const paths = [
+    [
+      "volume-arc",
+      "M560-131v-82q90-26 145-100t55-168q0-94-55-168t-145-100v-82q124 28 202 125.5T840-481q0 127-78 224.5T560-131Z",
+    ],
+    [
+      "volume-speaker",
+      "M120-360v-240h160l200-200v640L280-360H120Zm280-246-86 86H200v80h114l86 86v-252Z",
+    ],
+    [
+      "volume-arc",
+      "M560-320v-322q47 22 73.5 66t26.5 96q0 51-26.5 94.5T560-320Z",
+    ],
+    ["volume-slash icon-slash", "M84-820 820-84"],
+  ];
+
+  for (const [classNames, pathData] of paths) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("class", classNames);
+    path.setAttribute("d", pathData);
+    if (classNames.includes("icon-slash")) {
+      path.setAttribute("pathLength", "1");
+    }
+    icon.appendChild(path);
+  }
+
+  return icon;
+}
 
 /**
  * Mounts the custom Material Symbol controls in the top-right of the Blockly
@@ -88,24 +123,27 @@ function mountCanvasControls(
     button.setAttribute("aria-label", spec.label);
     button.title = spec.label;
 
-    const icon = document.createElement("span");
-    icon.className = "material-symbols-outlined";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = spec.icon;
-    button.appendChild(icon);
+    if (spec.action === "toggle-sound") {
+      button.appendChild(createVolumeIcon());
+    } else {
+      const icon = document.createElement("span");
+      icon.className = "material-symbols-outlined";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = spec.icon ?? "";
+      button.appendChild(icon);
+    }
 
     buttons.set(spec.action, button);
     controls.appendChild(button);
   }
 
   const soundButton = buttons.get("toggle-sound");
-  const soundIcon = soundButton?.querySelector("span");
+  const soundIcon = soundButton?.querySelector(".volume-icon");
   if (!soundButton || !soundIcon) {
     throw new Error("The sound control must exist.");
   }
 
   const renderSoundState = (): void => {
-    soundIcon.textContent = muted ? "volume_off" : "volume_up";
     const label = muted ? "Unmute block sounds" : "Mute block sounds";
     soundButton.setAttribute("aria-label", label);
     soundButton.title = label;
@@ -258,10 +296,6 @@ function startWorkspace(): void {
     toggleBlocksButton.title = label;
     toggleBlocksButton.setAttribute("aria-label", label);
     toggleBlocksButton.setAttribute("aria-pressed", String(blocksHidden));
-    const icon = toggleBlocksButton.querySelector(".material-symbols-outlined");
-    if (icon) {
-      icon.textContent = blocksHidden ? "visibility" : "visibility_off";
-    }
     // automaticLayout is off, so both panels need an explicit relayout.
     Blockly.svgResize(workspace);
     editor.layout();
