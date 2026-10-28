@@ -13,6 +13,10 @@
   --tab-close-hover-bg: rgba(0, 0, 0, 0.08);
   --tab-fg: #2c3138;
   --tab-fg-muted: #575e75;
+  /* Blockly workspace border. Blockly's own stylesheet sets #c6c6c6 on
+     .blocklyMainBackground; owning the light value here (and the dark one under
+     body.dark) makes the stroke a CSS colour that can crossfade. */
+  --blockly-border: #c6c6c6;
 }
 
 body {
@@ -33,6 +37,7 @@ body.dark {
   --tab-close-hover-bg: rgba(255, 255, 255, 0.1);
   --tab-fg: #e4e8ec;
   --tab-fg-muted: #a9b1ba;
+  --blockly-border: #232830;
   background-color: #1e1e1e;
 }
 
@@ -72,7 +77,22 @@ body,
   transition: background-color 300ms linear;
 }
 
-/* Blockly scrollbars */
+/* Blockly workspace border. Blockly's stylesheet sets `stroke: #c6c6c6` on
+   this rect in light mode, and the dark override used to live in a
+   `body.dark` rule below. Both values now come from --blockly-border, so the
+   stroke is a CSS-driven colour on both themes and can crossfade.
+   The rect's fill is set inline by Blockly as `var(--blocklyGridPattern)`, an
+   SVG <pattern> reference that never changes between themes; the visible
+   workspace colour comes from .blocklySvg's background-color instead. */
+.blocklyMainBackground {
+  stroke: var(--blockly-border);
+  transition: stroke 300ms linear;
+}
+
+/* Blockly scrollbars. The thumb's fill crossfades already: Blockly writes it as
+   an inline style attribute, and a style-attribute change does animate because
+   `fill` is transitionable. Its fill-opacity is written inline at the same time
+   and flips instantly — left as-is, it is far too subtle to notice. */
 .blocklyScrollbarHandle {
   transition: fill 300ms linear;
 }
@@ -574,10 +594,6 @@ body.dark .blockly-canvas-controls button:active {
    22px. Matches the #app-controls icon sizing pattern. */
 .blockly-canvas-controls button .material-symbols-outlined {
   font-size: 22px;
-}
-
-body.dark .blocklyMainBackground {
-  stroke: #232830;
 }
 
 body.dark .blocklyScrollbarHandle {
