@@ -12,10 +12,19 @@
   <body>
     <div id="app">
       <aside id="sidebar"></aside>
-      <main id="workspace-container">
-        <div id="blockly"></div>
-        <div id="editor-splitter"></div>
-        <div id="editor"></div>
+      <main id="editor-area">
+        <div
+          id="tab-bar"
+          class="tab-bar"
+          role="tablist"
+          aria-label="Open files"
+          hidden
+        ></div>
+        <div id="workspace-row">
+          <div id="blockly"></div>
+          <div id="editor-splitter"></div>
+          <div id="editor"></div>
+        </div>
       </main>
     </div>
     <div id="app-controls">

@@ -14,6 +14,14 @@ export interface PyEditor {
   clearCommentHighlight: () => void;
   /** Calls back with the cursor's character offset. Returns a detach function. */
   onCursorChange: (callback: (offset: number) => void) => () => void;
+  /**
+   * Snapshot of the cursor, selection, and scroll position. Returns null when
+   * the editor has no model yet. Used by the tab strip to restore a file's
+   * view when its tab is re-activated.
+   */
+  saveViewState: () => monaco.editor.ICodeEditorViewState | null;
+  /** Re-applies a snapshot produced by `saveViewState`. */
+  restoreViewState: (state: monaco.editor.ICodeEditorViewState) => void;
   dispose: () => void;
   layout: () => void;
 }
@@ -267,6 +275,8 @@ export function createEditor(container: HTMLElement): PyEditor {
       // and that suppression then swallowed the revealRange() cursor event,
       // so the block never glowed.
     },
+    saveViewState: () => editor.saveViewState(),
+    restoreViewState: (state) => editor.restoreViewState(state),
     dispose: () => editor.dispose(),
     layout: () => editor.layout(),
   };
