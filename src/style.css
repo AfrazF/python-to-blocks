@@ -1,44 +1,49 @@
 :root {
-  --sidebar-bg: #e0e5e8;
-  --sidebar-fg: #575e75;
-  --sidebar-border: #ced4d8;
+  --sidebar-bg: #f0f0f0;
+  --sidebar-fg: #696c77;
+  --sidebar-border: #dbdbdc;
   --sidebar-hover: #d7dce0;
   --sidebar-active-bg: #ced4d8;
-  --sidebar-active-fg: #2c3138;
-  /* Workspace background (#ecf0f1) darkened ~6% for the tab strip. */
-  --tab-bar-bg: #dde1e2;
-  /* Active tab matches the workspace so it connects to the content below. */
-  --tab-active-bg: #ecf0f1;
-  --tab-hover-bg: rgba(0, 0, 0, 0.04);
+  --sidebar-active-fg: #383a42;
+  /* Atom One Light: the tab bar matches the sidebar so the strip blends into
+     the chrome instead of reading as a separate band. */
+  --tab-bar-bg: #f0f0f0;
+  /* Active tab matches the Monaco panel (#fafafa) exactly, so the strip meets
+     the editor with no seam. */
+  --tab-active-bg: #fafafa;
+  --tab-hover-bg: #e5e5e5;
   --tab-close-hover-bg: rgba(0, 0, 0, 0.08);
-  --tab-fg: #2c3138;
-  --tab-fg-muted: #575e75;
+  --tab-fg: #383a42;
+  --tab-fg-muted: #696c77;
   /* Blockly workspace border. Blockly's own stylesheet sets #c6c6c6 on
      .blocklyMainBackground; owning the light value here (and the dark one under
      body.dark) makes the stroke a CSS colour that can crossfade. */
-  --blockly-border: #c6c6c6;
+  --blockly-border: #dbdbdc;
 }
 
 body {
-  background-color: #ecf0f1;
+  background-color: #f0f0f0;
 }
 
 body.dark {
-  --sidebar-bg: #2a3139;
-  --sidebar-fg: #cccccc;
-  --sidebar-border: #1e242b;
+  --sidebar-bg: #21252b;
+  --sidebar-fg: #9da5b4;
+  --sidebar-border: #181a1f;
   --sidebar-hover: #353d47;
   --sidebar-active-bg: #3d4751;
-  --sidebar-active-fg: #ffffff;
-  /* Workspace background (#343d46) darkened ~6% for the tab strip. */
-  --tab-bar-bg: #313942;
-  --tab-active-bg: #343d46;
-  --tab-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-active-fg: #d7dae0;
+  /* Atom One Dark: tab bar matches the sidebar so the strip blends into the
+     chrome instead of reading as a separate band. */
+  --tab-bar-bg: #21252b;
+  /* Active tab matches the Monaco panel (#282c34) exactly, so the strip meets
+     the editor with no seam. */
+  --tab-active-bg: #282c34;
+  --tab-hover-bg: #2b2f35;
   --tab-close-hover-bg: rgba(255, 255, 255, 0.1);
-  --tab-fg: #e4e8ec;
-  --tab-fg-muted: #a9b1ba;
-  --blockly-border: #232830;
-  background-color: #1e1e1e;
+  --tab-fg: #d7dae0;
+  --tab-fg-muted: #9da5b4;
+  --blockly-border: #181a1f;
+  background-color: #21252b;
 }
 
 /* Smooth theme crossfade — applies to all theme-variable-driven elements.
@@ -608,7 +613,10 @@ body.dark .blocklyScrollbarHandle:hover {
   width: 6px;
   flex-shrink: 0;
   cursor: col-resize;
-  background: transparent;
+  /* The sash paints the app's divider colour so the canvas and the code panel
+     are separated by the same rule as every other chrome edge. Reuses
+     --sidebar-border (the app-wide divider) rather than a new variable. */
+  background: var(--sidebar-border);
   position: relative;
   /* Above the canvas controls (z-index 10) so the splitter always draws on
      top when the code panel is dragged over the canvas edge. */
