@@ -3,9 +3,20 @@ import type * as monaco from "monaco-editor/editor/editor.api.js";
 type ViewState = monaco.editor.ICodeEditorViewState;
 
 /**
+ * A Blockly workspace viewport snapshot. Block IDs regenerate on every render,
+ * so scroll offset and zoom are the only state worth carrying across a tab
+ * switch.
+ */
+export interface BlocklyViewState {
+  scrollX: number;
+  scrollY: number;
+  scale: number;
+}
+
+/**
  * Options for {@link createTabBar}. The tab bar owns the open-file list, the
- * active file, and each file's Monaco view state. It knows nothing about
- * Blockly or the walker: the caller supplies the "load this file" callback.
+ * active file, and each file's Monaco and Blockly view state. It knows nothing
+ * about Blockly or the walker: the caller supplies the callbacks.
  */
 export interface TabBarOptions {
   /** Host element for the tab strip (`.tab-bar`). */
@@ -16,6 +27,10 @@ export interface TabBarOptions {
   saveViewState: () => ViewState | null;
   /** Re-applies a snapshot produced by `saveViewState`. */
   restoreViewState: (state: ViewState) => void;
+  /** Snapshot of the Blockly scroll offset + zoom, or null with no workspace. */
+  saveBlocklyViewState: () => BlocklyViewState | null;
+  /** Re-applies a snapshot produced by `saveBlocklyViewState`. */
+  restoreBlocklyViewState: (state: BlocklyViewState) => void;
   /** Materialise a file: clear the workspace, render blocks, set Monaco text. */
   loadFile: (name: string) => void;
   /** Empty the workspace and the editor for the blank state. */
@@ -54,7 +69,21 @@ export function createTabBar(options: TabBarOptions): TabBar {
   const openFiles: string[] = [];
   const buttons = new Map<string, HTMLElement>();
   const viewStateByFile = new Map<string, ViewState>();
+  const blocklyViewStateByFile = new Map<string, BlocklyViewState>();
+  // The viewport the workspace was injected with (Blockly's startScale and a
+  // zero scroll). Captured before the first file renders, and reapplied when a
+  // file is opened for the first time so it never inherits the previous file's
+  // zoom and scroll.
+  const defaultBlocklyViewState = options.saveBlocklyViewState();
   let activeFile: string | null = null;
+  // The file whose content is actually in the workspace and the editor. It
+  // trails `activeFile` by one frame because the content swap is deferred, and
+  // it is what view state must be captured against: during that frame the
+  // panels still hold the previous file's blocks and text.
+  let loadedFile: string | null = null;
+  // Pending deferred content swap. Cancelled when another tab is activated
+  // before the frame runs, so rapid clicks never double-render.
+  let pendingFrame: number | null = null;
 
   // Blank state message. Sits over the Monaco surface (the panel is only
   // visible when the code toggle is on, which is the panel it belongs to).
@@ -77,6 +106,29 @@ export function createTabBar(options: TabBarOptions): TabBar {
     // so it scrolls with the content and offsetLeft alone keeps it aligned.
     underline.style.left = `${active.offsetLeft}px`;
     underline.style.width = `${active.offsetWidth}px`;
+  };
+
+  /**
+   * Snapshots both panels for `name`. Callers pass the file whose content is
+   * currently on screen, which is `loadedFile` rather than `activeFile` while a
+   * deferred swap is in flight.
+   */
+  const captureViewState = (name: string): void => {
+    const monacoState = options.saveViewState();
+    if (monacoState) {
+      viewStateByFile.set(name, monacoState);
+    }
+    const blocklyState = options.saveBlocklyViewState();
+    if (blocklyState) {
+      blocklyViewStateByFile.set(name, blocklyState);
+    }
+  };
+
+  const cancelPendingFrame = (): void => {
+    if (pendingFrame !== null) {
+      cancelAnimationFrame(pendingFrame);
+      pendingFrame = null;
+    }
   };
 
   const render = (): void => {
@@ -133,23 +185,44 @@ export function createTabBar(options: TabBarOptions): TabBar {
       positionUnderline();
       return;
     }
-    if (activeFile) {
-      const state = options.saveViewState();
-      if (state) {
-        viewStateByFile.set(activeFile, state);
-      }
+    // Capture the outgoing file's view state synchronously: the workspace and
+    // the editor still hold its content right now, and the deferred swap below
+    // is about to replace it.
+    if (loadedFile) {
+      captureViewState(loadedFile);
     }
     activeFile = name;
-    options.loadFile(name);
-    const restored = viewStateByFile.get(name);
-    if (restored) {
-      options.restoreViewState(restored);
-    }
+    // Paint the tab strip first. The active class and the underline move on
+    // this frame, so the click feels immediate.
     render();
+    // Then defer the heavy work (workspace.clear + renderFile + setValue) to
+    // the next frame, letting the browser paint the tab change before the main
+    // thread blocks. rAF rather than setTimeout: no artificial latency.
+    cancelPendingFrame();
+    pendingFrame = requestAnimationFrame(() => {
+      pendingFrame = null;
+      options.loadFile(name);
+      loadedFile = name;
+      const restored = viewStateByFile.get(name);
+      if (restored) {
+        options.restoreViewState(restored);
+      }
+      // A file with no saved viewport starts at the workspace default rather
+      // than inheriting the previous file's scroll and zoom.
+      const blocklyRestored =
+        blocklyViewStateByFile.get(name) ?? defaultBlocklyViewState;
+      if (blocklyRestored) {
+        options.restoreBlocklyViewState(blocklyRestored);
+      }
+      // The blocks changed, so the canvas needs a resize after the render.
+      options.onLayout();
+    });
   };
 
   const blank = (): void => {
+    cancelPendingFrame();
     activeFile = null;
+    loadedFile = null;
     options.clearFile();
     render();
   };
@@ -171,9 +244,11 @@ export function createTabBar(options: TabBarOptions): TabBar {
     const wasActive = name === activeFile;
     if (wasActive) {
       // Keep the snapshot: reopening the file should come back where it was.
-      const state = options.saveViewState();
-      if (state) {
-        viewStateByFile.set(name, state);
+      // Capture against the file actually on screen — if a deferred swap is
+      // still pending, the panels hold the previous file, not this one.
+      cancelPendingFrame();
+      if (loadedFile) {
+        captureViewState(loadedFile);
       }
     }
     openFiles.splice(index, 1);
@@ -209,9 +284,9 @@ export function createTabBar(options: TabBarOptions): TabBar {
       oldActive !== null && oldIndex !== -1 && !names.includes(oldActive);
 
     if (activeMissing && oldActive) {
-      const state = options.saveViewState();
-      if (state) {
-        viewStateByFile.set(oldActive, state);
+      cancelPendingFrame();
+      if (loadedFile) {
+        captureViewState(loadedFile);
       }
     }
 
@@ -248,6 +323,7 @@ export function createTabBar(options: TabBarOptions): TabBar {
     openFiles.length = 0;
     buttons.clear();
     viewStateByFile.clear();
+    blocklyViewStateByFile.clear();
     blank();
   };
 

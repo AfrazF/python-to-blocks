@@ -245,6 +245,17 @@ function startWorkspace(): void {
     editorContainer,
     saveViewState: () => editor.saveViewState(),
     restoreViewState: (state) => editor.restoreViewState(state),
+    // Blockly 13: `scrollX` / `scrollY` / `scale` are plain properties, and
+    // `scroll(x, y)` / `setScale(n)` are the setters (see workspace_svg.d.ts).
+    saveBlocklyViewState: () => ({
+      scrollX: workspace.scrollX,
+      scrollY: workspace.scrollY,
+      scale: workspace.scale,
+    }),
+    restoreBlocklyViewState: (state) => {
+      workspace.scroll(state.scrollX, state.scrollY);
+      workspace.setScale(state.scale);
+    },
     loadFile: (name) => {
       const source = currentFiles[name];
       const fileResolution = resolved[name];

@@ -246,6 +246,7 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 - ⬜ **Step v2d.10** — Synchronized scrolling between blocks and Monaco. Anchor by source position, not by pixel scroll: find the block whose `sourceStart` is closest to the top of the Blockly viewport, look up its line number, scroll Monaco to that line. Reverse for the other direction. Must suppress the feedback loop — reuse the `suppressCursorChangesUntil` pattern from `src/editor.ts`. Test both directions against `exampleattach.py`.
 - ⬜ **Step v2d.11** — Sync visibility improvements. Novice usability test found two problems: (a) the `.blocklyHighlighted` glow is invisible on a busy workspace, (b) reverse-sync does not scroll the block into view when it is off-screen. Fix: scroll the block into view when reverse sync fires, and strengthen the glow or draw a visible connector line from the Monaco selection to the block. Test with a fixture that has blocks off-screen.
 - ⬜ **Step v2d.12** — Monaco panel discoverability. The same test found the panel was not noticed as interactive — the user had to be pointed at it three times. Fix: add a first-run hint ("click a line in the code to find its block") that dismisses after one use, or a persistent affordance (subtle arrow, panel border accent, etc.).
+- ⬜ **Step v2d.15** — Preserve open comment bubbles across tab switches. Block IDs regenerate on every render, so tracking which block's bubble was open requires storing the source range and looking up the matching block after re-render. Deferred from v2a.1 polish.
 
 ---
 

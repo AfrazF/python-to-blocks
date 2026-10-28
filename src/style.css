@@ -36,7 +36,10 @@ body.dark {
   background-color: #1e1e1e;
 }
 
-/* Smooth theme crossfade — applies to all theme-variable-driven elements */
+/* Smooth theme crossfade — applies to all theme-variable-driven elements.
+   v2a.1: the tab strip added a nesting level (#app > #sidebar + #editor-area >
+   #workspace-row + #tab-bar), so the tab elements are listed explicitly here
+   rather than relying on a descendant selector. */
 body,
 #sidebar,
 #sidebar-toolbar,
@@ -44,9 +47,18 @@ body,
 .sidebar-item,
 #upload-btn,
 #sidebar-handle::before,
+#editor-splitter,
 #editor-splitter::before,
+#editor-area,
+#workspace-row,
+#blockly,
+#editor,
 #tab-bar,
 .tab,
+.tab-label,
+.tab-close,
+.tab-underline,
+#empty-state,
 #app-controls button {
   transition:
     background-color 300ms linear,
@@ -358,7 +370,14 @@ body.dark #sidebar-handle:hover::before {
   cursor: pointer;
   background: transparent;
   color: var(--tab-fg-muted);
-  transition: background 0.15s ease;
+  /* Hover stays snappy (locked design spec: 0.15s background), while the
+     theme crossfade still applies to the text and divider colours. A single
+     `transition` shorthand here would otherwise override the shared 300ms
+     theme rule above. */
+  transition:
+    background-color 0.15s ease,
+    color 300ms linear,
+    border-color 300ms linear;
 }
 
 .tab:hover:not(.tab-active) {
@@ -368,6 +387,15 @@ body.dark #sidebar-handle:hover::before {
 .tab-active {
   background: var(--tab-active-bg);
   color: var(--tab-fg);
+  /* The active tab is the only tab with a theme-driven background, and it is
+     the largest colour delta in the strip. Inheriting .tab's 0.15s hover
+     transition made it finish in half the time of every other surface, so the
+     tab strip visibly snapped dark before the sidebar and canvas had faded.
+     Restore the shared 300ms crossfade here only. */
+  transition:
+    background-color 300ms linear,
+    color 300ms linear,
+    border-color 300ms linear;
 }
 
 .tab-label {
@@ -375,7 +403,11 @@ body.dark #sidebar-handle:hover::before {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 13px "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
+  font:
+    13px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
 }
 
 .tab-close {
@@ -432,7 +464,11 @@ body.dark #sidebar-handle:hover::before {
   align-items: center;
   justify-content: center;
   color: var(--tab-fg-muted);
-  font: 13px "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
+  font:
+    13px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
   pointer-events: none;
 }
 
