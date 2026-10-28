@@ -26,7 +26,7 @@ body {
 }
 
 body.dark {
-  --sidebar-bg: #21252b;
+  --sidebar-bg: #282c34;
   --sidebar-fg: #9da5b4;
   --sidebar-border: #181a1f;
   --sidebar-hover: #353d47;
