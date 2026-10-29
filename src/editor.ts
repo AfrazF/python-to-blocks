@@ -138,13 +138,18 @@ monaco.languages.setMonarchTokensProvider("python", {
   },
 });
 
-export function createEditor(container: HTMLElement): PyEditor {
+export function createEditor(
+  container: HTMLElement,
+  isEditable = false,
+): PyEditor {
   const editor = monaco.editor.create(container, {
     value: "",
     language: "python",
     theme: "vs",
-    readOnly: true,
-    domReadOnly: true,
+    // Typing is unlocked only behind ?editable=1; the default path has no
+    // write route back to Python or to the blocks.
+    readOnly: !isEditable,
+    domReadOnly: !isEditable,
     minimap: { enabled: false },
     scrollBeyondLastLine: true,
     lineNumbers: "on",

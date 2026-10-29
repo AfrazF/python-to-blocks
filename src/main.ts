@@ -44,6 +44,11 @@ let currentFiles: Record<string, string> = {
 
 let hasUploaded = false;
 
+// v2b feature flag. Without ?editable=1 the app is the v1.1.0 read-only
+// viewer: no block dragging, no typing in Monaco, no badge.
+const isEditable =
+  new URLSearchParams(window.location.search).get("editable") === "1";
+
 type CanvasControlAction = "zoom-in" | "zoom-out" | "zoom-fit" | "toggle-sound";
 
 interface CanvasControlSpec {
@@ -180,6 +185,20 @@ function mountCanvasControls(
   parentEl.appendChild(controls);
 }
 
+/**
+ * Reveals the EDITABLE badge that flags the ?editable=1 session. The element
+ * ships hidden in index.html so the default read-only path never paints it.
+ */
+function showEditableBadge(): void {
+  if (!isEditable) {
+    return;
+  }
+  const badge = document.getElementById("editable-badge");
+  if (badge) {
+    badge.style.display = "block";
+  }
+}
+
 function startWorkspace(): void {
   const sidebarContainer = document.querySelector<HTMLElement>("#sidebar");
   const workspaceRow = document.querySelector<HTMLElement>("#workspace-row");
@@ -209,9 +228,10 @@ function startWorkspace(): void {
       );
     }
   }
-  const workspace = createWorkspace(container);
+  const workspace = createWorkspace(container, isEditable);
   mountCanvasControls(workspace, container);
-  const editor = createEditor(editorContainer);
+  const editor = createEditor(editorContainer, isEditable);
+  showEditableBadge();
   let editorVisible = false;
   (window as any).__pybricks = { workspace, editor };
   let resolved = resolveProject(currentFiles);

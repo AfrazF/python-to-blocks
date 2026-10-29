@@ -731,6 +731,24 @@ body.resizing {
   user-select: none;
 }
 
+#editable-badge {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #4c97ff;
+  color: #fff;
+  font:
+    bold 12px "Helvetica Neue",
+    "Segoe UI",
+    Helvetica,
+    sans-serif;
+  letter-spacing: 0.5px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
 #app-controls {
   position: fixed;
   bottom: 20px;
