@@ -1,4 +1,6 @@
 import * as monaco from "monaco-editor/editor/editor.api.js";
+import oneDarkTheme from "./themes/one-dark.json";
+import oneLightTheme from "./themes/one-light.json";
 
 export interface PyEditor {
   setValue: (text: string) => void;
@@ -26,14 +28,34 @@ export interface PyEditor {
   layout: () => void;
 }
 
-monaco.editor.defineTheme("pybricks-dark", {
+// Token colours are vendored as project-owned JSON (Atom One Dark / Light)
+// rather than pulled from a package, so the palette is reviewable in-repo and
+// the build stays a single file with no extra runtime asset.
+monaco.editor.defineTheme("one-dark", {
   base: "vs-dark",
   inherit: true,
-  rules: [],
+  rules: oneDarkTheme.rules,
   colors: {
-    "editor.background": "#2d2d2d",
-    "editorGutter.background": "#2d2d2d",
-    "editor.lineHighlightBackground": "#393939",
+    "editor.background": "#282c34",
+    "editorGutter.background": "#282c34",
+    "editor.lineHighlightBackground": "#2c313c",
+    "editor.foreground": "#abb2bf",
+    "editor.selectionBackground": "#3e4451",
+  },
+});
+
+// Background and foreground follow the same Atom One Light palette as the
+// token rules, so the panel does not read as stock Monaco under Atom colours.
+monaco.editor.defineTheme("one-light", {
+  base: "vs",
+  inherit: true,
+  rules: oneLightTheme.rules,
+  colors: {
+    "editor.background": "#fafafa",
+    "editorGutter.background": "#fafafa",
+    "editor.lineHighlightBackground": "#f2f2f2",
+    "editor.foreground": "#383a42",
+    "editor.selectionBackground": "#e5e5e6",
   },
 });
 
@@ -151,7 +173,7 @@ export function createEditor(container: HTMLElement): PyEditor {
   return {
     setValue: (text) => editor.setValue(text),
     setTheme: (theme) =>
-      monaco.editor.setTheme(theme === "light" ? "vs" : "pybricks-dark"),
+      monaco.editor.setTheme(theme === "light" ? "one-light" : "one-dark"),
     revealRange: (start, end) => {
       const model = editor.getModel();
       if (!model) {

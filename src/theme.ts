@@ -17,7 +17,7 @@ export const pybricksTheme = Blockly.Theme.defineTheme("pybricks", {
     other: { colourPrimary: "#9a72a2", colourSecondary: "#74567a" },
   },
   componentStyles: {
-    workspaceBackgroundColour: "#ecf0f1",
+    workspaceBackgroundColour: "#f2f2f2",
   },
   fontStyle: {
     family: '"Helvetica Neue", "Segoe UI", Helvetica, sans-serif',
@@ -43,7 +43,7 @@ export const pybricksDark = Blockly.Theme.defineTheme("pybricks-dark", {
     other: { colourPrimary: "#9a72a2", colourSecondary: "#74567a" },
   },
   componentStyles: {
-    workspaceBackgroundColour: "#343d46",
+    workspaceBackgroundColour: "#2c313a",
     scrollbarColour: "#4e4e4e",
     scrollbarOpacity: 0.4,
   },
