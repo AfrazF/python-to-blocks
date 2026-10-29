@@ -150,6 +150,15 @@ export function createEditor(container: HTMLElement): PyEditor {
     lineNumbers: "on",
     automaticLayout: false,
     renderLineHighlight: "none",
+    // Match VS Code's editor weight. The browser default monospace at a tight
+    // line height reads thinner and denser than VS Code, so the font stack,
+    // size, and line height are pinned to VS Code's Atom One Dark look.
+    fontFamily: "'FiraMono Nerd Font', Consolas, 'Courier New', monospace",
+    fontSize: 14,
+    lineHeight: 22,
+    fontLigatures: false,
+    letterSpacing: 0,
+    fontWeight: "400",
   });
 
   // Epoch (ms) until which programmatic cursor moves are ignored. Bumped by

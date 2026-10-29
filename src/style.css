@@ -109,6 +109,13 @@ body,
   transition: background-color 300ms linear;
 }
 
+/* Match VS Code's text rendering weight. Without this the panel renders with
+   subpixel antialiasing, which reads heavier and fuzzier than VS Code. */
+.monaco-editor {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* Monaco internal elements — color-driven, need explicit transitions */
 .monaco-editor .lines-content .core-guide-indent {
   transition: box-shadow 300ms linear;
