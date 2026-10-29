@@ -21,8 +21,14 @@ export interface BlocklyViewState {
 export interface TabBarOptions {
   /** Host element for the tab strip (`.tab-bar`). */
   container: HTMLElement;
-  /** The Monaco host. The blank-state message is appended here. */
+  /** The Monaco host. */
   editorContainer: HTMLElement;
+  /**
+   * Host for the blank-state overlay. This is `#workspace-row`, not the Monaco
+   * panel: the message must stay visible when the code panel is closed, and
+   * when the blocks panel is closed too.
+   */
+  emptyStateContainer: HTMLElement;
   /** Snapshot of the current cursor + scroll, or null with no model. */
   saveViewState: () => ViewState | null;
   /** Re-applies a snapshot produced by `saveViewState`. */
@@ -64,7 +70,7 @@ export interface TabBar {
  * delegate on the container, so rebuilding never leaks listeners.
  */
 export function createTabBar(options: TabBarOptions): TabBar {
-  const { container, editorContainer } = options;
+  const { container, emptyStateContainer } = options;
 
   const openFiles: string[] = [];
   const buttons = new Map<string, HTMLElement>();
@@ -85,12 +91,14 @@ export function createTabBar(options: TabBarOptions): TabBar {
   // before the frame runs, so rapid clicks never double-render.
   let pendingFrame: number | null = null;
 
-  // Blank state message. Sits over the Monaco surface (the panel is only
-  // visible when the code toggle is on, which is the panel it belongs to).
+  // Blank state message. Sits over the whole workspace row rather than inside
+  // the Monaco panel, so it is still visible when the code panel is closed —
+  // and when the blocks panel is closed as well, which would otherwise leave
+  // the page completely blank.
   const emptyState = document.createElement("div");
   emptyState.id = "empty-state";
   emptyState.textContent = "To get started, open a file";
-  editorContainer.appendChild(emptyState);
+  emptyStateContainer.appendChild(emptyState);
 
   // The underline is a single persistent node so it can animate between tabs.
   const underline = document.createElement("div");
@@ -177,7 +185,12 @@ export function createTabBar(options: TabBarOptions): TabBar {
     container.replaceChildren(...nodes, underline);
     container.scrollLeft = scrollLeft;
     positionUnderline();
-    options.onLayout();
+    // The blank state toggles `display` on the panels, so the DOM must settle
+    // before Monaco and Blockly measure their containers. A synchronous
+    // layout() here reads the pre-toggle sizes — and zero while the panels are
+    // display:none — which is what left Monaco transparent after an
+    // empty → non-empty → empty round trip.
+    requestAnimationFrame(() => options.onLayout());
   };
 
   const activate = (name: string): void => {
