@@ -243,6 +243,9 @@ function startWorkspace(): void {
   const tabBar = createTabBar({
     container: tabBarContainer,
     editorContainer,
+    // The blank-state overlay spans the whole row, so it survives the code and
+    // blocks panels being closed.
+    emptyStateContainer: workspaceRow,
     saveViewState: () => editor.saveViewState(),
     restoreViewState: (state) => editor.restoreViewState(state),
     // Blockly 13: `scrollX` / `scrollY` / `scale` are plain properties, and

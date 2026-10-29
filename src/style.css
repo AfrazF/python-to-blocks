@@ -109,6 +109,13 @@ body,
   transition: background-color 300ms linear;
 }
 
+/* Match VS Code's text rendering weight. Without this the panel renders with
+   subpixel antialiasing, which reads heavier and fuzzier than VS Code. */
+.monaco-editor {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* Monaco internal elements — color-driven, need explicit transitions */
 .monaco-editor .lines-content .core-guide-indent {
   transition: box-shadow 300ms linear;
@@ -357,6 +364,8 @@ body.dark #sidebar-handle:hover::before {
   min-width: 0;
   min-height: 0;
   display: flex;
+  /* Anchor for the blank-state overlay, which spans the whole row. */
+  position: relative;
 }
 
 /* --- Editor tabs (v2a.1) ------------------------------------------------ */
@@ -480,14 +489,18 @@ body.dark #sidebar-handle:hover::before {
   z-index: 1;
 }
 
-/* Blank state: no tab is open. */
+/* Blank state: no tab is open. Spans the whole workspace row so it is visible
+   regardless of which panels are open — with both closed it is the only thing
+   on screen. The background matches the Monaco surface (--tab-active-bg is
+   #fafafa light / #282c34 dark) so nothing stale shows through underneath. */
 #empty-state {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: 5;
   display: none;
   align-items: center;
   justify-content: center;
+  background: var(--tab-active-bg);
   color: var(--tab-fg-muted);
   font:
     13px "Helvetica Neue",
@@ -499,6 +512,14 @@ body.dark #sidebar-handle:hover::before {
 
 body.no-tab-open #empty-state {
   display: flex;
+}
+
+/* The overlay replaces the panels entirely while no tab is open. Hiding them
+   also stops Monaco and Blockly from measuring a covered container. */
+body.no-tab-open #blockly,
+body.no-tab-open #editor-splitter,
+body.no-tab-open #editor {
+  display: none;
 }
 
 #blockly {
@@ -664,7 +685,6 @@ body.dark #editor-splitter:hover::before {
   flex-shrink: 0;
   border-left: 1px solid var(--sidebar-border);
   display: none;
-  /* Anchor for the blank-state message, which overlays the Monaco surface. */
   position: relative;
 }
 

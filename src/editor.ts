@@ -146,10 +146,20 @@ export function createEditor(container: HTMLElement): PyEditor {
     readOnly: true,
     domReadOnly: true,
     minimap: { enabled: false },
-    scrollBeyondLastLine: false,
+    scrollBeyondLastLine: true,
     lineNumbers: "on",
     automaticLayout: false,
     renderLineHighlight: "none",
+    // Match VS Code's editor weight and line height.
+    fontFamily: "'FiraMono Nerd Font', Consolas, 'Courier New', monospace",
+    fontSize: 15,
+    lineHeight: 21,
+    fontLigatures: false,
+    letterSpacing: 0,
+    fontWeight: "400",
+    // Match VS Code's cursor behavior
+    cursorBlinking: "phase",
+    cursorSmoothCaretAnimation: "on",
   });
 
   // Epoch (ms) until which programmatic cursor moves are ignored. Bumped by
