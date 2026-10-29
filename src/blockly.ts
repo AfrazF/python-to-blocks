@@ -1,6 +1,23 @@
 import * as Blockly from "blockly";
-import { registerContinuousToolbox } from "@blockly/continuous-toolbox";
+import {
+  ContinuousMetrics,
+  registerContinuousToolbox,
+} from "@blockly/continuous-toolbox";
 import { pybricksTheme } from "./theme";
+
+// v2b.2: the continuous flyout sizes itself to the widest block, which made it
+// eat half the canvas and squeezed the category strip. Clamping the metrics is
+// the only hook that works — the flyout is an SVG <g>, so a CSS `width` is
+// inert. Toolbox strip 62px, flyout 250px.
+class CustomMetrics extends ContinuousMetrics {
+  override getToolboxMetrics() {
+    return { ...super.getToolboxMetrics(), width: 62 };
+  }
+
+  override getFlyoutMetrics(getWorkspaceCoordinates = false) {
+    return { ...super.getFlyoutMetrics(getWorkspaceCoordinates), width: 250 };
+  }
+}
 
 // v2b.2: Scratch-style always-open toolbox. Only block types registered in
 // src/blocks/ (or Blockly's own library blocks, imported in main.ts) may
@@ -96,7 +113,9 @@ export function createWorkspace(
       ? {
           toolbox: "ContinuousToolbox",
           flyoutsVerticalToolbox: "ContinuousFlyout",
-          metricsManager: "ContinuousMetrics",
+          // Registered as a class rather than the plugin's string name so the
+          // width clamps in CustomMetrics are actually used.
+          metricsManager: CustomMetrics,
         }
       : undefined,
     grid: {

@@ -834,3 +834,67 @@ body.resizing {
     sans-serif;
   border-bottom: 1px solid #f5c2c2;
 }
+
+/* v2b.2: continuous toolbox styling. Widths come from CustomMetrics in
+   src/blockly.ts (62px strip, 250px flyout) because both the toolbox strip and
+   the flyout are SVG containers, where a CSS `width` does nothing. Everything
+   here is colour, shape, and hover state only.
+
+   Dropdown/flyout foreground colours also come from the themes in
+   src/theme.ts; these rules exist so the toolbox tracks the app's
+   --sidebar-* variables through the 300ms theme crossfade. */
+.blocklyToolboxCategory {
+  height: 48px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.blocklyToolboxCategory:hover {
+  background-color: var(--sidebar-hover) !important;
+}
+
+.blocklyToolboxCategory.blocklyToolboxSelected {
+  background-color: var(--sidebar-active-bg) !important;
+}
+
+/* Text inside the category. ContinuousCategory renders the label as a div
+   with `.blocklyToolboxCategoryLabel`, so this is a normal HTML text node and
+   `color` applies. */
+.blocklyToolboxCategoryLabel {
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--sidebar-fg) !important;
+}
+
+.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+  color: var(--sidebar-active-fg) !important;
+}
+
+/* The coloured bubble indicator. ContinuousCategory creates a `div` with this
+   class and sets its `backgroundColor` inline from the category `colour`
+   attribute, so only the size and ring are ours to style. */
+.categoryBubble {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50%;
+  margin-bottom: 4px;
+  border-color: var(--sidebar-border);
+}
+
+/* Flyout background. The rect's fill is written inline by Blockly's theme, so
+   !important is required to keep it on the code panel's own colour and let it
+   crossfade with the rest of the chrome. */
+.blocklyFlyoutBackground {
+  fill: var(--tab-active-bg) !important;
+  opacity: 1 !important;
+  transition: fill 300ms linear;
+}
+
+.blocklyFlyout .blocklyText {
+  font-family: inherit !important;
+}

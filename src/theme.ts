@@ -52,8 +52,9 @@ export const pybricksDark = Blockly.Theme.defineTheme("pybricks-dark", {
     workspaceBackgroundColour: "#2c313a",
     scrollbarColour: "#4e4e4e",
     scrollbarOpacity: 0.4,
-    // v2b.2 continuous toolbox: matches the Atom One Dark chrome.
-    toolboxBackgroundColour: "#21252b",
+    // v2b.2 continuous toolbox. Matches --sidebar-bg (#282c34) and
+    // --tab-active-bg (#282c34) so the strip and flyout blend with the chrome.
+    toolboxBackgroundColour: "#282c34",
     toolboxForegroundColour: "#9da5b4",
     flyoutBackgroundColour: "#282c34",
     flyoutForegroundColour: "#d7dae0",
