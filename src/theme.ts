@@ -18,6 +18,12 @@ export const pybricksTheme = Blockly.Theme.defineTheme("pybricks", {
   },
   componentStyles: {
     workspaceBackgroundColour: "#f2f2f2",
+    // v2b.2 continuous toolbox: matches the Atom One Light chrome.
+    toolboxBackgroundColour: "#f0f0f0",
+    toolboxForegroundColour: "#696c77",
+    flyoutBackgroundColour: "#fafafa",
+    flyoutForegroundColour: "#383a42",
+    flyoutOpacity: 1,
   },
   fontStyle: {
     family: '"Helvetica Neue", "Segoe UI", Helvetica, sans-serif',
@@ -46,5 +52,11 @@ export const pybricksDark = Blockly.Theme.defineTheme("pybricks-dark", {
     workspaceBackgroundColour: "#2c313a",
     scrollbarColour: "#4e4e4e",
     scrollbarOpacity: 0.4,
+    // v2b.2 continuous toolbox: matches the Atom One Dark chrome.
+    toolboxBackgroundColour: "#21252b",
+    toolboxForegroundColour: "#9da5b4",
+    flyoutBackgroundColour: "#282c34",
+    flyoutForegroundColour: "#d7dae0",
+    flyoutOpacity: 1,
   },
 });
