@@ -177,7 +177,7 @@ the app offline as a single `.html`, and reach a hosted URL.
 VS Code pattern: sidebar keeps file list, clicking a file opens it as a tab, tabs can be closed, clicking an already-open file just focuses its tab.
 
 - ⬜ **Step v2a.1** — Tab bar UI above Monaco; clicking a sidebar file opens it as a tab; close button per tab; state persists across file switches
-- ⬜ **Step v2a.2** — Token colors match block palette at **category level**: every DriveBase call is Output blue, every Motor call is Output blue, every Flow block is Flow orange. Not method-level — `drive.straight(...)` and `drive.settings(...)` share the same blue because both are DriveBase calls. Categories and hex values come from `docs/BLOCK_DESIGN.md` (the source of truth), not from this file. Uses `monaco.editor.defineTheme`. Does not require pyodide.
+- ✅ **Step v2a.2** — Atom One Dark / Atom One Light theme integration. Monaco syntax tokens and app chrome (sidebar, tabs, splitter, blocks canvas) match VS Code's Atom One themes. Editor font, line height, and cursor smoothing matched to VS Code. Empty-state and transparent-Monaco bugs fixed. (`src/editor.ts` — Monaco theme + editor options, `src/themes/one-dark.json`, `src/themes/one-light.json`, `src/style.css` — chrome palette + empty state)
 - ⬜ **Step v2a.3** — Split editor (two Monaco panes side-by-side, optional)
 
 ---
