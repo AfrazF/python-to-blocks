@@ -1,12 +1,17 @@
 import * as Blockly from "blockly";
 import { pybricksTheme } from "./theme";
 
-export function createWorkspace(container: HTMLElement): Blockly.WorkspaceSvg {
+export function createWorkspace(
+  container: HTMLElement,
+  isEditable = false,
+): Blockly.WorkspaceSvg {
   return Blockly.inject(container, {
     renderer: "zelos",
     theme: pybricksTheme,
-    readOnly: true,
-    trashcan: false,
+    // Read-only stays the default everywhere; only ?editable=1 unlocks
+    // gesture editing (v2b behind a feature flag).
+    readOnly: !isEditable,
+    trashcan: isEditable,
     grid: {
       spacing: 20,
       length: 3,

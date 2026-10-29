@@ -188,8 +188,9 @@ Full round-trip: any block change produces correct Python, any Python change pro
 
 **Feature flag:** `?editable=1` flips `readOnly: false`, shows toolbox, enables gesture editing.
 
-- ⬜ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly`, shows a "readonly/editable" indicator, gates all v2b features
+- ✅ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly` on both Blockly and Monaco, shows an `EDITABLE` badge (`isEditable` in `src/main.ts`, `#editable-badge` in `index.html` + `src/style.css`, `readOnly: !isEditable` in `src/blockly.ts` / `src/editor.ts`), gates all v2b features. Read-only stays the default; no toolbox yet, so existing blocks can be moved but not created.
 - ⬜ **Step v2b.2** — Toolbox: read-only palette grouped by category (Setup, Output, Flow, Tasks, Data, Variables), drag-to-workspace enabled
+  - Note: Disable or restyle Blockly's native trashcan in this step. It currently overlaps the bottom-right app controls.
 - ⬜ **Step v2b.2b** — Input shapes: four field styles so a slot's expected type is visible without reading the Python. **Shape is fixed by the parameter's expected type, not by the current contents.**
   - **Circular slot** — numeric literal (`500` in `drive.straight(500)`)
   - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Button.LEFT`, `Port.A`)

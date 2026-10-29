@@ -1,4 +1,13 @@
 import * as monaco from "monaco-editor/editor/editor.api.js";
+// editor.api.js is the no-worker entry point, so it ships no optional editor
+// features. These four contributions are imported for their side effects
+// because folding, sticky scroll, bracket matching, and auto-indent are exactly
+// what "looks like VS Code" means here. Each is a plain module registering
+// itself; none pulls in a web worker, so the single-file build is unaffected.
+import "monaco-editor/editor/contrib/folding/browser/folding.js";
+import "monaco-editor/editor/contrib/stickyScroll/browser/stickyScrollContribution.js";
+import "monaco-editor/editor/contrib/bracketMatching/browser/bracketMatching.js";
+import "monaco-editor/editor/contrib/indentation/browser/indentation.js";
 import oneDarkTheme from "./themes/one-dark.json";
 import oneLightTheme from "./themes/one-light.json";
 
@@ -41,6 +50,9 @@ monaco.editor.defineTheme("one-dark", {
     "editor.lineHighlightBackground": "#2c313c",
     "editor.foreground": "#abb2bf",
     "editor.selectionBackground": "#3e4451",
+    // Atom One Dark's caret colour. The stock vs-dark caret is white, which
+    // reads as heavier than the editor text.
+    "editorCursor.foreground": "#528bff",
   },
 });
 
@@ -56,6 +68,8 @@ monaco.editor.defineTheme("one-light", {
     "editor.lineHighlightBackground": "#f2f2f2",
     "editor.foreground": "#383a42",
     "editor.selectionBackground": "#e5e5e6",
+    // Atom One Light's caret colour, matching its own keyword blue.
+    "editorCursor.foreground": "#526fff",
   },
 });
 
@@ -138,14 +152,68 @@ monaco.languages.setMonarchTokensProvider("python", {
   },
 });
 
-export function createEditor(container: HTMLElement): PyEditor {
+// The Monarch provider above only colours tokens. Bracket-pair colourisation,
+// indentation-based folding, and sticky scroll are all driven by the language
+// *configuration*, so without this they silently do nothing no matter what the
+// editor options say. Python folds on indentation, not on braces.
+monaco.languages.setLanguageConfiguration("python", {
+  comments: { lineComment: "#" },
+  brackets: [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+  ],
+  autoClosingPairs: [
+    { open: "{", close: "}" },
+    { open: "[", close: "]" },
+    { open: "(", close: ")" },
+    { open: '"', close: '"', notIn: ["string"] },
+    { open: "'", close: "'", notIn: ["string"] },
+  ],
+  surroundingPairs: [
+    { open: "{", close: "}" },
+    { open: "[", close: "]" },
+    { open: "(", close: ")" },
+    { open: '"', close: '"' },
+    { open: "'", close: "'" },
+  ],
+  // A line ending in ":" opens an indented block; the dedented line closes it.
+  indentationRules: {
+    increaseIndentPattern:
+      /^\s*(async\s+def|def|class|if|elif|else|for|while|try|except|finally|with)\b.*:\s*(#.*)?$/,
+    decreaseIndentPattern: /^\s*(elif|else|except|finally)\b.*:\s*(#.*)?$/,
+  },
+  // Fold a block from its header line down to the last line before the dedent.
+  folding: {
+    markers: {
+      start: /^\s*#\s*region\b/,
+      end: /^\s*#\s*endregion\b/,
+    },
+  },
+  // Keep the Postfix-completion word range on identifiers.
+  wordPattern: /(-?\d*\.\d\w*)|([^\s`~!@#$%^&*()\-=+[\]{}\\;:'",.<>/?|]+)/g,
+});
+
+export function createEditor(
+  container: HTMLElement,
+  isEditable = false,
+): PyEditor {
   const editor = monaco.editor.create(container, {
     value: "",
     language: "python",
     theme: "vs",
-    readOnly: true,
-    domReadOnly: true,
-    minimap: { enabled: false },
+    // Typing is unlocked only behind ?editable=1; the default path has no
+    // write route back to Python or to the blocks.
+    readOnly: !isEditable,
+    domReadOnly: !isEditable,
+    // These five follow VS Code's own defaults so the panel behaves like the
+    // editor users already have open next to it.
+    minimap: { enabled: true, scale: 1 },
+    bracketPairColorization: { enabled: true },
+    stickyScroll: { enabled: true },
+    folding: true,
+    foldingHighlight: true,
+    showFoldingControls: "mouseover",
     scrollBeyondLastLine: true,
     lineNumbers: "on",
     automaticLayout: false,
