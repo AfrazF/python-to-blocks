@@ -32,6 +32,7 @@ import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
 import { renderFile } from "./walk";
 import { createEditor } from "./editor";
+import { attachFlyoutCloneHover } from "./flyoutClone";
 import { createTabBar } from "./tabs";
 import { pybricksDark, pybricksTheme } from "./theme";
 
@@ -230,6 +231,15 @@ function startWorkspace(): void {
   }
   const workspace = createWorkspace(container, isEditable);
   mountCanvasControls(workspace, container);
+
+  // v2b.2: hover a flyout block and a clone of it floats above the app, so
+  // wide blocks are readable even though the flyout itself is 250px and clips.
+  // Only the editable path has a flyout.
+  const flyout = workspace.getFlyout();
+  if (flyout) {
+    attachFlyoutCloneHover(container, flyout);
+  }
+
   const editor = createEditor(editorContainer, isEditable);
   showEditableBadge();
   let editorVisible = false;

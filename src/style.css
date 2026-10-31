@@ -876,31 +876,25 @@ body.resizing {
   transition: background-color 500ms !important;
 }
 
-/* 4. The Text Label (Fixed font, transitions, and white text in dark mode) */
+/* The rail labels (Setup, Output, Input) - Normal size */
 .blocklyToolboxCategoryLabel {
   font-family:
     "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  color: #383a42 !important; /* Dark text for light mode */
+  color: #383a42 !important;
   text-align: center !important;
   white-space: normal !important;
   line-height: 1.1 !important;
   word-wrap: break-word !important;
   transition: color 500ms !important;
 }
-
-/* Dark mode unselected */
 body.dark .blocklyToolboxCategoryLabel {
   color: #ffffff !important;
 }
-
-/* Hover: Muted text (both light and dark) */
 .blocklyToolboxCategory:hover .blocklyToolboxCategoryLabel {
   color: var(--sidebar-fg) !important;
 }
-
-/* Selected: Active text (both light and dark) */
 .blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel,
 body.dark
   .blocklyToolboxCategory.blocklyToolboxSelected
@@ -913,15 +907,30 @@ body.dark
   fill: var(--tab-active-bg) !important;
 }
 
-/* 6. Flyout Section Headers (Drivebase, Motors, etc.) */
+/* Sub-level flyout headers (Drivebase, Motors) - visually 16px */
 .blocklyFlyoutLabelText {
   font-family:
     "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
-  font-size: 14px !important;
-  font-weight: bold !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
   transition: fill 500ms !important;
 }
-
 body.dark .blocklyFlyoutLabelText {
-  fill: #ffffff !important; /* White text for dark mode */
+  fill: #ffffff !important;
+}
+
+/* Top-level flyout headers (Setup, Output, etc.) - visually 24px and bold */
+.blocklyFlyoutLabel:is(
+    [aria-label="Setup, heading"],
+    [aria-label="Output, heading"],
+    [aria-label="Input, heading"],
+    [aria-label="Light & Sound, heading"],
+    [aria-label="Control, heading"],
+    [aria-label="Operators, heading"],
+    [aria-label="Variables, heading"],
+    [aria-label="Functions, heading"]
+  )
+  .blocklyFlyoutLabelText {
+  font-size: 30px !important;
+  font-weight: 800 !important;
 }
