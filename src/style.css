@@ -841,6 +841,12 @@ body.resizing {
   min-width: 62px !important;
   background-color: var(--sidebar-bg) !important;
   border-right: 1px solid var(--sidebar-border) !important;
+  transition:
+    background-color 300ms,
+    border-color 300ms !important;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif !important;
 }
 
 /* 2. The Category Rows */
@@ -852,7 +858,7 @@ body.resizing {
   justify-content: center !important;
   margin: 0 !important;
   padding: 0 !important;
-  transition: background-color 0.15s ease !important;
+  transition: background-color 300ms !important;
 }
 .blocklyToolboxCategory:hover {
   background-color: var(--sidebar-hover) !important;
@@ -861,27 +867,41 @@ body.resizing {
   background-color: var(--sidebar-active-bg) !important;
 }
 
-/* 3. The 20px Colored Bubble (Spike Prime exact) */
+/* 3. The 20px Colored Bubble (No Border) */
 .categoryBubble {
   width: 20px !important;
   height: 20px !important;
   border-radius: 100% !important;
-  border: 1px solid !important;
+  border: none !important;
   margin: 0 auto 2px auto !important;
+  transition: background-color 300ms !important;
 }
 
-/* 4. The Text Label */
+/* 4. The Text Label (Fixed font, transitions, and white text in dark mode) */
 .blocklyToolboxCategoryLabel {
-  font-family: inherit !important;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  color: var(--sidebar-fg) !important;
+  color: #383a42 !important; /* Dark text for light mode */
   text-align: center !important;
   white-space: normal !important;
   line-height: 1.1 !important;
   word-wrap: break-word !important;
+  transition: color 300ms !important;
 }
-.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+
+/* Force white text in dark mode */
+body.dark .blocklyToolboxCategoryLabel {
+  color: #ffffff !important;
+}
+
+/* Selected state */
+.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel,
+body.dark
+  .blocklyToolboxCategory.blocklyToolboxSelected
+  .blocklyToolboxCategoryLabel {
   color: var(--sidebar-active-fg) !important;
 }
 
