@@ -8,142 +8,71 @@ import { pybricksTheme } from "./theme";
 const toolboxXml = {
   kind: "categoryToolbox",
   contents: [
-    {
-      kind: "category",
-      name: "Setup",
-      colour: "45",
-      contents: [
-        { kind: "block", type: "pybricks_hub" },
-        { kind: "block", type: "pybricks_motor_setup" },
-        { kind: "block", type: "pybricks_drivebase_setup" },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Output",
-      colour: "217",
-      contents: [
-        {
-          kind: "category",
-          name: "Drivebase",
-          colour: "217",
-          contents: [
-            { kind: "block", type: "pybricks_drive_move" },
-            { kind: "block", type: "pybricks_drive_reset" },
-            { kind: "block", type: "pybricks_drive_use_gyro" },
-            { kind: "block", type: "pybricks_drive_configure" },
-          ],
-        },
-        {
-          kind: "category",
-          name: "Motors",
-          colour: "217",
-          contents: [
-            { kind: "block", type: "pybricks_motor_run_target" },
-            { kind: "block", type: "pybricks_motor_run_angle" },
-            { kind: "block", type: "pybricks_motor_run_until_stalled" },
-            { kind: "block", type: "pybricks_motor_reset_angle" },
-            { kind: "block", type: "pybricks_motor_stop" },
-          ],
-        },
-        { kind: "category", name: "Terminal", colour: "217", contents: [] },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Input",
-      colour: "197",
-      contents: [
-        { kind: "category", name: "Color", colour: "197", contents: [] },
-        { kind: "category", name: "Distance", colour: "197", contents: [] },
-        { kind: "category", name: "Force", colour: "197", contents: [] },
-        { kind: "category", name: "IMU", colour: "197", contents: [] },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Light & Sound",
-      colour: "260",
-      contents: [
-        {
-          kind: "category",
-          name: "Matrix",
-          colour: "260",
-          contents: [
-            { kind: "block", type: "pybricks_hub_display_icon" },
-            { kind: "block", type: "pybricks_hub_display_char" },
-            { kind: "block", type: "pybricks_hub_display_number" },
-            { kind: "block", type: "pybricks_hub_display_off" },
-          ],
-        },
-        {
-          kind: "category",
-          name: "Button Light",
-          colour: "260",
-          contents: [],
-        },
-        { kind: "category", name: "Sound", colour: "260", contents: [] },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Control",
-      colour: "38",
-      contents: [
-        { kind: "block", type: "pybricks_if" },
-        { kind: "block", type: "pybricks_while" },
-        { kind: "block", type: "pybricks_wait" },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Operators & Data",
-      colour: "160",
-      contents: [
-        {
-          kind: "category",
-          name: "Math",
-          colour: "160",
-          contents: [
-            { kind: "block", type: "math_number" },
-            { kind: "block", type: "math_arithmetic" },
-          ],
-        },
-        {
-          kind: "category",
-          name: "Compare",
-          colour: "160",
-          contents: [{ kind: "block", type: "logic_compare" }],
-        },
-        {
-          kind: "category",
-          name: "Logic",
-          colour: "160",
-          contents: [
-            { kind: "block", type: "logic_boolean" },
-            { kind: "block", type: "logic_operation" },
-          ],
-        },
-        { kind: "category", name: "Text", colour: "160", contents: [] },
-        { kind: "category", name: "Lists", colour: "160", contents: [] },
-      ],
-    },
-    {
-      kind: "category",
-      name: "Variables",
-      colour: "348",
-      contents: [{ kind: "block", type: "pybricks_var_set" }],
-    },
-    {
-      kind: "category",
-      name: "Functions",
-      colour: "348",
-      contents: [
-        { kind: "block", type: "pybricks_task" },
-        { kind: "block", type: "pybricks_call" },
-      ],
-    },
-  ],
+    { kind: "category", name: "Setup", colour: "#ffbf00", contents: [
+      { kind: "block", type: "pybricks_hub" },
+      { kind: "block", type: "pybricks_motor_setup" },
+      { kind: "block", type: "pybricks_drivebase_setup" }
+    ]},
+    { kind: "category", name: "Output", colour: "#4c97ff", contents: [
+      { kind: "label", text: "Drivebase" },
+      { kind: "block", type: "pybricks_drive_move" },
+      { kind: "block", type: "pybricks_drive_reset" },
+      { kind: "block", type: "pybricks_drive_use_gyro" },
+      { kind: "block", type: "pybricks_drive_configure" },
+      
+      { kind: "label", text: "Motors" },
+      { kind: "block", type: "pybricks_motor_run_target" },
+      { kind: "block", type: "pybricks_motor_run_angle" },
+      { kind: "block", type: "pybricks_motor_run_until_stalled" },
+      { kind: "block", type: "pybricks_motor_reset_angle" },
+      { kind: "block", type: "pybricks_motor_stop" },
+      
+      { kind: "label", text: "Terminal" }
+    ]},
+    { kind: "category", name: "Input", colour: "#5cb1d6", contents: [
+      { kind: "label", text: "Color" },
+      { kind: "label", text: "Distance" },
+      { kind: "label", text: "Force" },
+      { kind: "label", text: "IMU" }
+    ]},
+    { kind: "category", name: "Light & Sound", colour: "#9b6af6", contents: [
+      { kind: "label", text: "Matrix" },
+      { kind: "block", type: "pybricks_hub_display_icon" },
+      { kind: "block", type: "pybricks_hub_display_char" },
+      { kind: "block", type: "pybricks_hub_display_number" },
+      { kind: "block", type: "pybricks_hub_display_off" },
+      
+      { kind: "label", text: "Button Light" },
+      { kind: "label", text: "Sound" }
+    ]},
+    { kind: "category", name: "Control", colour: "#ffab19", contents: [
+      { kind: "block", type: "pybricks_if" },
+      { kind: "block", type: "pybricks_while" },
+      { kind: "block", type: "pybricks_wait" }
+    ]},
+    { kind: "category", name: "Operators & Data", colour: "#21a176", contents: [
+      { kind: "label", text: "Math" },
+      { kind: "block", type: "math_number" },
+      { kind: "block", type: "math_arithmetic" },
+      
+      { kind: "label", text: "Compare" },
+      { kind: "block", type: "logic_compare" },
+      
+      { kind: "label", text: "Logic" },
+      { kind: "block", type: "logic_boolean" },
+      { kind: "block", type: "logic_operation" },
+      
+      { kind: "label", text: "Text" },
+      { kind: "label", text: "Lists" }
+    ]},
+    { kind: "category", name: "Variables", colour: "#ff6680", contents: [
+      { kind: "block", type: "pybricks_var_set" }
+    ]},
+    { kind: "category", name: "Functions", colour: "#ff6680", contents: [
+      { kind: "block", type: "pybricks_task" },
+      { kind: "block", type: "pybricks_call" }
+    ]}
+  ]
 };
 
 export function createWorkspace(
