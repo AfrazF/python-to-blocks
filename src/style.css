@@ -834,3 +834,103 @@ body.resizing {
     sans-serif;
   border-bottom: 1px solid #f5c2c2;
 }
+
+/* 1. The 62px Category Rail */
+.blocklyToolbox {
+  width: 62px !important;
+  min-width: 62px !important;
+  background-color: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+  transition:
+    background-color 500ms,
+    border-color 500ms !important;
+  font-family:
+    "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
+}
+
+/* 2. The Category Rows */
+.blocklyToolboxCategory {
+  height: 56px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: background-color 500ms !important;
+}
+.blocklyToolboxCategory:hover {
+  background-color: var(--sidebar-hover) !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected {
+  background-color: var(--sidebar-active-bg) !important;
+}
+
+/* 3. The 20px Colored Bubble (No Border) */
+.categoryBubble {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 100% !important;
+  border: none !important;
+  margin: 0 auto 2px auto !important;
+  transition: background-color 500ms !important;
+}
+
+/* The rail labels (Setup, Output, Input) - Normal size */
+.blocklyToolboxCategoryLabel {
+  font-family:
+    "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #383a42 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  line-height: 1.1 !important;
+  word-wrap: break-word !important;
+  transition: color 500ms !important;
+}
+body.dark .blocklyToolboxCategoryLabel {
+  color: #ffffff !important;
+}
+.blocklyToolboxCategory:hover .blocklyToolboxCategoryLabel {
+  color: var(--sidebar-fg) !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel,
+body.dark
+  .blocklyToolboxCategory.blocklyToolboxSelected
+  .blocklyToolboxCategoryLabel {
+  color: var(--sidebar-active-fg) !important;
+}
+
+/* 5. Flyout Background */
+.blocklyFlyoutBackground {
+  fill: var(--tab-active-bg) !important;
+}
+
+/* Sub-level flyout headers (Drivebase, Motors) - visually 16px */
+.blocklyFlyoutLabelText {
+  font-family:
+    "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  transition: fill 500ms !important;
+}
+body.dark .blocklyFlyoutLabelText {
+  fill: #ffffff !important;
+}
+
+/* Top-level flyout headers (Setup, Output, etc.) - visually 24px and bold */
+.blocklyFlyoutLabel:is(
+    [aria-label="Setup, heading"],
+    [aria-label="Output, heading"],
+    [aria-label="Input, heading"],
+    [aria-label="Light & Sound, heading"],
+    [aria-label="Control, heading"],
+    [aria-label="Operators, heading"],
+    [aria-label="Variables, heading"],
+    [aria-label="Functions, heading"]
+  )
+  .blocklyFlyoutLabelText {
+  font-size: 30px !important;
+  font-weight: 800 !important;
+}
