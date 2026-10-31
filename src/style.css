@@ -842,8 +842,8 @@ body.resizing {
   background-color: var(--sidebar-bg) !important;
   border-right: 1px solid var(--sidebar-border) !important;
   transition:
-    background-color 300ms,
-    border-color 300ms !important;
+    background-color 500ms,
+    border-color 500ms !important;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif !important;
@@ -858,7 +858,7 @@ body.resizing {
   justify-content: center !important;
   margin: 0 !important;
   padding: 0 !important;
-  transition: background-color 300ms !important;
+  transition: background-color 500ms !important;
 }
 .blocklyToolboxCategory:hover {
   background-color: var(--sidebar-hover) !important;
@@ -874,7 +874,7 @@ body.resizing {
   border-radius: 100% !important;
   border: none !important;
   margin: 0 auto 2px auto !important;
-  transition: background-color 300ms !important;
+  transition: background-color 500ms !important;
 }
 
 /* 4. The Text Label (Fixed font, transitions, and white text in dark mode) */
@@ -889,15 +889,20 @@ body.resizing {
   white-space: normal !important;
   line-height: 1.1 !important;
   word-wrap: break-word !important;
-  transition: color 300ms !important;
+  transition: color 500ms !important;
 }
 
-/* Force white text in dark mode */
+/* Dark mode unselected */
 body.dark .blocklyToolboxCategoryLabel {
   color: #ffffff !important;
 }
 
-/* Selected state */
+/* Hover: Muted text (both light and dark) */
+.blocklyToolboxCategory:hover .blocklyToolboxCategoryLabel {
+  color: var(--sidebar-fg) !important;
+}
+
+/* Selected: Active text (both light and dark) */
 .blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel,
 body.dark
   .blocklyToolboxCategory.blocklyToolboxSelected
@@ -908,4 +913,18 @@ body.dark
 /* 5. Flyout Background */
 .blocklyFlyoutBackground {
   fill: var(--tab-active-bg) !important;
+}
+
+/* 6. Flyout Section Headers (Drivebase, Motors, etc.) */
+.blocklyFlyoutLabelText {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  transition: fill 500ms !important;
+}
+
+body.dark .blocklyFlyoutLabelText {
+  fill: #ffffff !important; /* White text for dark mode */
 }
