@@ -834,3 +834,58 @@ body.resizing {
     sans-serif;
   border-bottom: 1px solid #f5c2c2;
 }
+
+/* 1. The 62px Category Rail */
+.blocklyToolbox {
+  width: 62px !important;
+  min-width: 62px !important;
+  background-color: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+}
+
+/* 2. The Category Rows */
+.blocklyToolboxCategory {
+  height: 56px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: background-color 0.15s ease !important;
+}
+.blocklyToolboxCategory:hover {
+  background-color: var(--sidebar-hover) !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected {
+  background-color: var(--sidebar-active-bg) !important;
+}
+
+/* 3. The 20px Colored Bubble (Spike Prime exact) */
+.categoryBubble {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 100% !important;
+  border: 1px solid !important;
+  margin: 0 auto 2px auto !important;
+}
+
+/* 4. The Text Label */
+.blocklyToolboxCategoryLabel {
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--sidebar-fg) !important;
+  text-align: center !important;
+  white-space: normal !important;
+  line-height: 1.1 !important;
+  word-wrap: break-word !important;
+}
+.blocklyToolboxCategory.blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+  color: var(--sidebar-active-fg) !important;
+}
+
+/* 5. Flyout Background */
+.blocklyFlyoutBackground {
+  fill: var(--tab-active-bg) !important;
+}
