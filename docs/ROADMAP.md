@@ -189,7 +189,7 @@ Full round-trip: any block change produces correct Python, any Python change pro
 **Feature flag:** `?editable=1` flips `readOnly: false`, shows toolbox, enables gesture editing.
 
 - ✅ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly` on both Blockly and Monaco, shows an `EDITABLE` badge (`isEditable` in `src/main.ts`, `#editable-badge` in `index.html` + `src/style.css`, `readOnly: !isEditable` in `src/blockly.ts` / `src/editor.ts`), gates all v2b features. Read-only stays the default; no toolbox yet, so existing blocks can be moved but not created.
-- ⬜ **Step v2b.2** — Toolbox: read-only palette grouped by category (Setup, Output, Flow, Tasks, Data, Variables), drag-to-workspace enabled
+- ✅ **Step v2b.2** — Toolbox: Spike Prime style continuous flyout. 62px category rail with 20px colored bubbles. 250px flyout with nested labels (Setup, Output, Input, Light & Sound, Control, Operators, Variables, Functions). Includes a JS clone-overlay hover effect so wide blocks pop out over the canvas without changing the flyout layout.
   - Note: Disable or restyle Blockly's native trashcan in this step. It currently overlaps the bottom-right app controls.
 - ⬜ **Step v2b.2b** — Input shapes: four field styles so a slot's expected type is visible without reading the Python. **Shape is fixed by the parameter's expected type, not by the current contents.**
   - **Circular slot** — numeric literal (`500` in `drive.straight(500)`)
@@ -207,6 +207,11 @@ Full round-trip: any block change produces correct Python, any Python change pro
   - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.
   - **Variables are square.** Parse time cannot know a variable's type, so it never claims a numeric shape. Variable chips can be dropped into any slot; the slot keeps its parameter's shape.
   - See the "Field types" section in `docs/BLOCK_DESIGN.md` for the full mapping.
+- ⬜ **Step v2b.2c.a** — Print block. Add dedicated `pybricks_print` statement block (Output/Terminal category). Update `walk.ts` to route `print()` to this block.
+- ⬜ **Step v2b.2c.b** — Stop and Run blocks. Add `pybricks_drive_stop` (Drivebase) and `pybricks_motor_run` (Motors). Update `walk.ts`.
+- ⬜ **Step v2b.2c.c** — Drive block. Add `pybricks_drive_drive` for `drive.drive(speed, turn_rate)` (Drivebase). Update `walk.ts`.
+- ⬜ **Step v2b.2c.d** — Hub Light blocks. Add `pybricks_hub_light_on` and `pybricks_hub_light_off` (Light & Sound). Use `field_input` for the color (e.g. `Color.RED`). Update `walk.ts`.
+- ⬜ **Step v2b.2c.e** — Block Colors. Update standard Blockly Math (`#59c059`) and Logic (`#5cb1d6`) block colors in the theme to match our palette.
 - ⬜ **Step v2b.3** — Block drag, connect, delete, undo/redo. Basic gesture editing working end-to-end.
 - ⬜ **Step v2b.4** — Python generator: blocks → Python, exact output, verified against all fixtures byte-for-byte
 - ⬜ **Step v2b.5** — Reverse sync: Python edits in Monaco re-render blocks (the hardest step — potentially splits into 2b.5a–2b.5c)
@@ -249,6 +254,7 @@ Pyodide + Pybricks' official Python tools. Combined download ~29 MB, cached afte
 - ⬜ **Step v2d.12** — Monaco panel discoverability. The same test found the panel was not noticed as interactive — the user had to be pointed at it three times. Fix: add a first-run hint ("click a line in the code to find its block") that dismisses after one use, or a persistent affordance (subtle arrow, panel border accent, etc.).
 - ⬜ **Step v2d.15** — Preserve open comment bubbles across tab switches. Block IDs regenerate on every render, so tracking which block's bubble was open requires storing the source range and looking up the matching block after re-render. Deferred from v2a.1 polish.
 - ⬜ **Step v2d.17** — Extend Monaco tokenizer with `support.function` and `support.constant` emissions. The existing tokenizer in `src/editor.ts` emits `keyword`, `string`, `number`, `comment`, `identifier`, `function` (after `def`), `type.identifier` (after `class`), `operator`, and `@brackets`. Missing: builtin function names (currently rendered as `identifier`) and ALL_CAPS constants (also `identifier`). Adding these two tokens lets `print` and `NEXT_ICON` look distinct from user identifiers.
+- ⬜ **Step v2d.19** — Toolbox splitter. Add a draggable handle between the toolbox flyout and the Blockly canvas to resize the flyout width.
 
 ---
 
