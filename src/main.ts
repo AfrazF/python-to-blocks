@@ -1,4 +1,7 @@
 import * as Blockly from "blockly";
+import { FieldPillDropdown } from "./fields/FieldPillDropdown";
+import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
+import { FieldDarkSquare } from "./fields/FieldDarkSquare";
 import "./style.css";
 import "./pybricks.css";
 import "blockly/blocks";
@@ -23,6 +26,7 @@ import "./blocks/if";
 import "./blocks/tryExcept";
 import "./blocks/returnRaise";
 import "./blocks/hub";
+import "./blocks/testField";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
 import runSource from "../fixtures/run.py?raw";
@@ -35,6 +39,10 @@ import { createEditor } from "./editor";
 import { attachFlyoutCloneHover } from "./flyoutClone";
 import { createTabBar } from "./tabs";
 import { pybricksDark, pybricksTheme } from "./theme";
+
+Blockly.fieldRegistry.register("field_pill_dropdown", FieldPillDropdown);
+Blockly.fieldRegistry.register("field_white_in_pill", FieldWhiteInPill);
+Blockly.fieldRegistry.register("field_dark_square", FieldDarkSquare);
 
 let currentFiles: Record<string, string> = {
   "main.py": mainSource,

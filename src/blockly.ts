@@ -34,6 +34,7 @@ const toolboxXml = {
       colour: "#ffbf00",
       contents: [
         { kind: "block", type: "pybricks_hub" },
+        { kind: "block", type: "pybricks_test_fields" },
         { kind: "block", type: "pybricks_motor_setup" },
         { kind: "block", type: "pybricks_drivebase_setup" },
       ],
