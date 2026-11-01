@@ -27,6 +27,11 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     this.updatePill();
   }
 
+  override getSize() {
+    const size = super.getSize();
+    return { width: size.width + 8, height: size.height };
+  }
+
   protected override render_(): void {
     super.render_();
     if (this.defaultRect) {

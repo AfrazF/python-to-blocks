@@ -5,7 +5,7 @@ Blockly.Blocks["pybricks_test_fields"] = {
   init() {
     this.jsonInit({
       type: "pybricks_test_fields",
-      message0: "test %1 %2 %3",
+      message0: "test  %1   %2   %3",
       args0: [
         {
           type: "field_pill_dropdown",
