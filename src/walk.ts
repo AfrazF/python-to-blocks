@@ -1,6 +1,7 @@
 import * as Blockly from "blockly";
 import { parser } from "@lezer/python";
 import type { ResolvedTable } from "./resolve";
+import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
 
 // Re-exported so tests can parse fixtures without importing @lezer directly.
 export { parser };
@@ -22,6 +23,7 @@ export interface BlockDescriptor {
   type: string;
   fields?: Record<string, string>;
   inputs?: Record<string, BlockDescriptor[]>;
+  extraState?: any;
   sourceStart: number;
   sourceEnd: number;
   /** Whole-statement range, used as a fallback for import blocks. */
@@ -222,16 +224,76 @@ function collectHardwareBlock(
   };
 
   if (driveBaseArguments) {
-    ["LEFT", "RIGHT", "WHEEL", "TRACK"].forEach((inputName, index) => {
-      applyArgument(
-        descriptor,
-        inputName,
-        driveBaseArguments?.[index],
-        resolved,
-      );
-    });
+    const motors = Object.entries(resolved)
+      .filter(([, entry]) => entry.objectKind === "Motor")
+      .map(([name]) => name);
+    descriptor.extraState = { motors };
+    descriptor.fields = {
+      ...descriptor.fields,
+      LEFT: driveBaseArguments[0]?.text || "left",
+      RIGHT: driveBaseArguments[1]?.text || "right",
+      WHEEL: resolveNumericArgument(source, driveBaseArguments[2], "56"),
+      TRACK: resolveNumericArgument(source, driveBaseArguments[3], "112"),
+    };
   }
   return descriptor;
+}
+
+function resolveNumericArgument(
+  source: string,
+  argument: Argument | undefined,
+  fallback: string,
+): string {
+  if (!argument) {
+    return fallback;
+  }
+  if (argument.text.trim() !== "" && Number.isFinite(Number(argument.text))) {
+    return argument.text;
+  }
+
+  const rootCursor = parser.parse(source).topNode.cursor();
+  if (!rootCursor.firstChild()) {
+    return fallback;
+  }
+
+  do {
+    if (rootCursor.name !== "AssignStatement") {
+      continue;
+    }
+
+    const assignmentCursor = rootCursor.node.cursor();
+    let variableName: string | undefined;
+    let rightHandSide: ParseNode | undefined;
+    let afterAssignment = false;
+    if (assignmentCursor.firstChild()) {
+      do {
+        if (assignmentCursor.name === "AssignOp") {
+          afterAssignment = true;
+          continue;
+        }
+        if (!afterAssignment) {
+          if (assignmentCursor.name === "VariableName" && !variableName) {
+            variableName = source.slice(
+              assignmentCursor.node.from,
+              assignmentCursor.node.to,
+            );
+          }
+          continue;
+        }
+        rightHandSide = assignmentCursor.node;
+        break;
+      } while (assignmentCursor.nextSibling());
+    }
+
+    if (
+      variableName === argument.text.trim() &&
+      rightHandSide?.type.name === "Number"
+    ) {
+      return source.slice(rightHandSide.from, rightHandSide.to);
+    }
+  } while (rootCursor.nextSibling());
+
+  return fallback;
 }
 
 function getCallArguments(source: string, argumentList: ParseNode): string {
@@ -750,11 +812,7 @@ function collectExpression(
     // for v1.75.5 — the fixtures only ever call `wait` from `pybricks.tools`, so
     // module resolution is not worth the extra machinery here. Anything other
     // than exactly one positional argument falls through to the await wrapper.
-    const waitDescriptor = collectWaitCall(
-      source,
-      expression,
-      innerExpression,
-    );
+    const waitDescriptor = collectWaitCall(source, expression, innerExpression);
     if (waitDescriptor) {
       return waitDescriptor;
     }
@@ -1800,8 +1858,21 @@ function createBlock(
 ): Blockly.BlockSvg {
   const block = workspace.newBlock(descriptor.type);
 
+  if (descriptor.extraState !== undefined) {
+    (
+      block as Blockly.Block & {
+        loadExtraState: (state: any) => void;
+      }
+    ).loadExtraState(descriptor.extraState);
+  }
+
   for (const [name, value] of Object.entries(descriptor.fields ?? {})) {
     applyFieldValue(block, name, value);
+  }
+
+  if (descriptor.type === "pybricks_drivebase_setup") {
+    (block.getField("WHEEL") as FieldWhiteInPill).setSuffix("mm");
+    (block.getField("TRACK") as FieldWhiteInPill).setSuffix("mm");
   }
 
   // The mutator must add its task slots before we look for them.

@@ -5,7 +5,6 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 export class FieldPillDropdown extends Blockly.FieldDropdown {
   private pillPath?: SVGPathElement;
   private defaultRect?: SVGRectElement;
-  private dropdownText?: SVGTextElement;
 
   override initView(): void {
     super.initView();
@@ -15,8 +14,6 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     }
     root.classList.add("pybricks-custom-field");
     this.defaultRect = root.querySelector("rect") ?? undefined;
-    this.dropdownText =
-      root.querySelector("text.blocklyDropdownText") ?? undefined;
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
     }
@@ -32,6 +29,11 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     return { width: size.width + 8, height: size.height };
   }
 
+  protected override updateSize_(margin?: number): void {
+    super.updateSize_(margin);
+    this.updatePill();
+  }
+
   protected override render_(): void {
     super.render_();
     if (this.defaultRect) {
@@ -44,18 +46,29 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     if (!this.pillPath) {
       return;
     }
+    const root = this.getSvgRoot();
+    if (!root) {
+      return;
+    }
 
     const x = Number(this.defaultRect?.getAttribute("x") ?? 0);
     const width = Number(this.defaultRect?.getAttribute("width") ?? 0) + 8;
     const radius = 16;
     const pillHeight = 32;
+    const dropdownText = root.querySelector<SVGTextElement>(
+      "text.blocklyDropdownText",
+    );
+    const images = root.querySelectorAll("image");
+    const dropdownArrow = images.item(images.length - 1);
     this.pillPath.setAttribute(
       "d",
       `M ${x + radius} 0 H ${x + width - radius} A ${radius} ${radius} 0 0 1 ${x + width - radius} ${pillHeight} H ${x + radius} A ${radius} ${radius} 0 0 1 ${x + radius} 0 Z`,
     );
     this.pillPath.setAttribute("fill", "#4180d9");
     this.pillPath.setAttribute("stroke", "#3971bf");
-    this.dropdownText?.setAttribute("x", "12");
-    this.dropdownText?.setAttribute("y", "16");
+    dropdownText?.setAttribute("x", "16");
+    dropdownText?.setAttribute("y", "16");
+    dropdownArrow?.setAttribute("x", "8");
+    dropdownArrow?.setAttribute("y", "-1");
   }
 }
