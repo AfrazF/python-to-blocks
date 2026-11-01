@@ -8,10 +8,13 @@
 
 .blocklyDropdownRect {
   fill: transparent !important;
+  stroke: #3971bf !important;
+  stroke-width: 1px !important;
 }
 
-.pybricks-custom-field > .blocklyFieldRect,
-.pybricks-custom-field > .blocklyDropdownRect {
+/* Hide only Blockly's own field rect. The custom square dropdown also carries
+   the blocklyDropdownRect class, so it must not be caught by this rule. */
+.pybricks-custom-field > .blocklyFieldRect {
   visibility: hidden !important;
 }
 

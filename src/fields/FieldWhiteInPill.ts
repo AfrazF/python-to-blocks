@@ -2,14 +2,14 @@ import * as Blockly from "blockly";
 import { getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const PILL_HEIGHT = 37.2;
-const PILL_RADIUS = PILL_HEIGHT / 2;
+const PILL_HEIGHT = 40.2;
+const PILL_RADIUS = 20.1;
 const INPUT_X = 12;
-const INPUT_Y = 2.5;
+const INPUT_Y = 4;
 const INPUT_HEIGHT = 32.2;
 const INPUT_WIDTH_ADJUSTMENT = 0.3157901763916;
 const INPUT_TEXT_X = 8;
-const INPUT_TEXT_Y = 16.6;
+const INPUT_TEXT_Y = 16.1;
 const SUFFIX_GAP = 8;
 const PILL_RIGHT_PADDING = 12;
 
