@@ -191,22 +191,20 @@ Full round-trip: any block change produces correct Python, any Python change pro
 - ✅ **Step v2b.1** — Feature flag infrastructure: `editable=1` param flips `readOnly` on both Blockly and Monaco, shows an `EDITABLE` badge (`isEditable` in `src/main.ts`, `#editable-badge` in `index.html` + `src/style.css`, `readOnly: !isEditable` in `src/blockly.ts` / `src/editor.ts`), gates all v2b features. Read-only stays the default; no toolbox yet, so existing blocks can be moved but not created.
 - ✅ **Step v2b.2** — Toolbox: Spike Prime style continuous flyout. 62px category rail with 20px colored bubbles. 250px flyout with nested labels (Setup, Output, Input, Light & Sound, Control, Operators, Variables, Functions). Includes a JS clone-overlay hover effect so wide blocks pop out over the canvas without changing the flyout layout.
   - Note: Disable or restyle Blockly's native trashcan in this step. It currently overlaps the bottom-right app controls.
-- ⬜ **Step v2b.2b** — Input shapes: four field styles so a slot's expected type is visible without reading the Python. **Shape is fixed by the parameter's expected type, not by the current contents.**
-  - **Circular slot** — numeric literal (`500` in `drive.straight(500)`)
-  - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Button.LEFT`, `Port.A`)
-  - **Square dropdown** — text enum (`Stop.COAST` → `coast`, `Direction.CLOCKWISE` → `clockwise`)
-  - **Square slot** — free text or complex expression (`print("hello")`, `(i - 1) % len(ATTACHMENTS)`, f-strings, variables used as values)
-  - **Colour field** — a circular chit filled with the chosen colour and carrying no text, `(●)`. Clicking it opens a **grid of colour swatches** (SPIKE Prime pattern), not a text list. `Color.RED` → a red circle. This is a fifth shape, not a circular dropdown, so a reader knows "this is a colour" without reading the text.
-  - **Unit suffixes are static text after the field, never inside it.** Pybricks renders `{drive base icon} \| (drive base ▾) configure [drive speed ▾] (150) mm/s` — the number sits in a circular field and `mm/s` is plain text after it. Suffixes vary by parameter: `mm/s`, `mm/s²`, `°/s`, `°/s²`, `mm`, `°`, `ms`. Verified against `docs/images/drive-settings-blocks.png`.
-  - **Field fill is not white.** `()` is circular, `[]` is square, `{}` is an icon. Every circular dropdown and editable field uses a **darker shade of the block's own colour** with white text — Output's is `#4180d9` and Variables/Calls' is `#d9576d` (both confirmed), and the same rule applies to the `mm/s` / `°/s` value fields in `drive.settings()`. The `configure` parameter dropdown uses the **same** blue as the block. A number typed into a circular field renders as a **white square with dark text** inside a dark-blue circle with **no stroke**. Today every field is a white rect with dark text (`src/pybricks.css`), so this is a CSS + theme change, not just a shape change. Verified against `docs/images/setup-blocks.png`, `docs/images/drive-settings-blocks.png`, and `docs/images/variable-set-blocks.png`.
-  - **The parameter-name dropdown in `drive.settings()` uses the same blue as the block**, not the darker field shade — it reads as part of the block body rather than as a field.
-  - **Scope is selective:** migrate the Pybricks blocks first (`driveBase`, `motor`, `hardware`, `pid`). `call`, `rawCode`, `comment`, and `importBlock` fields are out of scope for the first pass.
-  - **`hub.buttons.pressed()` value block.** Reclassified from v1.75.4. Needs `input_value` slots on `var_set`, `while`, and `if` so a value block can plug in. When those slots exist, add a cyan `pybricks_hub_button_is_pressed` value block and route `Button.LEFT in hub.buttons.pressed()` to it. See `docs/pybricks-blocks/hub/pybricks_blockButtonIsPressed_PrimeHub.svg` for the reference shape.
-  - **Subscript expressions** (`ATTACHMENTS[i][0]`) become real Data-green reporter blocks once `CHAR` / `VALUE` fields are `input_value` slots. Currently text in v1.5.
-  - **Every new block from here on follows this design.** A block added in v1.5 or v2e uses the darker field fill, the correct shape per parameter type, and unit suffixes where Pybricks has them — not a white `field_input`. The v1.5 hub blocks (Steps 39–41) ship with `field_input` because v1.5 is blocks-only, and v2b.2b converts them.
-  - **Raw-code blocks keep the current white text field** — raw code is unclassified and does not claim a shape. No separate raw block type.
-  - **Variables are square.** Parse time cannot know a variable's type, so it never claims a numeric shape. Variable chips can be dropped into any slot; the slot keeps its parameter's shape.
-  - See the "Field types" section in `docs/BLOCK_DESIGN.md` for the full mapping.
+- ⬜ **Step v2b.2b** — Input shapes: Redesign fields to match Pybricks.
+  - **Design Notes:**
+    - **Shape is fixed by the parameter's expected type, not by the current contents.**
+    - **Circular slot** — numeric literal (`500`).
+    - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Port.A`).
+    - **Square dropdown** — text enum (`Stop.COAST` -> `coast`).
+    - **Square slot** — free text or complex expression.
+    - **Colour field** — a circular chit filled with the chosen colour, `(●)`. Clicking opens a swatch grid.
+    - **Unit suffixes are static text after the field, never inside it.** e.g. `(150) mm/s`.
+    - **Field fill is not white.** `()` is circular, `[]` is square. Every editable field uses a darker shade of the block's own colour with white text. Output's is `#4180d9`.
+  - ⬜ **Step v2b.2b.a** — Custom Field Classes & Test Block. Build custom Blockly subclasses (`FieldPillDropdown`, `FieldWhiteInPill`, `FieldDarkSquare`) drawing the exact SVG shapes. Add a temporary test block to verify the visuals.
+  - ⬜ **Step v2b.2b.b** — Apply Fields to DriveBase and Motor Blocks. Replace `field_input` with the new custom fields. Update `walk.ts` to parse `resolveProject` and populate the dropdowns with actual variables (e.g., `drive base`, `left`, `right`).
+  - ⬜ **Step v2b.2b.c** — Colour Chit Field. Integrate the `@blockly/field-colour` plugin or write a custom subclass for the `(●)` chit and swatch grid.
+  - ⬜ **Step v2b.2b.d** — Apply Fields to remaining blocks (Sensors, Hub Light, etc.) and remove raw fallbacks.
 - ⬜ **Step v2b.2c.a** — Print block. Add dedicated `pybricks_print` statement block (Output/Terminal category). Update `walk.ts` to route `print()` to this block.
 - ⬜ **Step v2b.2c.b** — Stop and Run blocks. Add `pybricks_drive_stop` (Drivebase) and `pybricks_motor_run` (Motors). Update `walk.ts`.
 - ⬜ **Step v2b.2c.c** — Drive block. Add `pybricks_drive_drive` for `drive.drive(speed, turn_rate)` (Drivebase). Update `walk.ts`.
