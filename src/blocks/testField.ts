@@ -20,7 +20,7 @@ Blockly.Blocks["pybricks_test_fields"] = {
         {
           type: "field_white_in_pill",
           name: "VAL",
-          text: "150",
+          value: 150,
         },
       ],
       previousStatement: null,

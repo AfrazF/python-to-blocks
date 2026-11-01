@@ -26,7 +26,7 @@ function scaleColour(colour: string, factor: number): string {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 
-export class FieldWhiteInPill extends Blockly.FieldTextInput {
+export class FieldWhiteInPill extends Blockly.FieldNumber {
   private suffix = "";
   private outerPath?: SVGPathElement;
   private innerRect?: SVGRectElement;
@@ -40,6 +40,7 @@ export class FieldWhiteInPill extends Blockly.FieldTextInput {
       return;
     }
     root.classList.add("pybricks-custom-field");
+    root.style.cursor = "default";
     this.defaultRect = root.querySelector("rect") ?? undefined;
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
@@ -51,6 +52,7 @@ export class FieldWhiteInPill extends Blockly.FieldTextInput {
     this.suffixText.classList.add("blocklyText");
     this.suffixText.setAttribute("dominant-baseline", "middle");
     this.suffixText.style.fill = "#ffffff";
+    this.suffixText.style.pointerEvents = "none";
     this.suffixText.textContent = this.suffix;
 
     root.insertBefore(this.outerPath, root.firstChild);
@@ -65,6 +67,10 @@ export class FieldWhiteInPill extends Blockly.FieldTextInput {
       this.suffixText.textContent = text;
       this.forceRerender();
     }
+  }
+
+  protected override getClickTarget_(): Element | null {
+    return this.innerRect ?? super.getClickTarget_();
   }
 
   protected override updateSize_(margin?: number): void {
@@ -96,6 +102,9 @@ export class FieldWhiteInPill extends Blockly.FieldTextInput {
       return;
     }
     const text = root.querySelector<SVGTextElement>("text:not(:last-child)");
+    if (text) {
+      text.style.pointerEvents = "none";
+    }
     const width = Number(this.defaultRect?.getAttribute("width") ?? 0);
     const suffixWidth = this.suffix
       ? this.suffixText.getComputedTextLength()
@@ -119,6 +128,7 @@ export class FieldWhiteInPill extends Blockly.FieldTextInput {
     this.innerRect.setAttribute("rx", "4");
     this.innerRect.setAttribute("fill", "#ffffff");
     this.innerRect.setAttribute("stroke", calculatedStroke);
+    this.innerRect.style.cursor = "text";
     this.defaultRect?.setAttribute("x", String(INPUT_X));
     this.defaultRect?.setAttribute("y", String(INPUT_Y));
     this.defaultRect?.setAttribute("width", String(width));
