@@ -19,6 +19,10 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
   private innerRect?: SVGRectElement;
   private suffixText?: SVGTextElement;
   private defaultRect?: SVGRectElement;
+  // Width Blockly last wrote to defaultRect. updateShapes() overwrites that
+  // rect, so it must read the width from here instead of from the rect itself
+  // or repeated calls (applyColour, initView) would shrink it every time.
+  private baseWidth = 0;
 
   override initView(): void {
     super.initView();
@@ -84,6 +88,10 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
     }
+    // super.render_() -> positionBorderRect_() rewrites the rect from size_, so
+    // this is the authoritative width. Reading it here (before updateShapes
+    // overwrites the rect) keeps repeated renders from shrinking the field.
+    this.baseWidth = this.size_.width;
     this.updateShapes();
   }
 
@@ -110,10 +118,10 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     const defaultRect =
       root.querySelector<SVGRectElement>("rect.blocklyFieldRect") ??
       this.defaultRect;
-    const width = Math.max(
-      0,
-      Number(defaultRect?.getAttribute("width") ?? 0) - INPUT_WIDTH_ADJUSTMENT,
-    );
+    if (defaultRect && !this.baseWidth) {
+      this.baseWidth = Number(defaultRect.getAttribute("width") ?? 0);
+    }
+    const width = Math.max(0, this.baseWidth - INPUT_WIDTH_ADJUSTMENT);
     const suffixWidth = this.suffix
       ? this.suffixText.getComputedTextLength()
       : 0;
@@ -135,7 +143,13 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     this.innerRect.setAttribute("fill", "#ffffff");
     this.innerRect.setAttribute("stroke", stroke);
     this.innerRect.style.cursor = "text";
+    // Blockly positions the HTML input editor from the hidden defaultRect, so it
+    // must track the visible inner square exactly or the editor lands offset.
     if (this.defaultRect) {
+      this.defaultRect.setAttribute("x", String(INPUT_X));
+      this.defaultRect.setAttribute("y", String(INPUT_Y));
+      this.defaultRect.setAttribute("width", String(width));
+      this.defaultRect.setAttribute("height", String(INPUT_HEIGHT));
       this.defaultRect.style.visibility = "hidden";
     }
 
