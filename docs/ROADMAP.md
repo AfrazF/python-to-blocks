@@ -194,13 +194,12 @@ Full round-trip: any block change produces correct Python, any Python change pro
 - ⬜ **Step v2b.2b** — Input shapes: Redesign fields to match Pybricks.
   - **Design Notes:**
     - **Shape is fixed by the parameter's expected type, not by the current contents.**
-    - **Circular slot** — numeric literal (`500`).
-    - **Circular dropdown** — numeric enum or numeric variable (`Icon.HAPPY`, `Port.A`).
-    - **Square dropdown** — text enum (`Stop.COAST` -> `coast`).
-    - **Square slot** — free text or complex expression.
+    - **Darker Square Field** — used for creating a name. `[darker blue, drive base name]`.
+    - **Darker Pill Dropdown** — used for selecting variables or enums. `(darker blue, hold ▾)`, `(darker blue, left motor ▾)`.
+    - **Transparent Square Dropdown** — used only for mode selectors. `[straight ▾]`, `[drive speed ▾]`.
+    - **White-in-Pill Wrapper** — numeric literal inside a white square, wrapped in a darker blue pill, with a unit suffix. `(darker blue pill wrapper, [150] mm)`.
     - **Colour field** — a circular chit filled with the chosen colour, `(●)`. Clicking opens a swatch grid.
-    - **Unit suffixes are static text after the field, never inside it.** e.g. `(150) mm/s`.
-    - **Field fill is not white.** `()` is circular, `[]` is square. Every editable field uses a darker shade of the block's own colour with white text. Output's is `#4180d9`.
+    - **Field fill is not white.** Every editable field uses a darker shade of the block's own colour with white text. Output's is `#4180d9`.
   - ⬜ **Step v2b.2b.a** — Custom Field Classes & Test Block. Build custom Blockly subclasses (`FieldPillDropdown`, `FieldWhiteInPill`, `FieldDarkSquare`) drawing the exact SVG shapes. Add a temporary test block to verify the visuals.
   - ⬜ **Step v2b.2b.b** — Apply Fields to DriveBase and Motor Blocks. Replace `field_input` with the new custom fields. Update `walk.ts` to parse `resolveProject` and populate the dropdowns with actual variables (e.g., `drive base`, `left`, `right`).
   - ⬜ **Step v2b.2b.c** — Colour Chit Field. Integrate the `@blockly/field-colour` plugin or write a custom subclass for the `(●)` chit and swatch grid.
