@@ -245,6 +245,24 @@ function startWorkspace(): void {
   // Only the editable path has a flyout.
   const flyout = workspace.getFlyout();
   if (flyout) {
+    (
+      flyout as unknown as {
+        setAutoClose: (autoClose: boolean) => void;
+      }
+    ).setAutoClose(false);
+    container.addEventListener("click", (event) => {
+      if (
+        !(event.target instanceof Element) ||
+        !event.target.closest(".blocklyToolboxCategoryContainer")
+      ) {
+        return;
+      }
+      requestAnimationFrame(() => {
+        if (!workspace.getToolbox()?.getSelectedItem()) {
+          flyout.hide();
+        }
+      });
+    });
     attachFlyoutCloneHover(container, flyout);
   }
 

@@ -1,30 +1,17 @@
 import * as Blockly from "blockly";
+import { getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PILL_HEIGHT = 40.2;
-const PILL_RADIUS = PILL_HEIGHT / 2;
+const PILL_RADIUS = 20.1;
 const INPUT_X = 12;
 const INPUT_Y = 4;
 const INPUT_HEIGHT = 32.2;
+const INPUT_WIDTH_ADJUSTMENT = 0.3157901763916;
 const INPUT_TEXT_X = 8;
-const INPUT_TEXT_Y = INPUT_HEIGHT / 2;
+const INPUT_TEXT_Y = 16.1;
 const SUFFIX_GAP = 8;
 const PILL_RIGHT_PADDING = 12;
-
-function scaleColour(colour: string, factor: number): string {
-  let hex = colour.replace(/^#/, "");
-  if (/^[0-9a-f]{3}$/i.test(hex)) {
-    hex = [...hex].map((channel) => channel + channel).join("");
-  }
-  if (!/^[0-9a-f]{6}$/i.test(hex)) {
-    hex = "4c97ff";
-  }
-
-  const channels = [0, 2, 4].map((offset) =>
-    Math.round(parseInt(hex.slice(offset, offset + 2), 16) * factor),
-  );
-  return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
-}
 
 export class FieldWhiteInPill extends Blockly.FieldNumber {
   private suffix = "";
@@ -32,6 +19,10 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
   private innerRect?: SVGRectElement;
   private suffixText?: SVGTextElement;
   private defaultRect?: SVGRectElement;
+  // Width Blockly last wrote to defaultRect. updateShapes() overwrites that
+  // rect, so it must read the width from here instead of from the rect itself
+  // or repeated calls (applyColour, initView) would shrink it every time.
+  private baseWidth = 0;
 
   override initView(): void {
     super.initView();
@@ -84,11 +75,28 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     this.size_.height = PILL_HEIGHT;
   }
 
+  override getSize(): Blockly.utils.Size {
+    const size = super.getSize();
+    return new Blockly.utils.Size(
+      size.width - INPUT_WIDTH_ADJUSTMENT,
+      PILL_HEIGHT,
+    );
+  }
+
   protected override render_(): void {
     super.render_();
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
     }
+    // super.render_() -> positionBorderRect_() rewrites the rect from size_, so
+    // this is the authoritative width. Reading it here (before updateShapes
+    // overwrites the rect) keeps repeated renders from shrinking the field.
+    this.baseWidth = this.size_.width;
+    this.updateShapes();
+  }
+
+  override applyColour(): void {
+    super.applyColour();
     this.updateShapes();
   }
 
@@ -101,39 +109,53 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     if (!root) {
       return;
     }
-    const text = root.querySelector<SVGTextElement>("text:not(:last-child)");
+    const text =
+      this.textElement_ ??
+      root.querySelector<SVGTextElement>("text:not(:last-child)");
     if (text) {
       text.style.pointerEvents = "none";
     }
-    const width = Number(this.defaultRect?.getAttribute("width") ?? 0);
+    const defaultRect =
+      root.querySelector<SVGRectElement>("rect.blocklyFieldRect") ??
+      this.defaultRect;
+    if (defaultRect && !this.baseWidth) {
+      this.baseWidth = Number(defaultRect.getAttribute("width") ?? 0);
+    }
     const suffixWidth = this.suffix
       ? this.suffixText.getComputedTextLength()
       : 0;
     const suffixSpace = this.suffix ? SUFFIX_GAP + suffixWidth : 0;
+    // baseWidth already includes the pill padding and the suffix, because
+    // updateSize_ added them to size_. Subtract them back out to get the width
+    // of just the white square.
+    const addedPadding = INPUT_X + PILL_RIGHT_PADDING + suffixSpace;
+    const width = Math.max(0, this.baseWidth - addedPadding);
     const outerWidth = INPUT_X + width + suffixSpace + PILL_RIGHT_PADDING;
-    const blockColour = this.sourceBlock_?.getColour() || "#4c97ff";
-    const calculatedFill = scaleColour(blockColour, 0.85);
-    const calculatedStroke = scaleColour(blockColour, 0.75);
+    const { fill, stroke } = getFieldColours(this.sourceBlock_);
 
     this.outerPath.setAttribute(
       "d",
-      `M ${PILL_RADIUS} 0 H ${outerWidth - PILL_RADIUS} A ${PILL_RADIUS} ${PILL_RADIUS} 0 0 1 ${outerWidth - PILL_RADIUS} ${PILL_HEIGHT} H ${PILL_RADIUS} A ${PILL_RADIUS} ${PILL_RADIUS} 0 0 1 ${PILL_RADIUS} 0 Z`,
+      `M ${PILL_RADIUS},0 h ${outerWidth - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${outerWidth - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
     );
-    this.outerPath.setAttribute("fill", calculatedFill);
-    this.outerPath.setAttribute("stroke", calculatedStroke);
+    this.outerPath.setAttribute("fill", fill);
+    this.outerPath.setAttribute("stroke", stroke);
+    // The pill is decorative: let the pointer through to the white square.
+    this.outerPath.style.pointerEvents = "none";
     this.innerRect.setAttribute("x", String(INPUT_X));
     this.innerRect.setAttribute("y", String(INPUT_Y));
     this.innerRect.setAttribute("width", String(width));
     this.innerRect.setAttribute("height", String(INPUT_HEIGHT));
     this.innerRect.setAttribute("rx", "4");
     this.innerRect.setAttribute("fill", "#ffffff");
-    this.innerRect.setAttribute("stroke", calculatedStroke);
+    this.innerRect.setAttribute("stroke", stroke);
     this.innerRect.style.cursor = "text";
-    this.defaultRect?.setAttribute("x", String(INPUT_X));
-    this.defaultRect?.setAttribute("y", String(INPUT_Y));
-    this.defaultRect?.setAttribute("width", String(width));
-    this.defaultRect?.setAttribute("height", String(INPUT_HEIGHT));
+    // Blockly positions the HTML input editor from the hidden defaultRect, so it
+    // must track the visible inner square exactly or the editor lands offset.
     if (this.defaultRect) {
+      this.defaultRect.setAttribute("x", String(INPUT_X));
+      this.defaultRect.setAttribute("y", String(INPUT_Y));
+      this.defaultRect.setAttribute("width", String(width));
+      this.defaultRect.setAttribute("height", String(INPUT_HEIGHT));
       this.defaultRect.style.visibility = "hidden";
     }
 

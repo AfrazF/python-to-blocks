@@ -3,6 +3,7 @@ import {
   registerContinuousToolbox,
   ContinuousMetrics,
   ContinuousFlyout,
+  ContinuousToolbox,
 } from "@blockly/continuous-toolbox";
 import { pybricksTheme } from "./theme";
 
@@ -17,8 +18,67 @@ class CustomMetrics extends ContinuousMetrics {
 }
 
 class CustomFlyout extends ContinuousFlyout {
+  private categorySelectionFrame?: number;
+
+  constructor(workspaceOptions: Blockly.Options) {
+    super(workspaceOptions);
+    this.getWorkspace().addChangeListener((event) => {
+      if (event.type === Blockly.Events.VIEWPORT_CHANGE) {
+        this.correctCategorySelectionAfterScroll();
+      }
+    });
+  }
+
   override getWidth(): number {
     return 250;
+  }
+
+  private correctCategorySelectionAfterScroll(): void {
+    if (this.categorySelectionFrame !== undefined) {
+      return;
+    }
+
+    const frame = () => {
+      if (!this.isVisible()) {
+        this.categorySelectionFrame = undefined;
+        return;
+      }
+      const scrollTarget = (this as unknown as { scrollTarget?: number })
+        .scrollTarget;
+      if (scrollTarget !== undefined) {
+        this.categorySelectionFrame = requestAnimationFrame(frame);
+        return;
+      }
+      this.categorySelectionFrame = undefined;
+
+      const toolbox = this.targetWorkspace?.getToolbox();
+      if (!(toolbox instanceof ContinuousToolbox)) {
+        return;
+      }
+
+      const position = -this.getWorkspace().scrollY / this.getWorkspace().scale;
+      const category = toolbox
+        .getToolboxItems()
+        .filter(
+          (item): item is Blockly.ToolboxCategory =>
+            item instanceof Blockly.ToolboxCategory && item.isSelectable(),
+        )
+        .reverse()
+        .find((item) => {
+          const categoryPosition = this.getCategoryScrollPosition(
+            item.getName(),
+          );
+          return (
+            categoryPosition !== null && position + 0.5 >= categoryPosition
+          );
+        });
+
+      if (category) {
+        toolbox.selectCategoryByName(category.getName());
+      }
+    };
+
+    this.categorySelectionFrame = requestAnimationFrame(frame);
   }
 }
 
@@ -176,12 +236,6 @@ export function createWorkspace(
       wheel: true,
     },
   });
-
-  const flyout = workspace.getFlyout();
-  if (flyout) {
-    // @ts-ignore -- autoClose lives on ContinuousFlyout, not the base Flyout.
-    flyout.autoClose = true;
-  }
 
   return workspace;
 }

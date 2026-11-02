@@ -13,9 +13,14 @@ Blockly.Blocks["pybricks_test_fields"] = {
           options: [["drive base", "drive"]],
         },
         {
-          type: "field_dropdown",
+          type: "field_dark_square",
           name: "WHAT",
-          options: [["drive speed", "speed"]],
+          options: [
+            ["drive speed", "drive speed"],
+            ["drive acceleration", "drive acceleration"],
+            ["turn speed", "turn speed"],
+            ["turn acceleration", "turn acceleration"],
+          ],
         },
         {
           type: "field_white_in_pill",

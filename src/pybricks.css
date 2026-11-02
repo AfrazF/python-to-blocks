@@ -21,11 +21,6 @@
 .blocklyText.blocklyBubbleText {
   fill: #575e75;
 }
-.blocklyHtmlInput {
-  font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
-  font-weight: bold;
-  color: #575e75;
-}
 
 /* Block comment bubble — styled to match the Zelos theme instead of Blockly's default. */
 .blocklyWorkspace {
