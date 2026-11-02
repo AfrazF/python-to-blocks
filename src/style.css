@@ -6,10 +6,13 @@
     Cantarell, "Open Sans", "Helvetica Neue", sans-serif !important;
 }
 
+/* Transparent square dropdowns show the block colour through, with a visible
+   outline. No !important on stroke/stroke-width: Blockly's own :hover rule has
+   to be able to override them, otherwise dropdowns stop highlighting on hover. */
 .blocklyDropdownRect {
   fill: transparent !important;
-  stroke: #3971bf !important;
-  stroke-width: 1px !important;
+  stroke: #3971bf;
+  stroke-width: 1px;
 }
 
 /* Hide Blockly's own field rect for the custom fields that draw their own

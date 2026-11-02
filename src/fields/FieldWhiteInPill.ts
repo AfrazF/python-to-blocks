@@ -139,6 +139,8 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     );
     this.outerPath.setAttribute("fill", fill);
     this.outerPath.setAttribute("stroke", stroke);
+    // The pill is decorative: let the pointer through to the white square.
+    this.outerPath.style.pointerEvents = "none";
     this.innerRect.setAttribute("x", String(INPUT_X));
     this.innerRect.setAttribute("y", String(INPUT_Y));
     this.innerRect.setAttribute("width", String(width));
