@@ -1,6 +1,10 @@
 import * as Blockly from "blockly";
+import { getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const PILL_HEIGHT = 32;
+const PILL_RADIUS = 16;
+const PILL_EXTRA_WIDTH = 7.78947448730469;
 
 export class FieldPillDropdown extends Blockly.FieldDropdown {
   private pillPath?: SVGPathElement;
@@ -24,14 +28,13 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     this.updatePill();
   }
 
-  override getSize() {
+  override getSize(): Blockly.utils.Size {
     const size = super.getSize();
-    return { width: size.width + 8, height: size.height };
-  }
-
-  protected override updateSize_(margin?: number): void {
-    super.updateSize_(margin);
-    this.updatePill();
+    const rect = this.getSvgRoot()?.querySelector<SVGRectElement>(
+      "rect.blocklyDropdownRect",
+    );
+    const width = Number(rect?.getAttribute("width") ?? size.width);
+    return new Blockly.utils.Size(width + PILL_EXTRA_WIDTH, PILL_HEIGHT);
   }
 
   protected override render_(): void {
@@ -42,33 +45,33 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     this.updatePill();
   }
 
+  override applyColour(): void {
+    super.applyColour();
+    this.updatePill();
+  }
+
   private updatePill(): void {
     if (!this.pillPath) {
       return;
     }
+
     const root = this.getSvgRoot();
     if (!root) {
       return;
     }
-
-    const x = Number(this.defaultRect?.getAttribute("x") ?? 0);
-    const width = Number(this.defaultRect?.getAttribute("width") ?? 0) + 8;
-    const radius = 16;
-    const pillHeight = 32;
-    const dropdownText = root.querySelector<SVGTextElement>(
-      "text.blocklyDropdownText",
-    );
-    const images = root.querySelectorAll("image");
-    const dropdownArrow = images.item(images.length - 1);
+    const text = root.querySelector<SVGTextElement>("text.blocklyDropdownText");
+    const baseWidth = Number(this.defaultRect?.getAttribute("width") ?? 0);
+    const width = baseWidth + PILL_EXTRA_WIDTH;
+    const arrow = root.querySelectorAll("image").item(1);
+    const { fill, stroke } = getFieldColours(this.sourceBlock_);
     this.pillPath.setAttribute(
       "d",
-      `M ${x + radius} 0 H ${x + width - radius} A ${radius} ${radius} 0 0 1 ${x + width - radius} ${pillHeight} H ${x + radius} A ${radius} ${radius} 0 0 1 ${x + radius} 0 Z`,
+      `M ${PILL_RADIUS},0 h ${width - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${width - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
     );
-    this.pillPath.setAttribute("fill", "#4180d9");
-    this.pillPath.setAttribute("stroke", "#3971bf");
-    dropdownText?.setAttribute("x", "16");
-    dropdownText?.setAttribute("y", "16");
-    dropdownArrow?.setAttribute("x", "8");
-    dropdownArrow?.setAttribute("y", "-1");
+    this.pillPath.setAttribute("fill", fill);
+    this.pillPath.setAttribute("stroke", stroke);
+    text?.setAttribute("x", "12");
+    text?.setAttribute("y", "16");
+    arrow?.setAttribute("transform", `translate(${width - 24},10)`);
   }
 }

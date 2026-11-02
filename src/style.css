@@ -6,13 +6,35 @@
     Cantarell, "Open Sans", "Helvetica Neue", sans-serif !important;
 }
 
+/* Transparent square dropdowns show the block colour through, with a visible
+   outline. No !important on stroke/stroke-width: Blockly's own :hover rule has
+   to be able to override them, otherwise dropdowns stop highlighting on hover. */
 .blocklyDropdownRect {
   fill: transparent !important;
+  stroke: #3971bf;
+  stroke-width: 1px;
 }
 
-.pybricks-custom-field > .blocklyFieldRect,
-.pybricks-custom-field > .blocklyDropdownRect {
+/* Hide Blockly's own field rect for the custom fields that draw their own
+   shape. FieldWhiteInPill is excluded: its native rect IS the white square,
+   exactly as in Pybricks. */
+.pybricks-custom-field:not(.pybricks-white-in-pill) > .blocklyFieldRect {
   visibility: hidden !important;
+}
+
+/* Matches Pybricks' blockimg.css. The font-family needs !important to beat the
+   app-wide .blocklyHtmlInput rule above, which is also !important. */
+.blocklyHtmlInput {
+  font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif !important;
+  font-weight: bold;
+  color: #575e75;
+}
+
+/* Pybricks highlights the field outline on hover. Scoped to rects so it does
+   not also outline the pill path. */
+.blocklyDraggable .blocklyEditableText:not(.editing):hover > rect {
+  stroke: #ffffff;
+  stroke-width: 2px;
 }
 
 :root {
