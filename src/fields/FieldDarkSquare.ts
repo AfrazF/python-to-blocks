@@ -3,40 +3,22 @@ import { getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-export class FieldDarkSquare extends Blockly.FieldDropdown {
+export class FieldDarkSquare extends Blockly.FieldTextInput {
   private squareRect?: SVGRectElement;
   private defaultRect?: SVGRectElement;
-
-  static override fromJson(
-    options: Parameters<typeof Blockly.FieldDropdown.fromJson>[0],
-  ): FieldDarkSquare {
-    if (!options.options) {
-      throw new TypeError("FieldDarkSquare requires dropdown options.");
-    }
-    return new FieldDarkSquare(options.options);
-  }
 
   override initView(): void {
     super.initView();
     const root = this.getSvgRoot();
-    if (!root) {
-      return;
-    }
+    if (!root) return;
     root.classList.add("pybricks-custom-field");
     this.defaultRect = root.querySelector("rect") ?? undefined;
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
     }
-
     this.squareRect = document.createElementNS(SVG_NS, "rect");
-    this.squareRect.classList.add("blocklyDropdownRect");
     root.insertBefore(this.squareRect, root.firstChild);
     this.updateSquare();
-  }
-
-  override getSize(): Blockly.utils.Size {
-    const size = super.getSize();
-    return new Blockly.utils.Size(size.width, 32.2);
   }
 
   protected override render_(): void {
@@ -44,6 +26,7 @@ export class FieldDarkSquare extends Blockly.FieldDropdown {
     if (this.defaultRect) {
       this.defaultRect.style.visibility = "hidden";
     }
+    this.textElement_?.style.setProperty("fill", "#ffffff", "important");
     this.updateSquare();
   }
 
@@ -53,26 +36,26 @@ export class FieldDarkSquare extends Blockly.FieldDropdown {
   }
 
   private updateSquare(): void {
-    if (!this.squareRect) {
-      return;
-    }
-
-    const { stroke } = getFieldColours(this.sourceBlock_);
-
-    const defaultRect = this.defaultRect;
-    this.squareRect.setAttribute("x", defaultRect?.getAttribute("x") ?? "0");
-    this.squareRect.setAttribute("y", defaultRect?.getAttribute("y") ?? "0");
+    if (!this.squareRect) return;
+    const { fill, stroke } = getFieldColours(this.sourceBlock_);
+    this.squareRect.setAttribute(
+      "x",
+      this.defaultRect?.getAttribute("x") ?? "-4",
+    );
+    this.squareRect.setAttribute(
+      "y",
+      this.defaultRect?.getAttribute("y") ?? "-8",
+    );
     this.squareRect.setAttribute(
       "width",
-      defaultRect?.getAttribute("width") ?? "0",
+      this.defaultRect?.getAttribute("width") ?? "0",
     );
-    this.squareRect.setAttribute("height", "32.2");
+    this.squareRect.setAttribute(
+      "height",
+      this.defaultRect?.getAttribute("height") ?? "16",
+    );
     this.squareRect.setAttribute("rx", "4");
-    this.squareRect.setAttribute("fill", "transparent");
-    this.squareRect.setAttribute("stroke", stroke);
-    if (this.textElement_) {
-      this.textElement_.style.fill = "#ffffff";
-      this.textElement_.setAttribute("y", "16.1");
-    }
+    this.squareRect.style.setProperty("fill", fill, "important");
+    this.squareRect.style.setProperty("stroke", stroke, "important");
   }
 }
