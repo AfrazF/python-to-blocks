@@ -12,10 +12,26 @@
   stroke-width: 1px !important;
 }
 
-/* Hide only Blockly's own field rect. The custom square dropdown also carries
-   the blocklyDropdownRect class, so it must not be caught by this rule. */
-.pybricks-custom-field > .blocklyFieldRect {
+/* Hide Blockly's own field rect for the custom fields that draw their own
+   shape. FieldWhiteInPill is excluded: its native rect IS the white square,
+   exactly as in Pybricks. */
+.pybricks-custom-field:not(.pybricks-white-in-pill) > .blocklyFieldRect {
   visibility: hidden !important;
+}
+
+/* Matches Pybricks' blockimg.css. The font-family needs !important to beat the
+   app-wide .blocklyHtmlInput rule above, which is also !important. */
+.blocklyHtmlInput {
+  font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif !important;
+  font-weight: bold;
+  color: #575e75;
+}
+
+/* Pybricks highlights the field outline on hover. Scoped to rects so it does
+   not also outline the pill path. */
+.blocklyDraggable .blocklyEditableText:not(.editing):hover > rect {
+  stroke: #ffffff;
+  stroke-width: 2px;
 }
 
 :root {

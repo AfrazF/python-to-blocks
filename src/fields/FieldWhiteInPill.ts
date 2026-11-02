@@ -121,11 +121,15 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     if (defaultRect && !this.baseWidth) {
       this.baseWidth = Number(defaultRect.getAttribute("width") ?? 0);
     }
-    const width = Math.max(0, this.baseWidth - INPUT_WIDTH_ADJUSTMENT);
     const suffixWidth = this.suffix
       ? this.suffixText.getComputedTextLength()
       : 0;
     const suffixSpace = this.suffix ? SUFFIX_GAP + suffixWidth : 0;
+    // baseWidth already includes the pill padding and the suffix, because
+    // updateSize_ added them to size_. Subtract them back out to get the width
+    // of just the white square.
+    const addedPadding = INPUT_X + PILL_RIGHT_PADDING + suffixSpace;
+    const width = Math.max(0, this.baseWidth - addedPadding);
     const outerWidth = INPUT_X + width + suffixSpace + PILL_RIGHT_PADDING;
     const { fill, stroke } = getFieldColours(this.sourceBlock_);
 
