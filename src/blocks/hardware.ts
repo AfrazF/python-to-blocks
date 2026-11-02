@@ -73,6 +73,10 @@ Blockly.Blocks["pybricks_drivebase_setup"] = {
       nextStatement: null,
       colour: "#4c97ff",
     });
+    // The parsed path sets these in walk.ts's createBlock; a block dragged from
+    // the toolbox never goes through createBlock, so it needs them here too.
+    (this.getField("WHEEL") as any).setSuffix("mm");
+    (this.getField("TRACK") as any).setSuffix("mm");
   },
   saveExtraState() {
     const block = this as Blockly.Block & { motors?: string[] };
