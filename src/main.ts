@@ -53,6 +53,11 @@ let currentFiles: Record<string, string> = {
 
 let hasUploaded = false;
 
+// The resolved table for the file currently on screen. A drivebase dragged
+// from the toolbox has no source range, so it cannot look up its own motors;
+// the BLOCK_CREATE listener reads them from here instead.
+let currentResolvedTable: import("./resolve").ResolvedTable | undefined;
+
 // v2b feature flag. Without ?editable=1 the app is the v1.1.0 read-only
 // viewer: no block dragging, no typing in Monaco, no badge.
 const isEditable =
@@ -322,6 +327,7 @@ function startWorkspace(): void {
         throw new Error(`Unknown project file: ${name}`);
       }
       workspace.clear();
+      currentResolvedTable = fileResolution;
       renderFile(source, workspace, fileResolution);
       editor.setValue(source);
       setActive(name);
@@ -598,6 +604,39 @@ function startWorkspace(): void {
     editor.clearCommentHighlight();
     clearBlockHighlight();
     closeMonacoOpenedBubble();
+  });
+
+  // A drivebase dragged from the toolbox is created with the placeholder
+  // left/right options. Parsed blocks get their motors from the walker's
+  // extraState, so only a fresh drag needs filling in — and only when the
+  // fields still hold the placeholder values.
+  workspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.type !== Blockly.Events.BLOCK_CREATE) {
+      return;
+    }
+    const createEvent = event as Blockly.Events.BlockCreate;
+    if (!createEvent.blockId) {
+      return;
+    }
+    const block = workspace.getBlockById(createEvent.blockId);
+    if (!block || block.type !== "pybricks_drivebase_setup") {
+      return;
+    }
+    const leftField = block.getField("LEFT") as Blockly.Field | null;
+    if (!leftField || leftField.getValue() !== "left") {
+      return;
+    }
+    if (!currentResolvedTable) {
+      return;
+    }
+    const motors = Object.entries(currentResolvedTable)
+      .filter(([, entry]) => entry.objectKind === "Motor")
+      .map(([name]) => name);
+    if (motors.length > 0) {
+      (
+        block as Blockly.Block & { loadExtraState: (state: any) => void }
+      ).loadExtraState({ motors });
+    }
   });
 
   // Kept for keyboard navigation, which still emits SELECTED in readOnly mode.
