@@ -606,10 +606,18 @@ function startWorkspace(): void {
     closeMonacoOpenedBubble();
   });
 
-  // A drivebase dragged from the toolbox is created with the placeholder
-  // left/right options. Parsed blocks get their motors from the walker's
-  // extraState, so only a fresh drag needs filling in — and only when the
-  // fields still hold the placeholder values.
+  // A drivebase or motor command dragged from the toolbox is created with the
+  // placeholder left/right options. Parsed blocks get their motors from the
+  // walker's extraState, so only a fresh drag needs filling in — and only when
+  // the fields still hold the placeholder values.
+  const MOTOR_COMMAND_BLOCKS = new Set([
+    "pybricks_motor_run_target",
+    "pybricks_motor_run_angle",
+    "pybricks_motor_run_until_stalled",
+    "pybricks_motor_reset_angle",
+    "pybricks_motor_stop",
+  ]);
+
   workspace.addChangeListener((event: Blockly.Events.Abstract) => {
     if (event.type !== Blockly.Events.BLOCK_CREATE) {
       return;
@@ -619,7 +627,30 @@ function startWorkspace(): void {
       return;
     }
     const block = workspace.getBlockById(createEvent.blockId);
-    if (!block || block.type !== "pybricks_drivebase_setup") {
+    if (!block) {
+      return;
+    }
+
+    if (MOTOR_COMMAND_BLOCKS.has(block.type)) {
+      const motorField = block.getField("MOTOR") as Blockly.Field | null;
+      if (!motorField || motorField.getValue() !== "left") {
+        return;
+      }
+      if (!currentResolvedTable) {
+        return;
+      }
+      const motors = Object.entries(currentResolvedTable)
+        .filter(([, entry]) => entry.objectKind === "Motor")
+        .map(([name]) => name);
+      if (motors.length > 0) {
+        (
+          block as Blockly.Block & { loadExtraState: (state: any) => void }
+        ).loadExtraState({ motors });
+      }
+      return;
+    }
+
+    if (block.type !== "pybricks_drivebase_setup") {
       return;
     }
     const leftField = block.getField("LEFT") as Blockly.Field | null;

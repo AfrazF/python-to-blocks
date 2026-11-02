@@ -503,9 +503,19 @@ function collectMotorBlock(
     sourceStart: node.from,
     sourceEnd: node.to,
   };
+  // The numeric slots are plain text fields now (field_white_in_pill), so the
+  // parsed text goes straight into `fields` — no shadow block to build.
   for (const [inputName, argument] of Object.entries(args)) {
-    applyArgument(descriptor, inputName, argument, resolved, "0");
+    const text = argument?.text.trim();
+    if (text !== undefined && text !== "") {
+      descriptor.fields![inputName] = text;
+    }
   }
+  // The MOTOR pill dropdown lists the motors resolved for this file.
+  const motors = Object.entries(resolved)
+    .filter(([, entry]) => entry.objectKind === "Motor")
+    .map(([name]) => name);
+  descriptor.extraState = { motors };
   return descriptor;
 }
 
@@ -1873,6 +1883,20 @@ function createBlock(
   if (descriptor.type === "pybricks_drivebase_setup") {
     (block.getField("WHEEL") as FieldWhiteInPill).setSuffix("mm");
     (block.getField("TRACK") as FieldWhiteInPill).setSuffix("mm");
+  }
+
+  // The motor command blocks set their suffixes in init(), but a suffix set
+  // before the field has an SVG root is not painted, so re-apply it here.
+  const motorSuffixes: Record<string, Record<string, string>> = {
+    pybricks_motor_run_target: { SPEED: "°/s", TARGET: "°" },
+    pybricks_motor_run_angle: { SPEED: "°/s", ANGLE: "°" },
+    pybricks_motor_run_until_stalled: { SPEED: "°/s", DUTY: "%" },
+    pybricks_motor_reset_angle: { VALUE: "°" },
+  };
+  for (const [name, suffix] of Object.entries(
+    motorSuffixes[descriptor.type] ?? {},
+  )) {
+    (block.getField(name) as FieldWhiteInPill | null)?.setSuffix(suffix);
   }
 
   // The mutator must add its task slots before we look for them.
