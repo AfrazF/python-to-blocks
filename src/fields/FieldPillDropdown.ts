@@ -62,11 +62,15 @@ export class FieldPillDropdown extends Blockly.FieldDropdown {
     const text = root.querySelector<SVGTextElement>("text.blocklyDropdownText");
     const baseWidth = Number(this.defaultRect?.getAttribute("width") ?? 0);
     const width = baseWidth + PILL_EXTRA_WIDTH;
+    // Before updateSize_ has run the rect width can be 0, which makes
+    // width - 2 * PILL_RADIUS negative. Clamp it so the path emits `h 0`
+    // instead of `h --24.21`, which is an invalid SVG number.
+    const innerWidth = Math.max(0, width - 2 * PILL_RADIUS);
     const arrow = root.querySelectorAll("image").item(1);
     const { fill, stroke } = getFieldColours(this.sourceBlock_);
     this.pillPath.setAttribute(
       "d",
-      `M ${PILL_RADIUS},0 h ${width - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${width - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
+      `M ${PILL_RADIUS},0 h ${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
     );
     this.pillPath.setAttribute("fill", fill);
     this.pillPath.setAttribute("stroke", stroke);

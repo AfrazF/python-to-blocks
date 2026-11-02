@@ -3,18 +3,9 @@ import { getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-export class FieldDarkSquare extends Blockly.FieldDropdown {
+export class FieldDarkSquare extends Blockly.FieldTextInput {
   private squareRect?: SVGRectElement;
   private defaultRect?: SVGRectElement;
-
-  static override fromJson(
-    options: Parameters<typeof Blockly.FieldDropdown.fromJson>[0],
-  ): FieldDarkSquare {
-    if (!options.options) {
-      throw new TypeError("FieldDarkSquare requires dropdown options.");
-    }
-    return new FieldDarkSquare(options.options);
-  }
 
   override initView(): void {
     super.initView();

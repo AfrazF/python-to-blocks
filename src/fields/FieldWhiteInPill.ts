@@ -131,11 +131,15 @@ export class FieldWhiteInPill extends Blockly.FieldNumber {
     const addedPadding = INPUT_X + PILL_RIGHT_PADDING + suffixSpace;
     const width = Math.max(0, this.baseWidth - addedPadding);
     const outerWidth = INPUT_X + width + suffixSpace + PILL_RIGHT_PADDING;
+    // Before updateSize_ has run baseWidth can be 0, which makes
+    // outerWidth - 2 * PILL_RADIUS negative. Clamp it so the path emits `h 0`
+    // instead of `h --8.2`, which is an invalid SVG number.
+    const innerWidth = Math.max(0, outerWidth - 2 * PILL_RADIUS);
     const { fill, stroke } = getFieldColours(this.sourceBlock_);
 
     this.outerPath.setAttribute(
       "d",
-      `M ${PILL_RADIUS},0 h ${outerWidth - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${outerWidth - 2 * PILL_RADIUS} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
+      `M ${PILL_RADIUS},0 h ${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
     );
     this.outerPath.setAttribute("fill", fill);
     this.outerPath.setAttribute("stroke", stroke);
