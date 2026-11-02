@@ -111,9 +111,7 @@ const toolboxXml = {
         { kind: "block", type: "pybricks_drive_configure" },
 
         { kind: "label", text: "Motors" },
-        { kind: "block", type: "pybricks_motor_run_target" },
-        { kind: "block", type: "pybricks_motor_run_angle" },
-        { kind: "block", type: "pybricks_motor_run_until_stalled" },
+        { kind: "block", type: "pybricks_motor_run" },
         { kind: "block", type: "pybricks_motor_reset_angle" },
         { kind: "block", type: "pybricks_motor_stop" },
 

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { renderFile } from "./walk";
+import { collectBlocks, renderFile } from "./walk";
 
 type StubBlock = {
   type: string;
@@ -37,4 +37,49 @@ it("creates a call block for a top-level expression statement", () => {
 
   const callBlock = blocks.find((block) => block.type === "pybricks_call");
   expect(callBlock?.fields.NAME).toBe("run_task");
+});
+
+it("routes every motor run method to one block with the right mode", () => {
+  const resolved = {
+    motor: {
+      kind: "variable" as const,
+      objectKind: "Motor" as const,
+      origin: "assignment" as const,
+    },
+  };
+
+  const findRun = (source: string) => {
+    const blocks = collectBlocks(source, resolved);
+    const flat: typeof blocks = [];
+    const walk = (list: typeof blocks) => {
+      for (const block of list) {
+        flat.push(block);
+        for (const children of Object.values(block.inputs ?? {})) {
+          walk(children);
+        }
+      }
+    };
+    walk(blocks);
+    return flat.find((block) => block.type === "pybricks_motor_run");
+  };
+
+  expect(findRun("await motor.run_target(400, 360)")?.fields).toMatchObject({
+    MODE: "towards",
+    SPEED: "400",
+    VALUE: "360",
+  });
+
+  expect(findRun("await motor.run_angle(500, 90)")?.fields).toMatchObject({
+    MODE: "by",
+    SPEED: "500",
+    VALUE: "90",
+  });
+
+  expect(
+    findRun("await motor.run_until_stalled(400, duty_limit=50)")?.fields,
+  ).toMatchObject({
+    MODE: "to end stop",
+    SPEED: "400",
+    VALUE: "50",
+  });
 });

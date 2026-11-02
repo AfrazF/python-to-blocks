@@ -69,8 +69,9 @@ unit inside a pill.
 1. `drive configure`
    `{drive base icon} | (darker blue, drive base ▾) configure [transparent, drive speed ▾] (darker blue, [150] mm/s)`
 
-2. `motor run_target`
+2. `motor run`
    `{motor icon} | (darker blue, motor ▾) run at (darker blue, [500] °/s) [transparent, towards ▾] (darker blue, [360] °) then (darker blue, hold ▾)`
+   — mode `to end stop` replaces the `[360] °` slot with `with power limit (darker blue, [50] %)`.
 
 3. `motor setup`
    `{motor icon} | [left] on (darker blue, A ▾) with forward (darker blue, {clockwise motor icon} ▾)`
@@ -96,81 +97,75 @@ Fill: `white`, `darker`, `transparent`, `value`.
 Text: `white`, `dark`, `icon`.
 Source: `pybricks-svg`, `user`, `derived`, `ours`.
 
-| Block                              | Field       | Python example         | Style                       | Fill        | Text  | Suffix     | Source       |
-| ---------------------------------- | ----------- | ---------------------- | --------------------------- | ----------- | ----- | ---------- | ------------ |
-| `pybricks_hub`                     | `NAME`      | `hub`                  | white-square                | white       | dark  |            | ours         |
-| `pybricks_motor_setup`             | `NAME`      | `left`                 | white-square                | white       | dark  |            | ours         |
-| `pybricks_motor_setup`             | `PORT`      | `Port.A`               | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_setup`             | `DIRECTION` | `Direction.CLOCKWISE`  | pill-dropdown               | darker      | icon  |            | pybricks-svg |
-| `pybricks_drivebase_setup`         | `NAME`      | `drive`                | white-square                | white       | dark  |            | ours         |
-| `pybricks_drivebase_setup`         | `LEFT`      | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drivebase_setup`         | `RIGHT`     | `right`                | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drivebase_setup`         | `WHEEL`     | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drivebase_setup`         | `TRACK`     | `AXLE_TRACK`           | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drive_move`              | `MODE`      | `straight`             | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
-| `pybricks_drive_move`              | `AMOUNT`    | `500`                  | white-in-pill               | darker      | white | `mm` / `°` | pybricks-svg |
-| `pybricks_drive_move`              | `THEN`      | `Stop.HOLD`            | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drive_reset`             | `DISTANCE`  | `0`                    | white-in-pill               | darker      | white | `mm`       | pybricks-svg |
-| `pybricks_drive_reset`             | `ANGLE`     | `0`                    | white-in-pill               | darker      | white | `°`        | pybricks-svg |
-| `pybricks_drive_use_gyro`          | `VALUE`     | `True`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_drive_configure`         | `WHAT`      | `straight_speed`       | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
-| `pybricks_drive_configure`         | `VALUE`     | `150`                  | white-in-pill               | darker      | white | varies     | pybricks-svg |
-| `pybricks_motor_run_target`        | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_target`        | `SPEED`     | `500`                  | white-in-pill               | darker      | white | `°/s`      | pybricks-svg |
-| `pybricks_motor_run_target`        | `TARGET`    | `360`                  | white-in-pill               | darker      | white | `°`        | pybricks-svg |
-| `pybricks_motor_run_target`        | `THEN`      | `Stop.HOLD`            | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_angle`         | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_angle`         | `SPEED`     | `500`                  | white-in-pill               | darker      | white | `°/s`      | pybricks-svg |
-| `pybricks_motor_run_angle`         | `ANGLE`     | `-90`                  | white-in-pill               | darker      | white | `°`        | pybricks-svg |
-| `pybricks_motor_run_angle`         | `THEN`      | `Stop.HOLD`            | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_until_stalled` | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_until_stalled` | `SPEED`     | `500`                  | white-in-pill               | darker      | white | `°/s`      | pybricks-svg |
-| `pybricks_motor_run_until_stalled` | `DUTY`      | `40`                   | white-in-pill               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_run_until_stalled` | `THEN`      | `Stop.COAST`           | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_reset_angle`       | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_reset_angle`       | `VALUE`     | `0`                    | white-in-pill               | darker      | white | `°`        | pybricks-svg |
-| `pybricks_motor_stop`              | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_motor_stop`              | `MODE`      | `Stop.COAST`           | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_icon`        | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_icon`        | `METHOD`    | `icon`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_icon`        | `ICON`      | `NEXT_ICON`            | white-square                | white       | dark  |            | ours         |
-| `pybricks_hub_display_char`        | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_char`        | `METHOD`    | `char`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_char`        | `CHAR`      | `ATTACHMENTS[i][0]`    | white-square                | white       | dark  |            | ours         |
-| `pybricks_hub_display_number`      | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_number`      | `METHOD`    | `number`               | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_number`      | `NUMBER`    | `42`                   | white-in-pill               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_off`         | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_off`         | `METHOD`    | `off`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_var_reporter`            | `NAME`      | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_var_declare`             | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
-| `pybricks_var_declare`             | `VALUE`     | `56`                   | white-in-pill               | darker      | white |            | pybricks-svg |
-| `pybricks_var_set`                 | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
-| `pybricks_var_set`                 | `VALUE`     | `57`                   | white-in-pill               | darker      | white |            | pybricks-svg |
-| `pybricks_if`                      | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
-| `pybricks_if_else`                 | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
-| `pybricks_while`                   | `CONDITION` | `True`                 | white-square                | white       | dark  |            | ours         |
-| `pybricks_for`                     | `LOOP_VAR`  | `i`                    | white-square                | white       | dark  |            | ours         |
-| `pybricks_for`                     | `ITERABLE`  | `missions`             | white-square                | white       | dark  |            | ours         |
-| `pybricks_try_except`              | `EXCEPTION` | `Exception`            | white-square                | white       | dark  |            | ours         |
-| `pybricks_try_except`              | `AS_NAME`   | `e`                    | white-square                | white       | dark  |            | user         |
-| `pybricks_return`                  | `VALUE`     | `i, ATTACHMENTS[i][1]` | white-square                | white       | dark  |            | ours         |
-| `pybricks_raise`                   | `VALUE`     | `Exception`            | white-square                | white       | dark  |            | ours         |
-| `pybricks_task`                    | `NAME`      | `run1`                 | white-square                | white       | dark  |            | ours         |
-| `pybricks_task`                    | `PARAMS`    | `a, b`                 | white-square                | white       | dark  |            | ours         |
-| `pybricks_function`                | `NAME`      | `normal`               | white-square                | white       | dark  |            | ours         |
-| `pybricks_function`                | `PARAMS`    | `speed`                | white-square                | white       | dark  |            | ours         |
-| `pybricks_multitask`               | `MODE`      | `race=True`            | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_call`                    | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
-| `pybricks_method_call`             | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
-| `pybricks_wait`                    | `TIME`      | `20`                   | white-square                | white       | dark  | `ms`       | pybricks-svg |
-| `pybricks_import`                  | `MODULE`    | `pybricks.tools`       | white-square                | white       | dark  |            | ours         |
-| `pybricks_import`                  | `NAME`      | `wait`                 | white-square                | white       | dark  |            | ours         |
-| `pybricks_import_as`               | `MODULE`    | `robot`                | white-square                | white       | dark  |            | ours         |
-| `pybricks_import_as`               | `NAME`      | `attachment1`          | white-square                | white       | dark  |            | ours         |
-| `pybricks_import_as`               | `ALIAS`     | `attachment_a`         | white-square                | white       | dark  |            | ours         |
-| `pybricks_comment`                 | `TEXT`      | `# note`               | white-square                | white       | dark  |            | ours         |
-| `pybricks_raw_code`                | `CODE`      | `ATTACHMENTS = [`      | white-square                | white       | dark  |            | ours         |
+| Block                         | Field       | Python example         | Style                       | Fill        | Text  | Suffix     | Source       |
+| ----------------------------- | ----------- | ---------------------- | --------------------------- | ----------- | ----- | ---------- | ------------ |
+| `pybricks_hub`                | `NAME`      | `hub`                  | white-square                | white       | dark  |            | ours         |
+| `pybricks_motor_setup`        | `NAME`      | `left`                 | white-square                | white       | dark  |            | ours         |
+| `pybricks_motor_setup`        | `PORT`      | `Port.A`               | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_motor_setup`        | `DIRECTION` | `Direction.CLOCKWISE`  | pill-dropdown               | darker      | icon  |            | pybricks-svg |
+| `pybricks_drivebase_setup`    | `NAME`      | `drive`                | white-square                | white       | dark  |            | ours         |
+| `pybricks_drivebase_setup`    | `LEFT`      | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drivebase_setup`    | `RIGHT`     | `right`                | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drivebase_setup`    | `WHEEL`     | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drivebase_setup`    | `TRACK`     | `AXLE_TRACK`           | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drive_move`         | `MODE`      | `straight`             | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
+| `pybricks_drive_move`         | `AMOUNT`    | `500`                  | white-in-pill               | darker      | white | `mm` / `°` | pybricks-svg |
+| `pybricks_drive_move`         | `THEN`      | `Stop.HOLD`            | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drive_reset`        | `DISTANCE`  | `0`                    | white-in-pill               | darker      | white | `mm`       | pybricks-svg |
+| `pybricks_drive_reset`        | `ANGLE`     | `0`                    | white-in-pill               | darker      | white | `°`        | pybricks-svg |
+| `pybricks_drive_use_gyro`     | `VALUE`     | `True`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_drive_configure`    | `WHAT`      | `straight_speed`       | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
+| `pybricks_drive_configure`    | `VALUE`     | `150`                  | white-in-pill               | darker      | white | varies     | pybricks-svg |
+| `pybricks_motor_run`          | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_motor_run`          | `SPEED`     | `500`                  | white-in-pill               | darker      | white | `°/s`      | pybricks-svg |
+| `pybricks_motor_run`          | `MODE`      | `towards`              | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
+| `pybricks_motor_run`          | `VALUE`     | `360`                  | white-in-pill               | darker      | white | `°` / `%`  | pybricks-svg |
+| `pybricks_motor_run`          | `DUTY`      | `50`                   | white-in-pill               | darker      | white | `%`        | pybricks-svg |
+| `pybricks_motor_run`          | `THEN`      | `Stop.HOLD`            | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_motor_reset_angle`  | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_motor_reset_angle`  | `VALUE`     | `0`                    | white-in-pill               | darker      | white | `°`        | pybricks-svg |
+| `pybricks_motor_stop`         | `MOTOR`     | `left`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_motor_stop`         | `MODE`      | `Stop.COAST`           | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_icon`   | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_icon`   | `METHOD`    | `icon`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_icon`   | `ICON`      | `NEXT_ICON`            | white-square                | white       | dark  |            | ours         |
+| `pybricks_hub_display_char`   | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_char`   | `METHOD`    | `char`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_char`   | `CHAR`      | `ATTACHMENTS[i][0]`    | white-square                | white       | dark  |            | ours         |
+| `pybricks_hub_display_number` | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_number` | `METHOD`    | `number`               | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_number` | `NUMBER`    | `42`                   | white-in-pill               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_off`    | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_display_off`    | `METHOD`    | `off`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_var_reporter`       | `NAME`      | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_var_declare`        | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
+| `pybricks_var_declare`        | `VALUE`     | `56`                   | white-in-pill               | darker      | white |            | pybricks-svg |
+| `pybricks_var_set`            | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
+| `pybricks_var_set`            | `VALUE`     | `57`                   | white-in-pill               | darker      | white |            | pybricks-svg |
+| `pybricks_if`                 | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
+| `pybricks_if_else`            | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
+| `pybricks_while`              | `CONDITION` | `True`                 | white-square                | white       | dark  |            | ours         |
+| `pybricks_for`                | `LOOP_VAR`  | `i`                    | white-square                | white       | dark  |            | ours         |
+| `pybricks_for`                | `ITERABLE`  | `missions`             | white-square                | white       | dark  |            | ours         |
+| `pybricks_try_except`         | `EXCEPTION` | `Exception`            | white-square                | white       | dark  |            | ours         |
+| `pybricks_try_except`         | `AS_NAME`   | `e`                    | white-square                | white       | dark  |            | user         |
+| `pybricks_return`             | `VALUE`     | `i, ATTACHMENTS[i][1]` | white-square                | white       | dark  |            | ours         |
+| `pybricks_raise`              | `VALUE`     | `Exception`            | white-square                | white       | dark  |            | ours         |
+| `pybricks_task`               | `NAME`      | `run1`                 | white-square                | white       | dark  |            | ours         |
+| `pybricks_task`               | `PARAMS`    | `a, b`                 | white-square                | white       | dark  |            | ours         |
+| `pybricks_function`           | `NAME`      | `normal`               | white-square                | white       | dark  |            | ours         |
+| `pybricks_function`           | `PARAMS`    | `speed`                | white-square                | white       | dark  |            | ours         |
+| `pybricks_multitask`          | `MODE`      | `race=True`            | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_call`               | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
+| `pybricks_method_call`        | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
+| `pybricks_wait`               | `TIME`      | `20`                   | white-square                | white       | dark  | `ms`       | pybricks-svg |
+| `pybricks_import`             | `MODULE`    | `pybricks.tools`       | white-square                | white       | dark  |            | ours         |
+| `pybricks_import`             | `NAME`      | `wait`                 | white-square                | white       | dark  |            | ours         |
+| `pybricks_import_as`          | `MODULE`    | `robot`                | white-square                | white       | dark  |            | ours         |
+| `pybricks_import_as`          | `NAME`      | `attachment1`          | white-square                | white       | dark  |            | ours         |
+| `pybricks_import_as`          | `ALIAS`     | `attachment_a`         | white-square                | white       | dark  |            | ours         |
+| `pybricks_comment`            | `TEXT`      | `# note`               | white-square                | white       | dark  |            | ours         |
+| `pybricks_raw_code`           | `CODE`      | `ATTACHMENTS = [`      | white-square                | white       | dark  |            | ours         |
 
 `field_label` fields (`pybricks_call.NAME`, `pybricks_method_call.OBJ` / `METHOD`) are static text, not editable fields, so they have no row.
 

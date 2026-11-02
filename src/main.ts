@@ -611,9 +611,7 @@ function startWorkspace(): void {
   // walker's extraState, so only a fresh drag needs filling in — and only when
   // the fields still hold the placeholder values.
   const MOTOR_COMMAND_BLOCKS = new Set([
-    "pybricks_motor_run_target",
-    "pybricks_motor_run_angle",
-    "pybricks_motor_run_until_stalled",
+    "pybricks_motor_run",
     "pybricks_motor_reset_angle",
     "pybricks_motor_stop",
   ]);

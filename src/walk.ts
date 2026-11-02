@@ -934,9 +934,13 @@ function collectExpression(
 
         if (memberName === "run_target") {
           return collectMotorBlock(
-            "pybricks_motor_run_target",
-            { MOTOR: motor, THEN: getThenMode(keywords.then?.text, "hold") },
-            { SPEED: positional[0], TARGET: positional[1] },
+            "pybricks_motor_run",
+            {
+              MOTOR: motor,
+              MODE: "towards",
+              THEN: getThenMode(keywords.then?.text, "hold"),
+            },
+            { SPEED: positional[0], VALUE: positional[1] },
             resolved,
             expression,
           );
@@ -944,9 +948,13 @@ function collectExpression(
 
         if (memberName === "run_angle") {
           return collectMotorBlock(
-            "pybricks_motor_run_angle",
-            { MOTOR: motor, THEN: getThenMode(keywords.then?.text, "hold") },
-            { SPEED: positional[0], ANGLE: positional[1] },
+            "pybricks_motor_run",
+            {
+              MOTOR: motor,
+              MODE: "by",
+              THEN: getThenMode(keywords.then?.text, "hold"),
+            },
+            { SPEED: positional[0], VALUE: positional[1] },
             resolved,
             expression,
           );
@@ -954,9 +962,10 @@ function collectExpression(
 
         if (memberName === "run_until_stalled") {
           return collectMotorBlock(
-            "pybricks_motor_run_until_stalled",
+            "pybricks_motor_run",
             {
               MOTOR: motor,
+              MODE: "to end stop",
               THEN: getThenMode(
                 keywords.then?.text ?? positional[1]?.text,
                 "hold",
@@ -964,7 +973,7 @@ function collectExpression(
             },
             {
               SPEED: positional[0],
-              DUTY: keywords.duty_limit ?? positional[2],
+              VALUE: keywords.duty_limit ?? positional[2],
             },
             resolved,
             expression,
@@ -1888,9 +1897,6 @@ function createBlock(
   // The motor command blocks set their suffixes in init(), but a suffix set
   // before the field has an SVG root is not painted, so re-apply it here.
   const motorSuffixes: Record<string, Record<string, string>> = {
-    pybricks_motor_run_target: { SPEED: "°/s", TARGET: "°" },
-    pybricks_motor_run_angle: { SPEED: "°/s", ANGLE: "°" },
-    pybricks_motor_run_until_stalled: { SPEED: "°/s", DUTY: "%" },
     pybricks_motor_reset_angle: { VALUE: "°" },
   };
   for (const [name, suffix] of Object.entries(
@@ -1898,6 +1904,9 @@ function createBlock(
   )) {
     (block.getField(name) as FieldWhiteInPill | null)?.setSuffix(suffix);
   }
+
+  // `motor run` builds its own value slot in the MOTOR_RUN_DUTY extension,
+  // which sets the °/% suffix from the selected mode. Nothing to do here.
 
   // The mutator must add its task slots before we look for them.
   if (descriptor.taskCount !== undefined) {
