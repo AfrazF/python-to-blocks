@@ -17,11 +17,11 @@ Blockly.Blocks["pybricks_motor_setup"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_setup",
-      message0: "new motor %1 on port %2 (%3)",
+      message0: "new motor | %1 on %2 with forward %3",
       args0: [
-        { type: "field_input", name: "NAME", text: "" },
+        { type: "field_dark_square", name: "NAME", text: "motor" },
         {
-          type: "field_dropdown",
+          type: "field_pill_dropdown",
           name: "PORT",
           options: [
             ["A", "A"],
@@ -33,7 +33,7 @@ Blockly.Blocks["pybricks_motor_setup"] = {
           ],
         },
         {
-          type: "field_dropdown",
+          type: "field_pill_dropdown",
           name: "DIRECTION",
           options: [
             ["clockwise", "clockwise"],
