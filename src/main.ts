@@ -616,6 +616,13 @@ function startWorkspace(): void {
     "pybricks_motor_stop",
   ]);
 
+  const DRIVE_COMMAND_BLOCKS = new Set([
+    "pybricks_drive_move",
+    "pybricks_drive_reset",
+    "pybricks_drive_use_gyro",
+    "pybricks_drive_configure",
+  ]);
+
   workspace.addChangeListener((event: Blockly.Events.Abstract) => {
     if (event.type !== Blockly.Events.BLOCK_CREATE) {
       return;
@@ -626,6 +633,27 @@ function startWorkspace(): void {
     }
     const block = workspace.getBlockById(createEvent.blockId);
     if (!block) {
+      return;
+    }
+
+    if (DRIVE_COMMAND_BLOCKS.has(block.type)) {
+      const driveBaseField = block.getField(
+        "DRIVEBASE",
+      ) as Blockly.Field | null;
+      if (!driveBaseField || driveBaseField.getValue() !== "drive") {
+        return;
+      }
+      if (!currentResolvedTable) {
+        return;
+      }
+      const drivebases = Object.entries(currentResolvedTable)
+        .filter(([, entry]) => entry.objectKind === "DriveBase")
+        .map(([name]) => name);
+      if (drivebases.length > 0) {
+        (
+          block as Blockly.Block & { loadExtraState: (state: any) => void }
+        ).loadExtraState({ drivebases });
+      }
       return;
     }
 
