@@ -113,8 +113,11 @@ Blockly.Extensions.register("MOTOR_RUN_DUTY", function (this: Blockly.Block) {
       const modeField = new Blockly.FieldDropdown(runModeOptions);
       const thenField = new FieldPillDropdown(thenOptions);
 
+      // Mirrors `message0` exactly: `motor | %1 run at %2 %3 %4 then %5`.
+      // The `|` is part of the row, so the rebuild must re-add it — replacing
+      // the row drops whatever `message0` built.
       const row = self.appendDummyInput("MOTOR_ROW");
-      row.appendField("motor").appendField(motorField, "MOTOR");
+      row.appendField("motor |").appendField(motorField, "MOTOR");
       row.appendField("run at").appendField(speedField, "SPEED");
       row.appendField(modeField, "MODE");
 
@@ -161,7 +164,7 @@ Blockly.Blocks["pybricks_motor_run"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_run",
-      message0: "motor %1 run at %2 %3 %4 then %5",
+      message0: "motor | %1 run at %2 %3 %4 then %5",
       args0: [
         {
           type: "field_pill_dropdown",
@@ -192,7 +195,7 @@ Blockly.Blocks["pybricks_motor_reset_angle"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_reset_angle",
-      message0: "motor %1 reset angle to %2",
+      message0: "motor | %1 reset angle to %2",
       args0: [
         {
           type: "field_pill_dropdown",
@@ -214,7 +217,7 @@ Blockly.Blocks["pybricks_motor_stop"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_stop",
-      message0: "motor %1 stop %2",
+      message0: "motor | %1 stop %2",
       args0: [
         {
           type: "field_pill_dropdown",

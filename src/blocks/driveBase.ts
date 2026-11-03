@@ -74,9 +74,10 @@ const turnModeOptions: [string, string][] = [
  * suffix match the selected mode.
  *
  * `straight` shows `drive [straight ▾] for (AMOUNT) mm`; `turn` inserts a
- * second transparent square dropdown — `drive [turn ▾] [by ▾] for (AMOUNT) °`.
- * Blockly has no conditional field visibility in its public API, so the row is
- * torn down and rebuilt on every mode change.
+ * second transparent square dropdown and drops the `for` label —
+ * `drive [turn ▾] [by ▾] (AMOUNT) °`. Blockly has no conditional field
+ * visibility in its public API, so the row is torn down and rebuilt on every
+ * mode change.
  *
  * The row is a single named `appendDummyInput("DRIVE_ROW")`. `removeInput()`
  * disposes the row and its fields properly; assigning `inputList = []` leaks
@@ -129,16 +130,26 @@ Blockly.Extensions.register(
         amountField.setSuffix(mode === "turn" ? "°" : "mm");
         const thenField = new FieldPillDropdown(thenOptions);
 
+        // Mirrors `message0` exactly: `drive base | %1 drive %2 for %3 then %4`.
+        // The `|` is part of the row, so the rebuild must re-add it — replacing
+        // the row drops whatever `message0` built.
         const row = self.appendDummyInput("DRIVE_ROW");
-        row.appendField("drive base").appendField(driveBaseField, "DRIVEBASE");
+        row.appendField("drive base |").appendField(
+          driveBaseField,
+          "DRIVEBASE",
+        );
         row.appendField("drive").appendField(modeField, "MODE");
 
         if (mode === "turn") {
           const turnModeField = new Blockly.FieldDropdown(turnModeOptions);
           row.appendField(turnModeField, "TURN_MODE");
+        } else {
+          // Only `straight` reads `for`; `turn` puts the amount straight after
+          // the by/to dropdown, per the Pybricks block.
+          row.appendField("for");
         }
 
-        row.appendField("for").appendField(amountField, "AMOUNT");
+        row.appendField(amountField, "AMOUNT");
         row.appendField("then").appendField(thenField, "THEN");
 
         // Restore the captured values. DRIVEBASE options come from extraState,
