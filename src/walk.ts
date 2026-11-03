@@ -899,6 +899,10 @@ function collectExpression(
             sourceStart: expression.from,
             sourceEnd: expression.to,
           };
+          // `turn` carries a second dropdown; `by` is the Pybricks default.
+          if (memberName === "turn") {
+            descriptor.fields!.TURN_MODE = "by";
+          }
           applyArgument(descriptor, "AMOUNT", positional[0], resolved, "0");
           descriptor.extraState = { drivebases: getDriveBaseNames(resolved) };
           return descriptor;
@@ -1928,17 +1932,12 @@ function createBlock(
     (block.getField(name) as FieldWhiteInPill | null)?.setSuffix(suffix);
   }
 
-  // Same for the drive base command blocks. `drive_move` and `configure` pick
-  // their suffix from the dropdown, which is already set by the time we get
-  // here, so read it back rather than assuming a default.
+  // Same for the drive base command blocks. `drive_move` builds its own row in
+  // the DRIVE_MOVE_MUTATOR extension, which sets the mm/° suffix from the
+  // selected mode, so only `reset` and `configure` need a suffix here.
   const driveSuffixes: Record<string, Record<string, string>> = {
     pybricks_drive_reset: { DISTANCE: "mm", ANGLE: "°" },
   };
-  if (descriptor.type === "pybricks_drive_move") {
-    driveSuffixes.pybricks_drive_move = {
-      AMOUNT: block.getFieldValue("MODE") === "turn" ? "°" : "mm",
-    };
-  }
   if (descriptor.type === "pybricks_drive_configure") {
     const what = block.getFieldValue("WHAT");
     const suffix = configureSuffixes[what] ?? "mm/s";

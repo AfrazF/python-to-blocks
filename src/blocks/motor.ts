@@ -76,6 +76,14 @@ const runModeOptions: [string, string][] = [
  * fires `onchange` again.
  */
 Blockly.Extensions.register("MOTOR_RUN_DUTY", function (this: Blockly.Block) {
+  // `jsonInit` runs extensions BEFORE `init()` returns, so the row built from
+  // `message0` is still unnamed here. Name it now, or the first rebuild's
+  // `removeInput("MOTOR_ROW")` finds nothing and appends a second row — the
+  // duplicate "motor" label.
+  if (this.inputList.length > 0 && !this.inputList[0].name) {
+    this.inputList[0].name = "MOTOR_ROW";
+  }
+
   const self = this as Blockly.Block & { lastMode?: string };
 
   const rebuild = (): void => {
