@@ -2,6 +2,7 @@ import * as Blockly from "blockly";
 import { parser } from "@lezer/python";
 import type { ResolvedTable } from "./resolve";
 import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
+import { configureSuffixes } from "./blocks/driveBase";
 
 // Re-exported so tests can parse fixtures without importing @lezer directly.
 export { parser };
@@ -490,6 +491,13 @@ function getThenMode(value: string | undefined, defaultValue: string): string {
   return match ? match[1].toLowerCase() : defaultValue;
 }
 
+/** The drive bases resolved for this file, for the DRIVEBASE pill dropdown. */
+function getDriveBaseNames(resolved: ResolvedTable): string[] {
+  return Object.entries(resolved)
+    .filter(([, entry]) => entry.objectKind === "DriveBase")
+    .map(([name]) => name);
+}
+
 function collectMotorBlock(
   type: string,
   fields: Record<string, string>,
@@ -789,21 +797,25 @@ function collectDriveSettingsBlocks(
     turn_acceleration: "turn acceleration",
   };
 
-  return Object.entries(keywords).flatMap(([keyword, argument]) => {
-    const what = whatByKeyword[keyword];
-    if (!what) {
-      return [];
-    }
+  // One block per call: the first recognised keyword wins. `drive.settings()`
+  // with several keywords is a preset, and the block shows the first one.
+  const entry = Object.entries(keywords).find(([keyword]) =>
+    Boolean(whatByKeyword[keyword]),
+  );
+  if (!entry) {
+    return undefined;
+  }
 
-    const descriptor: BlockDescriptor = {
-      type: "pybricks_drive_configure",
-      fields: { WHAT: what },
-      sourceStart: expression.from,
-      sourceEnd: expression.to,
-    };
-    applyArgument(descriptor, "VALUE", argument, resolved);
-    return [descriptor];
-  });
+  const [keyword, argument] = entry;
+  const descriptor: BlockDescriptor = {
+    type: "pybricks_drive_configure",
+    fields: { DRIVEBASE: objectName, WHAT: whatByKeyword[keyword] },
+    sourceStart: expression.from,
+    sourceEnd: expression.to,
+  };
+  applyArgument(descriptor, "VALUE", argument, resolved);
+  descriptor.extraState = { drivebases: getDriveBaseNames(resolved) };
+  return [descriptor];
 }
 
 function collectExpression(
@@ -879,17 +891,27 @@ function collectExpression(
             : "hold";
           const descriptor: BlockDescriptor = {
             type: "pybricks_drive_move",
-            fields: { MODE: memberName, THEN: thenValue },
+            fields: {
+              DRIVEBASE: objectName,
+              MODE: memberName,
+              THEN: thenValue,
+            },
             sourceStart: expression.from,
             sourceEnd: expression.to,
           };
+          // `turn` carries a second dropdown; `by` is the Pybricks default.
+          if (memberName === "turn") {
+            descriptor.fields!.TURN_MODE = "by";
+          }
           applyArgument(descriptor, "AMOUNT", positional[0], resolved, "0");
+          descriptor.extraState = { drivebases: getDriveBaseNames(resolved) };
           return descriptor;
         }
 
         if (memberName === "reset") {
           const descriptor: BlockDescriptor = {
             type: "pybricks_drive_reset",
+            fields: { DRIVEBASE: objectName },
             sourceStart: expression.from,
             sourceEnd: expression.to,
           };
@@ -907,6 +929,7 @@ function collectExpression(
             resolved,
             "0",
           );
+          descriptor.extraState = { drivebases: getDriveBaseNames(resolved) };
           return descriptor;
         }
 
@@ -914,7 +937,11 @@ function collectExpression(
           const value = positional[0]?.text ?? keywords.value?.text;
           return {
             type: "pybricks_drive_use_gyro",
-            fields: { VALUE: value === "True" ? "gyro" : "no gyro" },
+            fields: {
+              DRIVEBASE: objectName,
+              VALUE: value === "True" ? "gyro" : "no gyro",
+            },
+            extraState: { drivebases: getDriveBaseNames(resolved) },
             sourceStart: expression.from,
             sourceEnd: expression.to,
           };
@@ -1901,6 +1928,23 @@ function createBlock(
   };
   for (const [name, suffix] of Object.entries(
     motorSuffixes[descriptor.type] ?? {},
+  )) {
+    (block.getField(name) as FieldWhiteInPill | null)?.setSuffix(suffix);
+  }
+
+  // Same for the drive base command blocks. `drive_move` builds its own row in
+  // the DRIVE_MOVE_MUTATOR extension, which sets the mm/° suffix from the
+  // selected mode, so only `reset` and `configure` need a suffix here.
+  const driveSuffixes: Record<string, Record<string, string>> = {
+    pybricks_drive_reset: { DISTANCE: "mm", ANGLE: "°" },
+  };
+  if (descriptor.type === "pybricks_drive_configure") {
+    const what = block.getFieldValue("WHAT");
+    const suffix = configureSuffixes[what] ?? "mm/s";
+    driveSuffixes.pybricks_drive_configure = { VALUE: suffix };
+  }
+  for (const [name, suffix] of Object.entries(
+    driveSuffixes[descriptor.type] ?? {},
   )) {
     (block.getField(name) as FieldWhiteInPill | null)?.setSuffix(suffix);
   }

@@ -76,6 +76,14 @@ const runModeOptions: [string, string][] = [
  * fires `onchange` again.
  */
 Blockly.Extensions.register("MOTOR_RUN_DUTY", function (this: Blockly.Block) {
+  // `jsonInit` runs extensions BEFORE `init()` returns, so the row built from
+  // `message0` is still unnamed here. Name it now, or the first rebuild's
+  // `removeInput("MOTOR_ROW")` finds nothing and appends a second row — the
+  // duplicate "motor" label.
+  if (this.inputList.length > 0 && !this.inputList[0].name) {
+    this.inputList[0].name = "MOTOR_ROW";
+  }
+
   const self = this as Blockly.Block & { lastMode?: string };
 
   const rebuild = (): void => {
@@ -105,8 +113,11 @@ Blockly.Extensions.register("MOTOR_RUN_DUTY", function (this: Blockly.Block) {
       const modeField = new Blockly.FieldDropdown(runModeOptions);
       const thenField = new FieldPillDropdown(thenOptions);
 
+      // Mirrors `message0` exactly: `motor | %1 run at %2 %3 %4 then %5`.
+      // The `|` is part of the row, so the rebuild must re-add it — replacing
+      // the row drops whatever `message0` built.
       const row = self.appendDummyInput("MOTOR_ROW");
-      row.appendField("motor").appendField(motorField, "MOTOR");
+      row.appendField("motor |").appendField(motorField, "MOTOR");
       row.appendField("run at").appendField(speedField, "SPEED");
       row.appendField(modeField, "MODE");
 
@@ -153,7 +164,7 @@ Blockly.Blocks["pybricks_motor_run"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_run",
-      message0: "motor %1 run at %2 %3 %4 then %5",
+      message0: "motor | %1 run at %2 %3 %4 then %5",
       args0: [
         {
           type: "field_pill_dropdown",
@@ -184,7 +195,7 @@ Blockly.Blocks["pybricks_motor_reset_angle"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_reset_angle",
-      message0: "motor %1 reset angle to %2",
+      message0: "motor | %1 reset angle to %2",
       args0: [
         {
           type: "field_pill_dropdown",
@@ -206,7 +217,7 @@ Blockly.Blocks["pybricks_motor_stop"] = {
   init() {
     this.jsonInit({
       type: "pybricks_motor_stop",
-      message0: "motor %1 stop %2",
+      message0: "motor | %1 stop %2",
       args0: [
         {
           type: "field_pill_dropdown",
