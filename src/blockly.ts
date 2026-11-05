@@ -123,8 +123,8 @@ const toolboxXml = {
       name: "Input",
       colour: "#5cb1d6",
       contents: [
-        { kind: "block", type: "pybricks_colour" },
         { kind: "label", text: "Color" },
+        { kind: "block", type: "pybricks_colour" },
         { kind: "label", text: "Distance" },
         { kind: "label", text: "Force" },
         { kind: "label", text: "IMU" },

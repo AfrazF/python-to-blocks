@@ -4,7 +4,6 @@ import { getFieldColours } from "./colourUtils";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PILL_HEIGHT = 32;
 const PILL_RADIUS = 16;
-const PILL_EXTRA_WIDTH = 7.78947448730469;
 
 // Swatch geometry, taken from the Pybricks reference SVG
 // (docs/pybricks-blocks/hub/pybricks_variables_get_color.svg).
@@ -15,6 +14,13 @@ const SWATCH_HEIGHT = 21.33;
 const SWATCH_STROKE = "#4585a1";
 // Where the dropdown label starts, so it clears the swatch.
 const TEXT_X = 46.67;
+// Arrow geometry and the gap between the label and it.
+const ARROW_WIDTH = 12;
+const ARROW_HEIGHT = 8.79;
+const ARROW_GAP = 8;
+const PILL_RIGHT_PADDING = 12;
+// Floor so a one-letter label still reads as a pill, not a circle.
+const MIN_PILL_WIDTH = 88;
 
 /** The Pybricks colour palette: label shown in the pill, hex stored as value. */
 const COLOURS: [string, string][] = [
@@ -61,6 +67,19 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     return new FieldColourPill();
   }
 
+  /**
+   * The label shown in the pill, e.g. `red`.
+   *
+   * `FieldDropdown` derives this from the selected option's display text, but
+   * it is also what `updateShapes()` writes into the SVG, so it must never
+   * return an empty string for a valid value.
+   */
+  override getText_(): string {
+    const value = this.getValue();
+    const match = COLOURS.find(([, hex]) => hex === value);
+    return match ? match[0] : String(value ?? "");
+  }
+
   override initView(): void {
     super.initView();
     const root = this.getSvgRoot();
@@ -91,7 +110,7 @@ export class FieldColourPill extends Blockly.FieldDropdown {
   }
 
   override getSize(): Blockly.utils.Size {
-    return new Blockly.utils.Size(this.size_.width || 80, PILL_HEIGHT);
+    return new Blockly.utils.Size(this.size_.width || 100, PILL_HEIGHT);
   }
 
   protected override render_(): void {
@@ -107,6 +126,16 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     this.updateShapes();
   }
 
+  /**
+   * Paints the pill, the swatch, the label and the arrow.
+   *
+   * This cannot lean on Blockly's own measurements. A dropdown whose label is
+   * empty gets `width="0"` written onto its border rect, and its `<text>` is
+   * left with no content and no `blocklyDropdownText` class — so reading the
+   * rect width or querying for that class both come back empty and the pill
+   * collapses to a circle. Instead the label is written here and the width is
+   * derived from the swatch, the measured label and the arrow.
+   */
   private updateShapes(): void {
     if (!this.pillPath || !this.swatchRect) {
       return;
@@ -116,13 +145,36 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     if (!root) {
       return;
     }
-    const text = root.querySelector<SVGTextElement>("text.blocklyDropdownText");
-    const baseWidth = Number(this.defaultRect?.getAttribute("width") ?? 0);
-    const width = baseWidth + PILL_EXTRA_WIDTH;
-    // Short labels give a width smaller than the two radii; clamp so the path
-    // never contains a negative horizontal run.
+
+    const label = this.getText_() ?? "";
+    const text = root.querySelector<SVGTextElement>("text");
+    if (text) {
+      if (text.textContent !== label) {
+        text.textContent = label;
+      }
+      text.setAttribute("x", String(TEXT_X));
+      text.setAttribute("y", String(PILL_HEIGHT / 2));
+      text.setAttribute("dominant-baseline", "central");
+    }
+
+    // Measure the label now that it has content. Fall back to a rough estimate
+    // when the field is not yet in the document (getComputedTextLength throws).
+    let labelWidth = 0;
+    try {
+      labelWidth = text?.getComputedTextLength() ?? 0;
+    } catch {
+      labelWidth = label.length * 7;
+    }
+    if (!labelWidth) {
+      labelWidth = label.length * 7;
+    }
+
+    const width = Math.max(
+      MIN_PILL_WIDTH,
+      TEXT_X + labelWidth + ARROW_GAP + ARROW_WIDTH + PILL_RIGHT_PADDING,
+    );
+    // Clamp so a short label never produces a negative horizontal run.
     const innerWidth = Math.max(0, width - 2 * PILL_RADIUS);
-    const arrow = root.querySelectorAll("image").item(1);
     const { fill, stroke } = getFieldColours(this.sourceBlock_);
 
     this.pillPath.setAttribute(
@@ -139,8 +191,15 @@ export class FieldColourPill extends Blockly.FieldDropdown {
       "important",
     );
 
-    text?.setAttribute("x", String(TEXT_X));
-    text?.setAttribute("y", "16");
-    arrow?.setAttribute("transform", `translate(${width - 24},10)`);
+    // The arrow is the second <image>; the first is Blockly's hidden spacer.
+    const arrow = root.querySelectorAll("image").item(1);
+    arrow?.setAttribute(
+      "transform",
+      `translate(${width - PILL_RIGHT_PADDING - ARROW_WIDTH},${(PILL_HEIGHT - ARROW_HEIGHT) / 2})`,
+    );
+
+    // Keep size_ in step so the block's path grows with the pill.
+    this.size_.width = width;
+    this.size_.height = PILL_HEIGHT;
   }
 }
