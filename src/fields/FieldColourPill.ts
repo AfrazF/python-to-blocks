@@ -7,13 +7,19 @@ const PILL_RADIUS = 16;
 
 // Swatch geometry, taken from the Pybricks reference SVG
 // (docs/pybricks-blocks/hub/pybricks_variables_get_color.svg).
-const SWATCH_X = 12;
+//
+// These are relative to the field group, which Blockly already positions at
+// translate(12, 4) inside the block. The reference SVG puts the swatch at
+// x=0 within its own translate(12, 9.3333) group, so the x here must be 0 —
+// using 12 would double-count the group offset and shift everything right.
+const SWATCH_X = 0;
 const SWATCH_Y = 5.33;
 const SWATCH_WIDTH = 26.67;
 const SWATCH_HEIGHT = 21.33;
 const SWATCH_STROKE = "#4585a1";
-// Where the dropdown label starts, so it clears the swatch.
-const TEXT_X = 46.67;
+// Where the dropdown label starts, so it clears the swatch. Reference: the
+// text group sits at x=46.6667 absolute, i.e. 34.6667 inside the field group.
+const TEXT_X = 34.67;
 // Arrow geometry and the gap between the label and it.
 const ARROW_WIDTH = 12;
 const ARROW_HEIGHT = 8.79;
@@ -46,13 +52,21 @@ const COLOURS: [string, string][] = [
  * this extends `FieldDropdown` exactly like `FieldPillDropdown` does, and adds
  * one thing: an inner `<rect>` filled with the selected colour.
  *
- * The label text and the dropdown arrow are Blockly's own; only their position
- * is adjusted so the text clears the swatch.
+ * Two shapes are supported:
+ *
+ * - **Wrapped** (default): the field draws its own darker pill `<path>` inside
+ *   the block, matching the Pybricks colour-sensor blocks.
+ * - **Unwrapped** (`noWrapper: true`): no pill path. The swatch and label sit
+ *   directly on the block, which is already a cyan pill — this is the
+ *   standalone `pybricks_colour` value block, per
+ *   `docs/pybricks-blocks/hub/pybricks_variables_get_color.svg`.
  */
 export class FieldColourPill extends Blockly.FieldDropdown {
   private pillPath?: SVGPathElement;
   private swatchRect?: SVGRectElement;
   private defaultRect?: SVGRectElement;
+  /** True for the standalone value block, whose own path is the pill. */
+  private noWrapper = false;
 
   constructor() {
     super(COLOURS);
@@ -63,8 +77,10 @@ export class FieldColourPill extends Blockly.FieldDropdown {
    * `options`. `FieldDropdown.fromJson` requires them and throws otherwise, so
    * bypass it entirely.
    */
-  static override fromJson(_config: Record<string, unknown>): FieldColourPill {
-    return new FieldColourPill();
+  static override fromJson(config: Record<string, unknown>): FieldColourPill {
+    const field = new FieldColourPill();
+    field.noWrapper = config.noWrapper === true;
+    return field;
   }
 
   /**
@@ -103,8 +119,14 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     this.swatchRect.setAttribute("stroke", SWATCH_STROKE);
     this.swatchRect.style.setProperty("fill-opacity", "1");
 
-    root.insertBefore(this.pillPath, root.firstChild);
-    root.insertBefore(this.swatchRect, this.pillPath.nextSibling);
+    // The pill path is only drawn for the wrapped shape. The standalone value
+    // block is already a pill, so a second one would show as a darker inset.
+    if (this.noWrapper) {
+      root.insertBefore(this.swatchRect, root.firstChild);
+    } else {
+      root.insertBefore(this.pillPath, root.firstChild);
+      root.insertBefore(this.swatchRect, this.pillPath.nextSibling);
+    }
     root.style.fill = "#ffffff";
     this.updateShapes();
   }
@@ -137,7 +159,7 @@ export class FieldColourPill extends Blockly.FieldDropdown {
    * derived from the swatch, the measured label and the arrow.
    */
   private updateShapes(): void {
-    if (!this.pillPath || !this.swatchRect) {
+    if (!this.swatchRect) {
       return;
     }
 
@@ -152,6 +174,10 @@ export class FieldColourPill extends Blockly.FieldDropdown {
       if (text.textContent !== label) {
         text.textContent = label;
       }
+      // `blockimg.css` gives `.blocklyEditableText > text` a dark fill and
+      // `.blocklyDropdownText` a white one with !important. Without this class
+      // the label renders #575E75 on the coloured pill.
+      text.classList.add("blocklyDropdownText");
       text.setAttribute("x", String(TEXT_X));
       text.setAttribute("y", String(PILL_HEIGHT / 2));
       text.setAttribute("dominant-baseline", "central");
@@ -177,12 +203,14 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     const innerWidth = Math.max(0, width - 2 * PILL_RADIUS);
     const { fill, stroke } = getFieldColours(this.sourceBlock_);
 
-    this.pillPath.setAttribute(
-      "d",
-      `M ${PILL_RADIUS},0 h ${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
-    );
-    this.pillPath.setAttribute("fill", fill);
-    this.pillPath.setAttribute("stroke", stroke);
+    if (!this.noWrapper && this.pillPath) {
+      this.pillPath.setAttribute(
+        "d",
+        `M ${PILL_RADIUS},0 h ${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},${PILL_RADIUS} V ${PILL_HEIGHT} h -${innerWidth} a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 -${PILL_RADIUS},-${PILL_RADIUS} v 0 a ${PILL_RADIUS} ${PILL_RADIUS} 0 0,1 ${PILL_RADIUS},-${PILL_RADIUS} z`,
+      );
+      this.pillPath.setAttribute("fill", fill);
+      this.pillPath.setAttribute("stroke", stroke);
+    }
 
     // `getValue()` is the hex string from the option pair, e.g. "#ff0000".
     this.swatchRect.style.setProperty(
@@ -192,10 +220,11 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     );
 
     // The arrow is the second <image>; the first is Blockly's hidden spacer.
+    // Centre it vertically and pin it to the right edge.
     const arrow = root.querySelectorAll("image").item(1);
     arrow?.setAttribute(
       "transform",
-      `translate(${width - PILL_RIGHT_PADDING - ARROW_WIDTH},${(PILL_HEIGHT - ARROW_HEIGHT) / 2})`,
+      `translate(${width - ARROW_WIDTH - PILL_RIGHT_PADDING},${(PILL_HEIGHT - ARROW_HEIGHT) / 2})`,
     );
 
     // Keep size_ in step so the block's path grows with the pill.
