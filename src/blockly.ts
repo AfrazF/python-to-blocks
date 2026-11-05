@@ -137,9 +137,6 @@ const toolboxXml = {
       contents: [
         { kind: "label", text: "Matrix" },
         { kind: "block", type: "pybricks_hub_display_icon" },
-        { kind: "block", type: "pybricks_hub_display_char" },
-        { kind: "block", type: "pybricks_hub_display_number" },
-        { kind: "block", type: "pybricks_hub_display_off" },
 
         { kind: "label", text: "Button Light" },
         { kind: "label", text: "Sound" },

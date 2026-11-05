@@ -7,11 +7,14 @@
 }
 
 /* Transparent square dropdowns show the block colour through, with a visible
-   outline. No !important on stroke/stroke-width: Blockly's own :hover rule has
-   to be able to override them, otherwise dropdowns stop highlighting on hover. */
+   outline. The stroke is NOT set here: Blockly writes the block's derived
+   secondary colour (block × 0.75) as an inline `stroke` attribute on the rect,
+   and a CSS declaration would override that presentation attribute — which is
+   what pinned every dropdown to blue regardless of block colour.
+   No !important on stroke-width either: Blockly's own :hover rule has to be
+   able to override it, otherwise dropdowns stop highlighting on hover. */
 .blocklyDropdownRect {
   fill: transparent !important;
-  stroke: #3971bf;
   stroke-width: 1px;
 }
 
