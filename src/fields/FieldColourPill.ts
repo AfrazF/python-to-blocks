@@ -52,6 +52,15 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     super(COLOURS);
   }
 
+  /**
+   * The palette is hardcoded in the constructor, so the JSON config carries no
+   * `options`. `FieldDropdown.fromJson` requires them and throws otherwise, so
+   * bypass it entirely.
+   */
+  static override fromJson(_config: Record<string, unknown>): FieldColourPill {
+    return new FieldColourPill();
+  }
+
   override initView(): void {
     super.initView();
     const root = this.getSvgRoot();
