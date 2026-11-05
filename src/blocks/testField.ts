@@ -5,7 +5,7 @@ Blockly.Blocks["pybricks_test_fields"] = {
   init() {
     this.jsonInit({
       type: "pybricks_test_fields",
-      message0: "test  %1   %2   %3   %4",
+      message0: "test  %1   %2   %3   %4   %5",
       args0: [
         {
           type: "field_pill_dropdown",
@@ -31,6 +31,10 @@ Blockly.Blocks["pybricks_test_fields"] = {
           type: "field_white_in_pill",
           name: "VAL",
           value: 150,
+        },
+        {
+          type: "pybricks_colour",
+          name: "COLOR_BLOCK",
         },
       ],
       previousStatement: null,
