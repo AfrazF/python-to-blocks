@@ -2,6 +2,7 @@ import * as Blockly from "blockly";
 import { FieldPillDropdown } from "./fields/FieldPillDropdown";
 import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
 import { FieldDarkSquare } from "./fields/FieldDarkSquare";
+import { FieldColourPill } from "./fields/FieldColourPill";
 import "./style.css";
 import "./pybricks.css";
 import "blockly/blocks";
@@ -26,6 +27,7 @@ import "./blocks/if";
 import "./blocks/tryExcept";
 import "./blocks/returnRaise";
 import "./blocks/hub";
+import "./blocks/colour";
 import "./blocks/testField";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
@@ -43,6 +45,7 @@ import { pybricksDark, pybricksTheme } from "./theme";
 Blockly.fieldRegistry.register("field_pill_dropdown", FieldPillDropdown);
 Blockly.fieldRegistry.register("field_white_in_pill", FieldWhiteInPill);
 Blockly.fieldRegistry.register("field_dark_square", FieldDarkSquare);
+Blockly.fieldRegistry.register("field_colour_pill", FieldColourPill);
 
 let currentFiles: Record<string, string> = {
   "main.py": mainSource,

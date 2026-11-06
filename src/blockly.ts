@@ -124,6 +124,7 @@ const toolboxXml = {
       colour: "#5cb1d6",
       contents: [
         { kind: "label", text: "Color" },
+        { kind: "block", type: "pybricks_colour" },
         { kind: "label", text: "Distance" },
         { kind: "label", text: "Force" },
         { kind: "label", text: "IMU" },
@@ -136,9 +137,6 @@ const toolboxXml = {
       contents: [
         { kind: "label", text: "Matrix" },
         { kind: "block", type: "pybricks_hub_display_icon" },
-        { kind: "block", type: "pybricks_hub_display_char" },
-        { kind: "block", type: "pybricks_hub_display_number" },
-        { kind: "block", type: "pybricks_hub_display_off" },
 
         { kind: "label", text: "Button Light" },
         { kind: "label", text: "Sound" },

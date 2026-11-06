@@ -134,10 +134,9 @@ Blockly.Extensions.register(
         // The `|` is part of the row, so the rebuild must re-add it — replacing
         // the row drops whatever `message0` built.
         const row = self.appendDummyInput("DRIVE_ROW");
-        row.appendField("drive base |").appendField(
-          driveBaseField,
-          "DRIVEBASE",
-        );
+        row
+          .appendField("drive base |")
+          .appendField(driveBaseField, "DRIVEBASE");
         row.appendField("drive").appendField(modeField, "MODE");
 
         if (mode === "turn") {
