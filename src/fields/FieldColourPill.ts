@@ -28,7 +28,14 @@ const PILL_RIGHT_PADDING = 12;
 // Floor so a one-letter label still reads as a pill, not a circle.
 const MIN_PILL_WIDTH = 88;
 
-/** The Pybricks colour palette: label shown in the pill, hex stored as value. */
+/**
+ * The Pybricks colour palette: label shown in the pill, hex stored as value.
+ *
+ * Values match the swatches on
+ * https://docs.pybricks.com/en/stable/parameters/color.html — each is the RGB
+ * form of the documented HSV triple. `violet` is `Color(h=270, s=100, v=100)`,
+ * whose red channel is 127.5 and rounds to 128 (`#80`), not 127 (`#7f`).
+ */
 const COLOURS: [string, string][] = [
   ["red", "#ff0000"],
   ["orange", "#ff8000"],
@@ -36,7 +43,7 @@ const COLOURS: [string, string][] = [
   ["green", "#00ff00"],
   ["cyan", "#00ffff"],
   ["blue", "#0000ff"],
-  ["violet", "#7f00ff"],
+  ["violet", "#8000ff"],
   ["magenta", "#ff00ff"],
   ["white", "#ffffff"],
   ["gray", "#808080"],
