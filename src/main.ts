@@ -34,7 +34,6 @@ import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
 import runSource from "../fixtures/run.py?raw";
 import exampleattachSource from "../fixtures/exampleattach.py?raw";
-import hubLightSource from "../fixtures/hub_light.py?raw";
 import { createWorkspace } from "./blockly";
 import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
@@ -54,7 +53,6 @@ let currentFiles: Record<string, string> = {
   "robot.py": robotSource,
   "run.py": runSource,
   "exampleattach.py": exampleattachSource,
-  "hub_light.py": hubLightSource,
 };
 
 let hasUploaded = false;

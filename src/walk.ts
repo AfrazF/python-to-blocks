@@ -684,66 +684,6 @@ function readMember(
 }
 
 /**
- * The `pybricks.parameters.Icon` names the `ICON` dropdown offers.
- *
- * Kept in sync with `iconOptions` in `src/blocks/hub.ts`. A `FieldDropdown`
- * throws when set to a value it does not list, so the walker must map every
- * argument onto one of these.
- */
-const ICON_NAMES = new Set([
-  "UP",
-  "DOWN",
-  "LEFT",
-  "RIGHT",
-  "ARROW_UP",
-  "ARROW_DOWN",
-  "ARROW_LEFT",
-  "ARROW_RIGHT",
-  "ARROW_LEFT_UP",
-  "ARROW_LEFT_DOWN",
-  "ARROW_RIGHT_UP",
-  "ARROW_RIGHT_DOWN",
-  "HAPPY",
-  "SAD",
-  "SMILE",
-  "HEART",
-  "EYE_LEFT",
-  "EYE_RIGHT",
-  "EYE_LEFT_BROW",
-  "EYE_RIGHT_BROW",
-  "EYE_LEFT_BROW_UP",
-  "EYE_RIGHT_BROW_UP",
-  "EYE_LEFT_BLINK",
-  "EYE_RIGHT_BLINK",
-  "CIRCLE",
-  "SQUARE",
-  "TRIANGLE",
-  "TRIANGLE_LEFT",
-  "TRIANGLE_RIGHT",
-  "CLOCK",
-  "PAUSE",
-  "NO",
-  "YES",
-  "FULL",
-  "EMPTY",
-]);
-
-/**
- * Maps a `hub.display.icon(...)` argument onto an `ICON` dropdown value.
- *
- * `Icon.UP` → `UP`. A bare `UP` is accepted too. Anything else — a variable
- * like `NEXT_ICON`, a `Matrix(...)` literal, an expression — falls back to the
- * dropdown's first option so the block still renders; the original text is
- * lost, which is the same trade-off the other dropdown-backed fields make.
- */
-function iconName(argument: string): string {
-  const bare = argument.startsWith("Icon.")
-    ? argument.slice("Icon.".length)
-    : argument;
-  return ICON_NAMES.has(bare) ? bare : "UP";
-}
-
-/**
  * Turns a `hub.display.<method>(...)` call into a hub display block.
  *
  * Only the exact shape `hub . display . <method>` is accepted. Anything else —
@@ -799,7 +739,7 @@ function collectHubDisplayCall(
   if (methodName === "icon" && argumentNodes.length === 1) {
     return {
       type: "pybricks_hub_display_icon",
-      fields: { METHOD: "icon", ICON: iconName(argumentText(0)) },
+      fields: { METHOD: "icon", ICON: argumentText(0) },
       ...range,
     };
   }
