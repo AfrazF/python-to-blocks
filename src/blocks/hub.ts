@@ -23,8 +23,12 @@ import * as Blockly from "blockly";
  * set is complete for future code.
  */
 
-const HUB_COLOUR = "#9b6af6";
-const HUB_COLOUR_SECONDARY = "#691ff0";
+/**
+ * Light & Sound purple. Shared with `hubLight.ts` so the two hub block families
+ * cannot drift apart.
+ */
+export const HUB_COLOUR = "#9b6af6";
+export const HUB_COLOUR_SECONDARY = "#691ff0";
 
 /** Every `hub.display.*` method, in Pybricks' own order. */
 const displayMethods: [string, string][] = [
@@ -39,8 +43,10 @@ const displayMethods: [string, string][] = [
  * a project has exactly one hub, so the list holds a single entry and nothing
  * reads the selection. v2d.6a fills this from the object table so a project
  * with several hubs can pick between them.
+ *
+ * Shared with `hubLight.ts`; neither block mutates it.
  */
-const hubOptions: [string, string][] = [["hub", "hub"]];
+export const hubOptions: [string, string][] = [["hub", "hub"]];
 
 Blockly.Blocks["pybricks_hub_display_icon"] = {
   init() {

@@ -2,6 +2,7 @@ import * as Blockly from "blockly";
 import { FieldColourPill } from "../fields/FieldColourPill";
 import { FieldPillDropdown } from "../fields/FieldPillDropdown";
 import { COLOUR_MAP } from "../fields/colourUtils";
+import { HUB_COLOUR, HUB_COLOUR_SECONDARY, hubOptions } from "./hub";
 
 /**
  * Hub light block (Step v2b.2b.d.2).
@@ -9,36 +10,38 @@ import { COLOUR_MAP } from "../fields/colourUtils";
  * One block covers both Pybricks shapes:
  *
  * - `pybricks_blockLightOnColor_primehub_on.svg` —
- *   `(hub ▾) light [on ▾] (● RED ▾)`
+ *   `(hub ▾) light [on ▾] (● red ▾)`
  * - `pybricks_blockLightOnColor_primehub_off.svg` —
  *   `(hub ▾) light [off ▾]`
  *
  * The leading HUB is a pill dropdown, matching the `HUB` field on the
  * `pybricks_hub_display_*` blocks. MODE is a transparent square dropdown (block
- * colour shows through, visible stroke). COLOUR is a `FieldColourPill` in enum
- * mode, so it stores `"RED"` rather than `"#ff0000"`. See
- * `docs/FIELD_DESIGN.md`.
+ * colour shows through, visible stroke; the transparency is a `style.css` rule
+ * on `.blocklyDropdownRect`, not local to this file). COLOUR is a
+ * `FieldColourPill` in enum mode, so it stores `"RED"` rather than `"#ff0000"`.
+ * See `docs/FIELD_DESIGN.md`.
  *
  * Colour is Light & Sound purple (`#9b6af6`), not the Pybricks SVG blue — see
  * "Deliberate deviation from Pybricks" in `docs/FIELD_DESIGN.md`. Field fills
  * and strokes are derived from the block colour by `colourUtils.ts`.
  *
- * The COLOUR row is added and removed by the MODE validator, which is the only
- * thing that changes the block's shape. `loadExtraState` re-runs the same
+ * The COLOUR field is added and removed by the MODE validator, which is the
+ * only thing that changes the block's shape. `loadExtraState` re-runs the same
  * function so a parsed block lands in the right shape before `initSvg()`.
  */
 
-const HUB_COLOUR = "#9b6af6";
-const HUB_COLOUR_SECONDARY = "#691ff0";
+type HubLightState = { mode: "on" | "off" };
 
 /**
- * The hub object dropdown. Purely aesthetic in v2b — a project has exactly one
- * hub, so the list holds a single entry and nothing reads the selection.
- * v2d.6a fills this from the object table.
+ * The block's own state, attached to the instance so `saveExtraState` and
+ * `loadExtraState` can reach it. Declared here rather than cast at each use.
  */
-const hubOptions: [string, string][] = [["hub", "hub"]];
-
-type HubLightState = { mode: "on" | "off" };
+declare module "blockly" {
+  interface Block {
+    __hubLightState?: HubLightState;
+    __hubLightUpdateShape?: () => void;
+  }
+}
 
 Blockly.Blocks["pybricks_hub_light"] = {
   init() {
@@ -65,7 +68,8 @@ Blockly.Blocks["pybricks_hub_light"] = {
           "COLOUR",
         );
       } else if (!wantColour && hasColour) {
-        this.getInput("MODE_ROW")?.removeField("COLOUR", true);
+        // MODE_ROW is created unconditionally in init(); ! is safe here.
+        this.getInput("MODE_ROW")!.removeField("COLOUR", true);
       }
     };
     mode.setValidator((value: string) => {
@@ -77,27 +81,27 @@ Blockly.Blocks["pybricks_hub_light"] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour(HUB_COLOUR);
+    // Blockly 13 has no public setColourSecondary; jsonInit accepts it,
+    // imperative init does not.
     (
       this as unknown as { setColourSecondary?: (c: string) => void }
     ).setColourSecondary?.(HUB_COLOUR_SECONDARY);
 
-    (this as unknown as { __state?: HubLightState }).__state = state;
-    (this as unknown as { __updateShape?: () => void }).__updateShape =
-      updateShape;
+    this.__hubLightState = state;
+    this.__hubLightUpdateShape = updateShape;
     updateShape();
   },
 
   saveExtraState(): HubLightState {
-    const state = (this as unknown as { __state?: HubLightState }).__state;
-    return { mode: state?.mode ?? "on" };
+    return { mode: this.__hubLightState?.mode ?? "on" };
   },
 
   loadExtraState(state: HubLightState) {
-    const stored = (this as unknown as { __state?: HubLightState }).__state;
+    const stored = this.__hubLightState;
     if (stored) {
       stored.mode = state?.mode === "off" ? "off" : "on";
     }
-    (this as unknown as { __updateShape?: () => void }).__updateShape?.();
+    this.__hubLightUpdateShape?.();
     this.getField("MODE")?.setValue(stored?.mode ?? "on");
   },
 };
