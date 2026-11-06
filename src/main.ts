@@ -27,6 +27,7 @@ import "./blocks/if";
 import "./blocks/tryExcept";
 import "./blocks/returnRaise";
 import "./blocks/hub";
+import "./blocks/hubLight";
 import "./blocks/colour";
 import "./blocks/testField";
 import mainSource from "../fixtures/main.py?raw";

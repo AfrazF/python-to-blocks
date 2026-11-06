@@ -2,6 +2,7 @@ import * as Blockly from "blockly";
 import { parser } from "@lezer/python";
 import type { ResolvedTable } from "./resolve";
 import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
+import { COLOUR_MAP } from "./fields/colourUtils";
 import { configureSuffixes } from "./blocks/driveBase";
 
 // Re-exported so tests can parse fixtures without importing @lezer directly.
@@ -770,6 +771,103 @@ function collectHubDisplayCall(
   return undefined;
 }
 
+/**
+ * Turns a `hub.light.<method>(...)` call into the hub light block.
+ *
+ * Recognises exactly two shapes:
+ *
+ * - `hub.light.on(Color.RED)` → MODE `on`, COLOUR `RED`
+ * - `hub.light.off()`         → MODE `off`, no COLOUR row
+ *
+ * Anything else returns `undefined` so the caller falls through to the raw
+ * block: a different object, a different member, `.on()` with zero or several
+ * arguments, an argument that is not `Color.<CONSTANT>`, a constant outside
+ * `COLOUR_MAP`, or `.off()` with arguments.
+ *
+ * Never throws on an unexpected shape.
+ */
+function collectHubLightCall(
+  source: string,
+  expression: ParseNode,
+): BlockDescriptor | undefined {
+  const call = readCallExpression(expression);
+  if (!call || call.callee.type.name !== "MemberExpression") {
+    return undefined;
+  }
+
+  // The callee must be `hub.light.<method>`: an outer MemberExpression whose
+  // first child is itself a MemberExpression reading `hub.light`.
+  const outerCursor = call.callee.cursor();
+  let innerMember: ParseNode | undefined;
+  let methodName: string | undefined;
+
+  if (outerCursor.firstChild()) {
+    do {
+      if (
+        outerCursor.name === "MemberExpression" &&
+        innerMember === undefined
+      ) {
+        innerMember = outerCursor.node;
+      } else if (outerCursor.name === "PropertyName") {
+        methodName = source.slice(outerCursor.node.from, outerCursor.node.to);
+      }
+    } while (outerCursor.nextSibling());
+  }
+
+  if (!innerMember || !methodName) {
+    return undefined;
+  }
+
+  const { objectName, memberName } = readMember(source, innerMember);
+  if (objectName !== "hub" || memberName !== "light") {
+    return undefined;
+  }
+
+  const argumentNodes = getCallArgumentNodes(call.argumentList);
+  const range = { sourceStart: expression.from, sourceEnd: expression.to };
+
+  if (methodName === "off") {
+    if (argumentNodes.length !== 0) {
+      return undefined;
+    }
+    return {
+      type: "pybricks_hub_light",
+      fields: { MODE: "off" },
+      extraState: { mode: "off" },
+      ...range,
+    };
+  }
+
+  if (methodName === "on") {
+    if (argumentNodes.length !== 1) {
+      return undefined;
+    }
+    const argument = argumentNodes[0];
+    if (argument.type.name !== "MemberExpression") {
+      return undefined;
+    }
+    const { objectName: colourObject, memberName: colourName } = readMember(
+      source,
+      argument,
+    );
+    if (
+      colourObject !== "Color" ||
+      !colourName ||
+      !(colourName in COLOUR_MAP)
+    ) {
+      return undefined;
+    }
+    return {
+      type: "pybricks_hub_light",
+      fields: { MODE: "on", COLOUR: colourName },
+      extraState: { mode: "on" },
+      ...range,
+    };
+  }
+
+  return undefined;
+}
+
 function collectDriveSettingsBlocks(
   source: string,
   expression: ParseNode,
@@ -852,8 +950,14 @@ function collectExpression(
   if (expression.type.name === "CallExpression") {
     const call = readCallExpression(expression);
 
-    // Hub display calls are three-level members (`hub.display.icon`), so they
-    // must be checked before the two-level DriveBase/Motor dispatch below.
+    // Hub light and hub display calls are both three-level members
+    // (`hub.light.on`, `hub.display.icon`), so they must be checked before the
+    // two-level DriveBase/Motor dispatch below. First match wins.
+    const hubLightDescriptor = collectHubLightCall(source, expression);
+    if (hubLightDescriptor) {
+      return hubLightDescriptor;
+    }
+
     const hubDisplayDescriptor = collectHubDisplayCall(source, expression);
     if (hubDisplayDescriptor) {
       return hubDisplayDescriptor;

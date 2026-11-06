@@ -83,3 +83,26 @@ it("routes every motor run method to one block with the right mode", () => {
     VALUE: "50",
   });
 });
+
+it("routes hub.light.on(Color.X) to the hub light block", () => {
+  const blocks = collectBlocks("hub.light.on(Color.RED)", {});
+  const light = blocks.find((block) => block.type === "pybricks_hub_light");
+  expect(light?.fields).toMatchObject({ MODE: "on", COLOUR: "RED" });
+  expect(light?.extraState).toEqual({ mode: "on" });
+});
+
+it("routes hub.light.off() to the hub light block with no colour", () => {
+  const blocks = collectBlocks("hub.light.off()", {});
+  const light = blocks.find((block) => block.type === "pybricks_hub_light");
+  expect(light?.fields).toMatchObject({ MODE: "off" });
+  expect(light?.fields?.COLOUR).toBeUndefined();
+  expect(light?.extraState).toEqual({ mode: "off" });
+});
+
+it("falls back to raw code for an unrecognised hub light argument", () => {
+  const blocks = collectBlocks("hub.light.on(x)", {});
+  expect(blocks.some((block) => block.type === "pybricks_hub_light")).toBe(
+    false,
+  );
+  expect(blocks.some((block) => block.type === "pybricks_raw_code")).toBe(true);
+});

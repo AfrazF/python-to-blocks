@@ -1,55 +1,52 @@
 import * as Blockly from "blockly";
-import { getFieldColours } from "./colourUtils";
+import { COLOUR_MAP, getFieldColours } from "./colourUtils";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PILL_HEIGHT = 32;
 const PILL_RADIUS = 16;
 
-// Swatch geometry, taken from the Pybricks reference SVG
-// (docs/pybricks-blocks/hub/pybricks_variables_get_color.svg).
+// Swatch geometry, taken from the Pybricks reference SVGs:
 //
-// These are relative to the field group, which Blockly already positions at
-// translate(12, 4) inside the block. The reference SVG puts the swatch at
-// x=0 within its own translate(12, 9.3333) group, so the x here must be 0 —
-// using 12 would double-count the group offset and shift everything right.
-const SWATCH_X = 0;
+// - `hub/pybricks_blockLightOnColor_primehub_on.svg` — pill `m 16,0 h 71.5651
+//   … V 32` (103.57 × 32, radius 16), swatch group `translate(12, 5.3333)`,
+//   text group `translate(46.6667, 7)`.
+// - `hub/pybricks_variables_get_color.svg` — block `m 20,0 h 63.5651 … V 40`
+//   (103.57 × 40, radius 20), swatch group `translate(12, 9.3333)`, text group
+//   `translate(46.6667, 11)`.
+//
+// In BOTH references the swatch sits 12px in from the pill's left edge and the
+// text starts at 46.6667. The pill path is drawn inside this field's own group
+// starting at x=0, so those are the numbers to use verbatim — the field group's
+// own `translate(12, 4)` is outside the pill and must not be subtracted.
+//
+// Putting the swatch at x=0 (as an earlier revision did) leaves its square
+// corners outside the pill's rounded left edge, which is the clipping bug.
+const SWATCH_X = 12;
 const SWATCH_Y = 5.33;
 const SWATCH_WIDTH = 26.67;
 const SWATCH_HEIGHT = 21.33;
-const SWATCH_STROKE = "#4585a1";
-// Where the dropdown label starts, so it clears the swatch. Reference: the
-// text group sits at x=46.6667 absolute, i.e. 34.6667 inside the field group.
-const TEXT_X = 34.67;
+// Where the dropdown label starts, so it clears the swatch.
+const TEXT_X = 46.67;
 // Arrow geometry and the gap between the label and it.
 const ARROW_WIDTH = 12;
 const ARROW_HEIGHT = 8.79;
 const ARROW_GAP = 8;
 const PILL_RIGHT_PADDING = 12;
-// Floor so a one-letter label still reads as a pill, not a circle.
-const MIN_PILL_WIDTH = 88;
+// Floor so a short label still reads as a pill, not a circle. The reference
+// pill is 103.57 wide; this floor reproduces that for the shortest labels and
+// lets longer ones grow from the measured text width.
+const MIN_PILL_WIDTH = 104;
 
 /**
  * The Pybricks colour palette: label shown in the pill, hex stored as value.
  *
- * Values match the swatches on
- * https://docs.pybricks.com/en/stable/parameters/color.html — each is the RGB
- * form of the documented HSV triple. `violet` is `Color(h=270, s=100, v=100)`,
- * whose red channel is 127.5 and rounds to 128 (`#80`), not 127 (`#7f`).
+ * The hexes live in `COLOUR_MAP` (`colourUtils.ts`) so the hub light walker can
+ * validate `Color.<NAME>` against the same table. Here the labels are
+ * lowercased, matching the reference SVG (`red`, not `RED`).
  */
-const COLOURS: [string, string][] = [
-  ["red", "#ff0000"],
-  ["orange", "#ff8000"],
-  ["yellow", "#ffff00"],
-  ["green", "#00ff00"],
-  ["cyan", "#00ffff"],
-  ["blue", "#0000ff"],
-  ["violet", "#8000ff"],
-  ["magenta", "#ff00ff"],
-  ["white", "#ffffff"],
-  ["gray", "#808080"],
-  ["black", "#1a1a1a"],
-  ["none", "#000000"],
-];
+const COLOURS: [string, string][] = Object.entries(COLOUR_MAP).map(
+  ([name, hex]) => [name.toLowerCase(), hex],
+);
 
 /**
  * A pill dropdown that shows a colour swatch before its label.
@@ -74,9 +71,23 @@ export class FieldColourPill extends Blockly.FieldDropdown {
   private defaultRect?: SVGRectElement;
   /** True for the standalone value block, whose own path is the pill. */
   private noWrapper = false;
+  /**
+   * Enum mode: name → hex. When set, the field stores the *name* (`"RED"`)
+   * instead of the hex, and the swatch is painted from this table. Undefined
+   * keeps the original hex-storing behaviour used by `pybricks_colour`.
+   */
+  private enumMap?: Record<string, string>;
 
-  constructor() {
-    super(COLOURS);
+  constructor(enumMap?: Record<string, string>) {
+    // Enum mode: the popup shows the lowercase label (`red`) but stores the
+    // uppercase name (`RED`), matching Pybricks' rendering and Python's
+    // `Color.RED`.
+    super(
+      enumMap
+        ? Object.keys(enumMap).map((name) => [name.toLowerCase(), name])
+        : COLOURS,
+    );
+    this.enumMap = enumMap;
   }
 
   /**
@@ -99,8 +110,23 @@ export class FieldColourPill extends Blockly.FieldDropdown {
    */
   override getText_(): string {
     const value = this.getValue();
+    if (this.enumMap) {
+      // Enum mode stores the uppercase name (`"RED"`) so codegen can emit
+      // `Color.RED`, but Pybricks renders the label lowercase (`red`) — see
+      // `docs/pybricks-blocks/hub/pybricks_blockLightOnColor_primehub_on.svg`.
+      return String(value ?? "").toLowerCase();
+    }
     const match = COLOURS.find(([, hex]) => hex === value);
     return match ? match[0] : String(value ?? "");
+  }
+
+  /** The hex to paint the swatch with, for either storage mode. */
+  private swatchColour(): string {
+    const value = String(this.getValue() ?? "");
+    if (this.enumMap) {
+      return this.enumMap[value] ?? Object.values(this.enumMap)[0] ?? "#000000";
+    }
+    return value;
   }
 
   override initView(): void {
@@ -123,7 +149,8 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     this.swatchRect.setAttribute("y", String(SWATCH_Y));
     this.swatchRect.setAttribute("width", String(SWATCH_WIDTH));
     this.swatchRect.setAttribute("height", String(SWATCH_HEIGHT));
-    this.swatchRect.setAttribute("stroke", SWATCH_STROKE);
+    // The stroke is set in `updateShapes()` from the block colour — a literal
+    // here would pin every swatch to the reference SVG's blue.
     this.swatchRect.style.setProperty("fill-opacity", "1");
 
     // The pill path is only drawn for the wrapped shape. The standalone value
@@ -231,12 +258,12 @@ export class FieldColourPill extends Blockly.FieldDropdown {
       this.pillPath.setAttribute("stroke", stroke);
     }
 
-    // `getValue()` is the hex string from the option pair, e.g. "#ff0000".
-    this.swatchRect.style.setProperty(
-      "fill",
-      String(this.getValue()),
-      "important",
-    );
+    // Hex mode: `getValue()` is the hex from the option pair, e.g. "#ff0000".
+    // Enum mode: `getValue()` is the name, so the hex comes from `enumMap`.
+    this.swatchRect.style.setProperty("fill", this.swatchColour(), "important");
+    // The swatch outline follows the block colour like every other field
+    // border (block × 0.75), not the reference SVG's fixed blue.
+    this.swatchRect.setAttribute("stroke", stroke);
 
     // The arrow is the second <image>; the first is Blockly's hidden spacer.
     // Centre it vertically and pin it to the right edge.

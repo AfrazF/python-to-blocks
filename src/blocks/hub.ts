@@ -15,15 +15,20 @@ import * as Blockly from "blockly";
  * read-only mode the dropdown cannot be opened.
  *
  * Field shapes follow `docs/FIELD_DESIGN.md` (v2b.2b.d.1):
- * `HUB` and `METHOD` are pill dropdowns, `ICON`/`CHAR` are dark squares, and
- * `NUMBER` is a white square inside a pill.
+ * `HUB` is a pill dropdown, `METHOD` is a transparent square dropdown,
+ * `ICON` is a white square (free text — icons are project-defined names),
+ * `CHAR` is a dark square, and `NUMBER` is a white square inside a pill.
  *
  * `hub.display.number` is not used by any fixture. It ships anyway so the block
  * set is complete for future code.
  */
 
-const HUB_COLOUR = "#9b6af6";
-const HUB_COLOUR_SECONDARY = "#691ff0";
+/**
+ * Light & Sound purple. Shared with `hubLight.ts` so the two hub block families
+ * cannot drift apart.
+ */
+export const HUB_COLOUR = "#9b6af6";
+export const HUB_COLOUR_SECONDARY = "#691ff0";
 
 /** Every `hub.display.*` method, in Pybricks' own order. */
 const displayMethods: [string, string][] = [
@@ -38,8 +43,10 @@ const displayMethods: [string, string][] = [
  * a project has exactly one hub, so the list holds a single entry and nothing
  * reads the selection. v2d.6a fills this from the object table so a project
  * with several hubs can pick between them.
+ *
+ * Shared with `hubLight.ts`; neither block mutates it.
  */
-const hubOptions: [string, string][] = [["hub", "hub"]];
+export const hubOptions: [string, string][] = [["hub", "hub"]];
 
 Blockly.Blocks["pybricks_hub_display_icon"] = {
   init() {
@@ -48,12 +55,10 @@ Blockly.Blocks["pybricks_hub_display_icon"] = {
       message0: "%1 display %2 %3",
       args0: [
         { type: "field_pill_dropdown", name: "HUB", options: hubOptions },
-        {
-          type: "field_pill_dropdown",
-          name: "METHOD",
-          options: displayMethods,
-        },
-        { type: "field_dark_square", name: "ICON", text: "" },
+        // Transparent square dropdown, per `docs/FIELD_DESIGN.md`.
+        { type: "field_dropdown", name: "METHOD", options: displayMethods },
+        // White square: icons are project-defined names, not a fixed enum.
+        { type: "field_dark_square", name: "ICON", text: "", white: true },
       ],
       previousStatement: null,
       nextStatement: null,
@@ -70,11 +75,7 @@ Blockly.Blocks["pybricks_hub_display_char"] = {
       message0: "%1 display %2 %3",
       args0: [
         { type: "field_pill_dropdown", name: "HUB", options: hubOptions },
-        {
-          type: "field_pill_dropdown",
-          name: "METHOD",
-          options: displayMethods,
-        },
+        { type: "field_dropdown", name: "METHOD", options: displayMethods },
         { type: "field_dark_square", name: "CHAR", text: "" },
       ],
       previousStatement: null,
@@ -92,11 +93,7 @@ Blockly.Blocks["pybricks_hub_display_number"] = {
       message0: "%1 display %2 %3",
       args0: [
         { type: "field_pill_dropdown", name: "HUB", options: hubOptions },
-        {
-          type: "field_pill_dropdown",
-          name: "METHOD",
-          options: displayMethods,
-        },
+        { type: "field_dropdown", name: "METHOD", options: displayMethods },
         { type: "field_white_in_pill", name: "NUMBER", value: 0 },
       ],
       previousStatement: null,
@@ -114,11 +111,7 @@ Blockly.Blocks["pybricks_hub_display_off"] = {
       message0: "%1 display %2",
       args0: [
         { type: "field_pill_dropdown", name: "HUB", options: hubOptions },
-        {
-          type: "field_pill_dropdown",
-          name: "METHOD",
-          options: displayMethods,
-        },
+        { type: "field_dropdown", name: "METHOD", options: displayMethods },
       ],
       previousStatement: null,
       nextStatement: null,
