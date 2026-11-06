@@ -131,7 +131,19 @@ export class FieldColourPill extends Blockly.FieldDropdown {
     this.updateShapes();
   }
 
+  /**
+   * Returns the field's size, repainting first.
+   *
+   * `getSize()` is the only place Blockly calls `render_()` from — see the
+   * `Field.render_` docs: "Used by getSize() to move/resize any DOM elements,
+   * and get the new size." Returning a cached `size_` without rendering means a
+   * value change never repaints the swatch, so the pill keeps showing the old
+   * colour until something else forces a re-layout (which is why picking a
+   * colour with a different label width appeared to work, and picking one with
+   * the same width did not).
+   */
   override getSize(): Blockly.utils.Size {
+    this.render_();
     return new Blockly.utils.Size(this.size_.width || 100, PILL_HEIGHT);
   }
 
