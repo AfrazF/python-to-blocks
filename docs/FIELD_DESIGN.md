@@ -86,6 +86,12 @@ We use one Flow orange (`#ffab19`) for `if`, `elif`, `else`, `wait`,
 `for`, `while`. Spike Prime's control category is one colour, and the
 two-shade split is confusing to beginners. User decision.
 
+- `pybricks_hub_light` uses Light & Sound purple (`#9b6af6`), not the
+  Pybricks SVG blue (`#4c97ff`). Our Light & Sound category is purple;
+  hub display blocks are purple; hub light joins them for in-app
+  visual consistency. The reference SVG remains blue — this is
+  intentional, not a bug.
+
 ## Field lookup table
 
 One row per field registered in `src/blocks/`. Verified by reading each
@@ -128,7 +134,7 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_motor_stop`         | `MODE`      | `Stop.COAST`           | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_icon`   | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_icon`   | `METHOD`    | `icon`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_hub_display_icon`   | `ICON`      | `NEXT_ICON`            | white-square                | white       | dark  |            | ours         |
+| `pybricks_hub_display_icon`   | `ICON`      | `Icon.UP`              | transparent-square-dropdown | transparent | dark  |            | ours         |
 | `pybricks_hub_display_char`   | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_char`   | `METHOD`    | `char`                 | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_char`   | `CHAR`      | `ATTACHMENTS[i][0]`    | white-square                | white       | dark  |            | ours         |
@@ -137,6 +143,9 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_hub_display_number` | `NUMBER`    | `42`                   | white-in-pill               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_off`    | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_hub_display_off`    | `METHOD`    | `off`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_light`          | `HUB`       | `hub`                  | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_hub_light`          | `MODE`      | `on`                   | transparent-square-dropdown | transparent | dark  |            | pybricks-svg |
+| `pybricks_hub_light`          | `COLOUR`    | `Color.RED`            | colour-chit                 | value       | (n/a) |            | pybricks-svg |
 | `pybricks_var_reporter`       | `NAME`      | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_var_declare`        | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
 | `pybricks_var_declare`        | `VALUE`     | `56`                   | white-in-pill               | darker      | white |            | pybricks-svg |
@@ -175,7 +184,9 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 
 BLOCK_DESIGN.md and the roadmap name blocks that no file registers today. No rows exist for these — their fields are unknown until the block lands.
 
-- `pybricks_hub_light_on` — `hub.light.*` is v2e; no block file, no fixture usage.
+- `hub.light.on(Color(270))` (the `Color(...)` constructor) and
+  `hub.light.on(<variable>)` — both fall through to `pybricks_raw_code` until
+  v2e. `pybricks_hub_light` itself ships in v2b.2b.d.2.
 - `pybricks_hub_display_text` / `.image` — v2e.7.
 - `pybricks_pid` — v2e.1.
 - `pybricks_hub_button` — Step 39.
@@ -202,7 +213,8 @@ height / 2` arcs, not as `<rect rx="...">`. Two feasible approaches:
    `towards`, `straight`.
 
 5. **Colour chit last.** `Color.RED` → `(●)` circle with swatch-grid
-   picker. Not used by any current block; wait for `hub.light`.
+   picker. Shipped in v2b.2b.d.2 as `FieldColourPill` enum mode
+   (`pybricks_hub_light`).
 
 6. **Verify against Pybricks screenshots.** Each converted block
    compared side-by-side before merging.

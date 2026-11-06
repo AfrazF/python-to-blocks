@@ -15,8 +15,9 @@ import * as Blockly from "blockly";
  * read-only mode the dropdown cannot be opened.
  *
  * Field shapes follow `docs/FIELD_DESIGN.md` (v2b.2b.d.1):
- * `HUB` and `METHOD` are pill dropdowns, `ICON`/`CHAR` are dark squares, and
- * `NUMBER` is a white square inside a pill.
+ * `HUB` and `METHOD` are pill dropdowns, `ICON` is a transparent square
+ * dropdown, `CHAR` is a dark square, and `NUMBER` is a white square inside a
+ * pill.
  *
  * `hub.display.number` is not used by any fixture. It ships anyway so the block
  * set is complete for future code.
@@ -31,6 +32,50 @@ const displayMethods: [string, string][] = [
   ["char", "char"],
   ["number", "number"],
   ["off", "off"],
+];
+
+/**
+ * The `pybricks.parameters.Icon` constants, in Pybricks' own order.
+ *
+ * The walker stores the bare name (`UP`), so codegen can emit `Icon.UP`. The
+ * dropdown shows the same name — Pybricks renders icon names in full caps.
+ */
+const iconOptions: [string, string][] = [
+  ["UP", "UP"],
+  ["DOWN", "DOWN"],
+  ["LEFT", "LEFT"],
+  ["RIGHT", "RIGHT"],
+  ["ARROW_UP", "ARROW_UP"],
+  ["ARROW_DOWN", "ARROW_DOWN"],
+  ["ARROW_LEFT", "ARROW_LEFT"],
+  ["ARROW_RIGHT", "ARROW_RIGHT"],
+  ["ARROW_LEFT_UP", "ARROW_LEFT_UP"],
+  ["ARROW_LEFT_DOWN", "ARROW_LEFT_DOWN"],
+  ["ARROW_RIGHT_UP", "ARROW_RIGHT_UP"],
+  ["ARROW_RIGHT_DOWN", "ARROW_RIGHT_DOWN"],
+  ["HAPPY", "HAPPY"],
+  ["SAD", "SAD"],
+  ["SMILE", "SMILE"],
+  ["HEART", "HEART"],
+  ["EYE_LEFT", "EYE_LEFT"],
+  ["EYE_RIGHT", "EYE_RIGHT"],
+  ["EYE_LEFT_BROW", "EYE_LEFT_BROW"],
+  ["EYE_RIGHT_BROW", "EYE_RIGHT_BROW"],
+  ["EYE_LEFT_BROW_UP", "EYE_LEFT_BROW_UP"],
+  ["EYE_RIGHT_BROW_UP", "EYE_RIGHT_BROW_UP"],
+  ["EYE_LEFT_BLINK", "EYE_LEFT_BLINK"],
+  ["EYE_RIGHT_BLINK", "EYE_RIGHT_BLINK"],
+  ["CIRCLE", "CIRCLE"],
+  ["SQUARE", "SQUARE"],
+  ["TRIANGLE", "TRIANGLE"],
+  ["TRIANGLE_LEFT", "TRIANGLE_LEFT"],
+  ["TRIANGLE_RIGHT", "TRIANGLE_RIGHT"],
+  ["CLOCK", "CLOCK"],
+  ["PAUSE", "PAUSE"],
+  ["NO", "NO"],
+  ["YES", "YES"],
+  ["FULL", "FULL"],
+  ["EMPTY", "EMPTY"],
 ];
 
 /**
@@ -53,7 +98,8 @@ Blockly.Blocks["pybricks_hub_display_icon"] = {
           name: "METHOD",
           options: displayMethods,
         },
-        { type: "field_dark_square", name: "ICON", text: "" },
+        // Transparent square dropdown, per `docs/FIELD_DESIGN.md`.
+        { type: "field_dropdown", name: "ICON", options: iconOptions },
       ],
       previousStatement: null,
       nextStatement: null,
