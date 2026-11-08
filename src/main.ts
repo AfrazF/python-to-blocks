@@ -3,6 +3,7 @@ import { FieldPillDropdown } from "./fields/FieldPillDropdown";
 import { FieldWhiteInPill } from "./fields/FieldWhiteInPill";
 import { FieldDarkSquare } from "./fields/FieldDarkSquare";
 import { FieldColourPill } from "./fields/FieldColourPill";
+import { FieldQuotedTextInPill } from "./fields/FieldQuotedTextInPill";
 import "./style.css";
 import "./pybricks.css";
 import "blockly/blocks";
@@ -30,11 +31,13 @@ import "./blocks/hub";
 import "./blocks/hubLight";
 import "./blocks/colour";
 import "./blocks/colorSensor";
+import "./blocks/print";
 import "./blocks/testField";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
 import runSource from "../fixtures/run.py?raw";
 import exampleattachSource from "../fixtures/exampleattach.py?raw";
+import printTestSource from "../fixtures/print_test.py?raw";
 import { createWorkspace } from "./blockly";
 import { resolveProject } from "./resolve";
 import { createSidebar } from "./sidebar";
@@ -48,12 +51,17 @@ Blockly.fieldRegistry.register("field_pill_dropdown", FieldPillDropdown);
 Blockly.fieldRegistry.register("field_white_in_pill", FieldWhiteInPill);
 Blockly.fieldRegistry.register("field_dark_square", FieldDarkSquare);
 Blockly.fieldRegistry.register("field_colour_pill", FieldColourPill);
+Blockly.fieldRegistry.register(
+  "field_quoted_text_in_pill",
+  FieldQuotedTextInPill,
+);
 
 let currentFiles: Record<string, string> = {
   "main.py": mainSource,
   "robot.py": robotSource,
   "run.py": runSource,
   "exampleattach.py": exampleattachSource,
+  "print_test.py": printTestSource,
 };
 
 let hasUploaded = false;

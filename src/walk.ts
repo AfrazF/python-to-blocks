@@ -796,6 +796,57 @@ function collectWaitCall(
   };
 }
 
+/**
+ * Turns `print(<one positional argument>)` into a `pybricks_print` block.
+ * Returns undefined when the shape does not match, so the caller falls through
+ * to the generic call block (and ultimately raw code).
+ *
+ * A string literal loses its quotes: `print("hello")` stores `hello`, because
+ * the block draws the quotes itself. Anything else — a bare identifier, an
+ * f-string, an arbitrary expression — is stored as raw source. Zero arguments,
+ * two or more arguments, and keyword arguments all return undefined; multi-arg
+ * print is deferred.
+ */
+function collectPrintCall(
+  source: string,
+  expression: ParseNode,
+): BlockDescriptor | undefined {
+  const call = readCallExpression(expression);
+  if (call?.callee.type.name !== "VariableName") {
+    return undefined;
+  }
+  if (source.slice(call.callee.from, call.callee.to) !== "print") {
+    return undefined;
+  }
+
+  const { positional, keywords } = getCallArgumentValues(
+    source,
+    call.argumentList,
+  );
+  if (positional.length !== 1 || Object.keys(keywords).length > 0) {
+    // Multi-arg print is deferred. Returning undefined lets the statement fall
+    // through to the generic `pybricks_call NAME=print` block, which keeps the
+    // raw-block count on the four main fixtures unchanged (run.py calls
+    // `print("Mission error:", e)`).
+    return undefined;
+  }
+
+  const argument = positional[0];
+  const raw = argument.text;
+  const isStringLiteral =
+    raw.length >= 2 &&
+    (raw.startsWith('"') || raw.startsWith("'")) &&
+    raw.at(-1) === raw[0];
+  const text = isStringLiteral ? raw.slice(1, -1) : raw;
+
+  return {
+    type: "pybricks_print",
+    fields: { TEXT: text },
+    sourceStart: expression.from,
+    sourceEnd: expression.to,
+  };
+}
+
 /** Reads `object.member` into its two names. */
 function readMember(
   source: string,
@@ -1361,6 +1412,16 @@ function collectExpressionStatement(
         descriptor.inputs![`TASK${index}`] = [argumentDescriptor];
       });
       return descriptor;
+    }
+  }
+
+  // `print(...)` is a plain statement call. Check it before the generic
+  // expression dispatch so a single-argument print lands on its own block
+  // instead of `pybricks_call NAME=print`.
+  if (expression.type.name === "CallExpression") {
+    const printDescriptor = collectPrintCall(source, expression);
+    if (printDescriptor) {
+      return printDescriptor;
     }
   }
 
