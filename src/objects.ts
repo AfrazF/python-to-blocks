@@ -4,6 +4,7 @@ export type ObjectKind =
   | "Motor"
   | "DriveBase"
   | "PrimeHub"
+  | "ColorSensor"
   | "number"
   | "string"
   | "list"
@@ -60,7 +61,8 @@ export function buildObjectTable(source: string): ObjectTable {
                 if (
                   functionName === "Motor" ||
                   functionName === "DriveBase" ||
-                  functionName === "PrimeHub"
+                  functionName === "PrimeHub" ||
+                  functionName === "ColorSensor"
                 ) {
                   objectKind = functionName;
                 }

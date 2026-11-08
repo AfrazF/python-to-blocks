@@ -29,6 +29,7 @@ import "./blocks/returnRaise";
 import "./blocks/hub";
 import "./blocks/hubLight";
 import "./blocks/colour";
+import "./blocks/colorSensor";
 import "./blocks/testField";
 import mainSource from "../fixtures/main.py?raw";
 import robotSource from "../fixtures/robot.py?raw";
@@ -627,6 +628,12 @@ function startWorkspace(): void {
     "pybricks_drive_configure",
   ]);
 
+  const COLOR_SENSOR_BLOCKS = new Set([
+    "pybricks_color_sensor_color",
+    "pybricks_color_sensor_reflection",
+    "pybricks_color_sensor_ambient",
+  ]);
+
   workspace.addChangeListener((event: Blockly.Events.Abstract) => {
     if (event.type !== Blockly.Events.BLOCK_CREATE) {
       return;
@@ -676,6 +683,25 @@ function startWorkspace(): void {
         (
           block as Blockly.Block & { loadExtraState: (state: any) => void }
         ).loadExtraState({ motors });
+      }
+      return;
+    }
+
+    if (COLOR_SENSOR_BLOCKS.has(block.type)) {
+      const sensorField = block.getField("SENSOR") as Blockly.Field | null;
+      if (!sensorField || sensorField.getValue() !== "sensor") {
+        return;
+      }
+      if (!currentResolvedTable) {
+        return;
+      }
+      const sensors = Object.entries(currentResolvedTable)
+        .filter(([, entry]) => entry.objectKind === "ColorSensor")
+        .map(([name]) => name);
+      if (sensors.length > 0) {
+        (
+          block as Blockly.Block & { loadExtraState: (state: any) => void }
+        ).loadExtraState({ sensors });
       }
       return;
     }

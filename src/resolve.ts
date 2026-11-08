@@ -8,6 +8,7 @@ export type ResolvedEntry = {
     | "Motor"
     | "DriveBase"
     | "PrimeHub"
+    | "ColorSensor"
     | "number"
     | "string"
     | "list"
