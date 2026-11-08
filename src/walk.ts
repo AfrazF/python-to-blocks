@@ -499,6 +499,141 @@ function getDriveBaseNames(resolved: ResolvedTable): string[] {
     .map(([name]) => name);
 }
 
+/** The color sensors resolved for this file, for the SENSOR pill dropdown. */
+function getColorSensorNames(resolved: ResolvedTable): string[] {
+  return Object.entries(resolved)
+    .filter(([, entry]) => entry.objectKind === "ColorSensor")
+    .map(([name]) => name);
+}
+
+/**
+ * Turns `X = ColorSensor(Port.Y)` into a `pybricks_color_sensor_setup` block.
+ *
+ * Called from `collectBody`'s AssignStatement branch before
+ * `collectHardwareBlock`, so a color sensor assignment never falls through to
+ * `pybricks_var_declare`. Only the exact shape is accepted: one positional
+ * `Port.<letter>` argument and no keywords. Anything else returns `undefined`
+ * and the caller falls back to the variable block.
+ */
+function collectColorSensorSetup(
+  source: string,
+  node: ParseNode,
+): BlockDescriptor | undefined {
+  const assignmentCursor = node.cursor();
+  let targetName: ParseNode | undefined;
+  let rightHandSide: ParseNode | undefined;
+  let afterAssignment = false;
+
+  if (assignmentCursor.firstChild()) {
+    do {
+      if (assignmentCursor.name === "AssignOp") {
+        afterAssignment = true;
+        continue;
+      }
+      if (!afterAssignment) {
+        if (assignmentCursor.name === "VariableName" && !targetName) {
+          targetName = assignmentCursor.node;
+        }
+        continue;
+      }
+      rightHandSide = assignmentCursor.node;
+      break;
+    } while (assignmentCursor.nextSibling());
+  }
+
+  if (!targetName || rightHandSide?.type.name !== "CallExpression") {
+    return undefined;
+  }
+
+  const call = readCallExpression(rightHandSide);
+  if (!call || call.callee.type.name !== "VariableName") {
+    return undefined;
+  }
+  if (source.slice(call.callee.from, call.callee.to) !== "ColorSensor") {
+    return undefined;
+  }
+
+  const { positional, keywords } = getCallArgumentValues(
+    source,
+    call.argumentList,
+  );
+  if (positional.length !== 1 || Object.keys(keywords).length > 0) {
+    return undefined;
+  }
+
+  return {
+    type: "pybricks_color_sensor_setup",
+    fields: {
+      NAME: source.slice(targetName.from, targetName.to),
+      PORT: positional[0].text.replace(/^Port\./, ""),
+    },
+    sourceStart: node.from,
+    sourceEnd: node.to,
+  };
+}
+
+/** The four `ColorSensor` read methods and the block each one becomes. */
+const colorSensorReads: Record<string, { type: string; method?: string }> = {
+  color: { type: "pybricks_color_sensor_color", method: "color" },
+  hsv: { type: "pybricks_color_sensor_color", method: "hsv" },
+  reflection: { type: "pybricks_color_sensor_reflection" },
+  ambient: { type: "pybricks_color_sensor_ambient" },
+};
+
+/**
+ * Turns `<var>.<method>()` into a color sensor reporter block, where `<var>`
+ * resolves to a `ColorSensor`.
+ *
+ * Only the variable form is handled. `hub.port.X.device.color()` is deferred
+ * to v2e. Any argument, an unknown method, or a variable that is not a
+ * `ColorSensor` (a function parameter, for instance) returns `undefined` so the
+ * caller falls through to the generic method-call block or raw code.
+ */
+function collectColorSensorRead(
+  source: string,
+  expression: ParseNode,
+  resolved: ResolvedTable,
+): BlockDescriptor | undefined {
+  const call = readCallExpression(expression);
+  if (!call || call.callee.type.name !== "MemberExpression") {
+    return undefined;
+  }
+
+  const { objectName, memberName } = readMember(source, call.callee);
+  if (!objectName || !memberName) {
+    return undefined;
+  }
+  if (resolved[objectName]?.objectKind !== "ColorSensor") {
+    return undefined;
+  }
+
+  const read = colorSensorReads[memberName];
+  if (!read) {
+    return undefined;
+  }
+
+  const { positional, keywords } = getCallArgumentValues(
+    source,
+    call.argumentList,
+  );
+  if (positional.length > 0 || Object.keys(keywords).length > 0) {
+    return undefined;
+  }
+
+  const fields: Record<string, string> = { SENSOR: objectName };
+  if (read.method !== undefined) {
+    fields.METHOD = read.method;
+  }
+
+  return {
+    type: read.type,
+    fields,
+    extraState: { sensors: getColorSensorNames(resolved) },
+    sourceStart: expression.from,
+    sourceEnd: expression.to,
+  };
+}
+
 function collectMotorBlock(
   type: string,
   fields: Record<string, string>,
@@ -961,6 +1096,17 @@ function collectExpression(
     const hubDisplayDescriptor = collectHubDisplayCall(source, expression);
     if (hubDisplayDescriptor) {
       return hubDisplayDescriptor;
+    }
+
+    // Color sensor reads are two-level members (`line_left.reflection()`), so
+    // they must be checked before the generic method-call fallback below.
+    const colorSensorDescriptor = collectColorSensorRead(
+      source,
+      expression,
+      resolved,
+    );
+    if (colorSensorDescriptor) {
+      return colorSensorDescriptor;
     }
 
     if (call?.callee.type.name === "VariableName") {
@@ -1870,7 +2016,8 @@ function collectBody(
     } else if (cursor.name === "AssignStatement") {
       blocks = [
         (parent.topLevel
-          ? collectHardwareBlock(source, cursor.node, resolved)
+          ? (collectColorSensorSetup(source, cursor.node) ??
+            collectHardwareBlock(source, cursor.node, resolved))
           : undefined) ??
           collectVariableBlock(source, cursor.node, parent.topLevel) ??
           rawDescriptor(source, cursor.node),

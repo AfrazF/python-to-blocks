@@ -97,6 +97,7 @@ const toolboxXml = {
         { kind: "block", type: "pybricks_test_fields" },
         { kind: "block", type: "pybricks_motor_setup" },
         { kind: "block", type: "pybricks_drivebase_setup" },
+        { kind: "block", type: "pybricks_color_sensor_setup" },
       ],
     },
     {
@@ -125,6 +126,9 @@ const toolboxXml = {
       contents: [
         { kind: "label", text: "Color" },
         { kind: "block", type: "pybricks_colour" },
+        { kind: "block", type: "pybricks_color_sensor_color" },
+        { kind: "block", type: "pybricks_color_sensor_reflection" },
+        { kind: "block", type: "pybricks_color_sensor_ambient" },
         { kind: "label", text: "Distance" },
         { kind: "label", text: "Force" },
         { kind: "label", text: "IMU" },

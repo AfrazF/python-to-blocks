@@ -106,3 +106,57 @@ it("falls back to raw code for an unrecognised hub light argument", () => {
   );
   expect(blocks.some((block) => block.type === "pybricks_raw_code")).toBe(true);
 });
+
+it("routes ColorSensor(Port.X) to the color sensor setup block", () => {
+  const blocks = collectBlocks("line_left = ColorSensor(Port.C)", {});
+  const setup = blocks.find(
+    (block) => block.type === "pybricks_color_sensor_setup",
+  );
+  expect(setup?.fields).toMatchObject({ NAME: "line_left", PORT: "C" });
+});
+
+it("routes every color sensor read method to its reporter block", () => {
+  const resolved = {
+    line_left: {
+      kind: "variable" as const,
+      objectKind: "ColorSensor" as const,
+      origin: "local" as const,
+    },
+  };
+
+  const find = (source: string) =>
+    collectBlocks(source, resolved).find((block) =>
+      block.type.startsWith("pybricks_color_sensor_"),
+    );
+
+  expect(find("line_left.reflection()")?.type).toBe(
+    "pybricks_color_sensor_reflection",
+  );
+  expect(find("line_left.ambient()")?.type).toBe(
+    "pybricks_color_sensor_ambient",
+  );
+
+  const color = find("line_left.color()");
+  expect(color?.type).toBe("pybricks_color_sensor_color");
+  expect(color?.fields).toMatchObject({
+    SENSOR: "line_left",
+    METHOD: "color",
+  });
+
+  const hsv = find("line_left.hsv()");
+  expect(hsv?.type).toBe("pybricks_color_sensor_color");
+  expect(hsv?.fields).toMatchObject({ SENSOR: "line_left", METHOD: "hsv" });
+});
+
+it("falls back for a color sensor read on an untyped name", () => {
+  // `sensor` is a function parameter, so it has no object kind. The read must
+  // not be guessed into a color sensor block; it lands on the generic
+  // method-call block instead.
+  const blocks = collectBlocks("sensor.reflection()", {});
+  expect(
+    blocks.some((block) => block.type.startsWith("pybricks_color_sensor_")),
+  ).toBe(false);
+  expect(blocks.some((block) => block.type === "pybricks_method_call")).toBe(
+    true,
+  );
+});
