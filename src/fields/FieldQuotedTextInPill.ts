@@ -26,6 +26,14 @@ const QUOTE_GAP = 8;
 const PILL_LEFT_PADDING = 12;
 /** Padding between the close quote and the pill's right edge. */
 const PILL_RIGHT_PADDING = 12;
+/**
+ * Space the field reserves to the right of the pill, inside the block. The
+ * reference SVG has the pill overhang the block body because a chevron sits
+ * after it; we have no chevron, so without this the block edge lands exactly on
+ * the pill edge and the pill looks clipped. This keeps the pill inset from the
+ * block's right edge.
+ */
+const BLOCK_RIGHT_PADDING = 12;
 /** Minimum white-rect width so an empty field is still clickable. */
 const MIN_RECT_WIDTH = 24;
 /**
@@ -109,8 +117,11 @@ export class FieldQuotedTextInPill extends Blockly.FieldTextInput {
     // Left side: PILL_LEFT_PADDING, then the open quote, then QUOTE_GAP.
     // Right side: QUOTE_GAP, then the close quote, then PILL_RIGHT_PADDING.
     // Both sides are symmetric, so the pill looks balanced around the rect.
+    // BLOCK_RIGHT_PADDING is extra space the field reports to Blockly so the
+    // block's own path extends past the pill instead of ending on it.
     const quoteSpace = this.quoteSpace();
-    this.size_.width += PILL_LEFT_PADDING + PILL_RIGHT_PADDING + quoteSpace;
+    this.size_.width +=
+      PILL_LEFT_PADDING + PILL_RIGHT_PADDING + quoteSpace + BLOCK_RIGHT_PADDING;
     this.size_.height = PILL_HEIGHT;
   }
 
@@ -173,10 +184,11 @@ export class FieldQuotedTextInPill extends Blockly.FieldTextInput {
     const openWidth = this.openQuote.getComputedTextLength();
     const closeWidth = this.closeQuote.getComputedTextLength();
     const quoteSpace = openWidth + closeWidth + 2 * QUOTE_GAP;
-    // baseWidth already includes the pill padding and the quotes, because
-    // updateSize_ added them to size_. Subtract them back out to get the width
-    // of just the white rect.
-    const addedPadding = PILL_LEFT_PADDING + PILL_RIGHT_PADDING + quoteSpace;
+    // baseWidth already includes the pill padding, the quotes and the trailing
+    // block padding, because updateSize_ added them to size_. Subtract them
+    // back out to get the width of just the white rect.
+    const addedPadding =
+      PILL_LEFT_PADDING + PILL_RIGHT_PADDING + quoteSpace + BLOCK_RIGHT_PADDING;
     const rectWidth = Math.max(MIN_RECT_WIDTH, this.baseWidth - addedPadding);
     const outerWidth =
       PILL_LEFT_PADDING +
