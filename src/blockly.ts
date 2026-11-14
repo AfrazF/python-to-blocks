@@ -182,7 +182,10 @@ const toolboxXml = {
       kind: "category",
       name: "Variables",
       colour: "#ff6680",
-      contents: [{ kind: "block", type: "pybricks_var_set" }],
+      contents: [
+        { kind: "block", type: "pybricks_var_declare" },
+        { kind: "block", type: "pybricks_var_set" },
+      ],
     },
     {
       kind: "category",

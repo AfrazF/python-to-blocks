@@ -110,6 +110,7 @@ function collectVariableBlock(
   source: string,
   node: ParseNode,
   topLevel: boolean,
+  resolved: ResolvedTable,
 ): BlockDescriptor | undefined {
   const cursor = node.cursor();
   let variableName: ParseNode | undefined;
@@ -141,15 +142,35 @@ function collectVariableBlock(
     return undefined;
   }
 
-  return {
+  const name = source.slice(variableName.from, variableName.to);
+  const descriptor: BlockDescriptor = {
     type: topLevel ? "pybricks_var_declare" : "pybricks_var_set",
     fields: {
-      NAME: source.slice(variableName.from, variableName.to),
+      NAME: name,
       VALUE: source.slice(value.from, value.to),
     },
     sourceStart: node.from,
     sourceEnd: node.to,
   };
+
+  // `var_set` selects an existing variable, so its NAME pill lists every
+  // variable in the file. `var_declare` creates a name and has no dropdown.
+  //
+  // The assigned name is always included: function-local names (`i` in
+  // `pick()`) are not in the resolved table, and `FieldDropdown.setOptions`
+  // rejects a value that is not among the options — the block would silently
+  // display the first variable in the list instead of the one it assigns.
+  if (!topLevel) {
+    const variables = Object.entries(resolved)
+      .filter(([, entry]) => entry.kind === "variable")
+      .map(([variable]) => variable);
+    if (!variables.includes(name)) {
+      variables.push(name);
+    }
+    descriptor.extraState = { variables };
+  }
+
+  return descriptor;
 }
 
 function collectHardwareBlock(
@@ -2088,7 +2109,7 @@ function collectBody(
           ? (collectColorSensorSetup(source, cursor.node) ??
             collectHardwareBlock(source, cursor.node, resolved))
           : undefined) ??
-          collectVariableBlock(source, cursor.node, parent.topLevel) ??
+          collectVariableBlock(source, cursor.node, parent.topLevel, resolved) ??
           rawDescriptor(source, cursor.node),
       ];
     } else if (cursor.name === "PassStatement") {

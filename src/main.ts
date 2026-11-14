@@ -712,6 +712,25 @@ function startWorkspace(): void {
       return;
     }
 
+    if (block.type === "pybricks_var_set") {
+      const nameField = block.getField("NAME") as Blockly.Field | null;
+      if (!nameField || nameField.getValue() !== "variable") {
+        return;
+      }
+      if (!currentResolvedTable) {
+        return;
+      }
+      const variables = Object.entries(currentResolvedTable)
+        .filter(([, entry]) => entry.kind === "variable")
+        .map(([name]) => name);
+      if (variables.length > 0) {
+        (
+          block as Blockly.Block & { loadExtraState: (state: any) => void }
+        ).loadExtraState({ variables });
+      }
+      return;
+    }
+
     if (block.type !== "pybricks_drivebase_setup") {
       return;
     }
