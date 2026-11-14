@@ -117,6 +117,7 @@ const toolboxXml = {
         { kind: "block", type: "pybricks_motor_stop" },
 
         { kind: "label", text: "Terminal" },
+        { kind: "block", type: "pybricks_print" },
       ],
     },
     {

@@ -160,3 +160,38 @@ it("falls back for a color sensor read on an untyped name", () => {
     true,
   );
 });
+
+it('routes print("hello") to the print block with the quotes stripped', () => {
+  const blocks = collectBlocks('print("hello")', {});
+  const print = blocks.find((block) => block.type === "pybricks_print");
+  expect(print?.fields).toMatchObject({ TEXT: "hello" });
+});
+
+it("routes print(x) to the print block with the raw expression", () => {
+  const blocks = collectBlocks("print(x)", {});
+  const print = blocks.find((block) => block.type === "pybricks_print");
+  expect(print?.fields).toMatchObject({ TEXT: "x" });
+});
+
+it("falls through to the generic call block for print(a, b)", () => {
+  // Multi-arg print is deferred. It must NOT go raw: run.py calls
+  // `print("Mission error:", e)` and the acceptance test requires 0 raw blocks
+  // on run.py. The generic call path keeps it as `pybricks_call NAME=print`.
+  const blocks = collectBlocks("print(a, b)", {});
+  expect(blocks.some((block) => block.type === "pybricks_print")).toBe(false);
+  const call = blocks.find((block) => block.type === "pybricks_call");
+  expect(call?.fields).toMatchObject({ NAME: "print" });
+  expect(blocks.some((block) => block.type === "pybricks_raw_code")).toBe(
+    false,
+  );
+});
+
+it("falls through to the generic call block for print()", () => {
+  const blocks = collectBlocks("print()", {});
+  expect(blocks.some((block) => block.type === "pybricks_print")).toBe(false);
+  const call = blocks.find((block) => block.type === "pybricks_call");
+  expect(call?.fields).toMatchObject({ NAME: "print" });
+  expect(blocks.some((block) => block.type === "pybricks_raw_code")).toBe(
+    false,
+  );
+});

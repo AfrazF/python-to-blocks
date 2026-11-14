@@ -174,6 +174,7 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_call`                    | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
 | `pybricks_method_call`             | `ARGS`      | `20`                   | white-square                | white       | dark  |            | ours         |
 | `pybricks_wait`                    | `TIME`      | `20`                   | white-square                | white       | dark  | `ms`       | pybricks-svg |
+| `pybricks_print`                   | `TEXT`      | `"hello"`              | quoted-text-in-pill         | darker      | dark  | `“` / `”`  | pybricks-svg |
 | `pybricks_import`                  | `MODULE`    | `pybricks.tools`       | white-square                | white       | dark  |            | ours         |
 | `pybricks_import`                  | `NAME`      | `wait`                 | white-square                | white       | dark  |            | ours         |
 | `pybricks_import_as`               | `MODULE`    | `robot`                | white-square                | white       | dark  |            | ours         |
@@ -185,6 +186,8 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 `field_label` fields (`pybricks_call.NAME`, `pybricks_method_call.OBJ` / `METHOD`) are static text, not editable fields, so they have no row.
 
 `pybricks_wait`'s `TIME` field ships as a plain white `field_input` in v1.75.5. Pybricks renders it as a number inside a pill with `ms` as a separate static label after it (`docs/pybricks-blocks/flow/pybricks_blockWaitTime.svg`), so v2b.2b converts it to the pill-with-white-square shape plus the `ms` suffix.
+
+`pybricks_print`'s `TEXT` field is `FieldQuotedTextInPill`, a separate class from `FieldWhiteInPill`. The quotes are part of the field's render, not configurable prefix/suffix text, and the stored value is the raw string with no quotes. The quotes render around the field unconditionally, so `print(x)` and `print("x")` look identical on the block; the v2b.4 generator must disambiguate from the resolved table or a heuristic. `FieldWhiteInPill` is deliberately untouched — the numeric white-in-pill fields keep their existing layout. A future **v2b.2b.e** step migrates `FieldWhiteInPill` call sites to `input_value` + shadow; do not do that migration here.
 
 ## Not yet implemented
 
