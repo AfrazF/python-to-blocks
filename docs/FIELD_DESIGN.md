@@ -158,6 +158,9 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_var_declare`             | `VALUE`     | `56`                   | field-input                 | white       | dark  |            | ours         |
 | `pybricks_var_set`                 | `NAME`      | `X`                    | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_var_set`                 | `VALUE`     | `57`                   | field-input                 | white       | dark  |            | ours         |
+| `pybricks_number`                  | `NUM`       | `56`                   | white-in-pill (shadow)      | white       | dark  |            | ours         |
+| `pybricks_string`                  | `TEXT`      | `hi`                   | white-square (inside pill)  | white       | dark  |            | ours         |
+| `pybricks_boolean`                 | `BOOL`      | `TRUE`                 | pill-dropdown               | darker      | white |            | ours         |
 | `pybricks_if`                      | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
 | `pybricks_if_else`                 | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
 | `pybricks_while`                   | `CONDITION` | `True`                 | white-square                | white       | dark  |            | ours         |
@@ -189,6 +192,8 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 `pybricks_wait`'s `TIME` field is a `FieldWhiteInPill` with the `ms` suffix (v2b.2b.d.4), matching `docs/pybricks-blocks/flow/pybricks_blockWaitTime.svg`: the number sits in a white square inside a darker pill, with `ms` as white text to its right, still inside the pill. The leading icon and divider are text placeholders (`wait |`) until v2d.1 ships real block icons.
 
 `pybricks_print`'s `TEXT` field is `FieldQuotedTextInPill`, a separate class from `FieldWhiteInPill`. The quotes are part of the field's render, not configurable prefix/suffix text, and the stored value is the raw string with no quotes. The quotes render around the field unconditionally, so `print(x)` and `print("x")` look identical on the block; the v2b.4 generator must disambiguate from the resolved table or a heuristic. `FieldWhiteInPill` is deliberately untouched — the numeric white-in-pill fields keep their existing layout. A future **v2b.2b.e** step migrates `FieldWhiteInPill` call sites to `input_value` + shadow; do not do that migration here.
+
+`pybricks_number`, `pybricks_string`, and `pybricks_boolean` are the three value reporters added in **v2b.2b.e**. `pybricks_number`'s fill is `#fff` (pure white, not block × 0.85) because it is a shadow inside a parent block. Its stroke derives from the parent block (× 0.75) via the renderer patch added in v2b.2b.e.
 
 ## Not yet implemented
 
