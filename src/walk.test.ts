@@ -215,3 +215,28 @@ it("falls back to the await wrapper for a non-numeric wait argument", () => {
     ARGS: "x",
   });
 });
+
+it("declares a top-level assignment as a dark-square name block", () => {
+  const blocks = collectBlocks("X = 56", {});
+  const declare = blocks.find((block) => block.type === "pybricks_var_declare");
+  expect(declare?.fields).toMatchObject({ NAME: "X", VALUE: "56" });
+  // var_declare creates a name, so it has no dropdown to populate.
+  expect(declare?.extraState).toBeUndefined();
+});
+
+it("sets an in-function assignment with every resolved variable in the pill", () => {
+  const resolved = {
+    X: { kind: "variable" as const, origin: "assignment" as const },
+    motor: {
+      kind: "variable" as const,
+      objectKind: "Motor" as const,
+      origin: "assignment" as const,
+    },
+  };
+  const blocks = collectBlocks("def f():\n    X = 56\n", resolved);
+  const set = blocks
+    .flatMap((block) => block.inputs?.BODY ?? [])
+    .find((block) => block.type === "pybricks_var_set");
+  expect(set?.fields).toMatchObject({ NAME: "X", VALUE: "56" });
+  expect(set?.extraState).toEqual({ variables: ["X", "motor"] });
+});

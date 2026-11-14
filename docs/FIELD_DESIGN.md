@@ -97,8 +97,9 @@ two-shade split is confusing to beginners. User decision.
 One row per field registered in `src/blocks/`. Verified by reading each
 block file on 2026-10-26. Columns: `Block | Field | Python example | Style | Fill | Text | Suffix | Source`.
 
-Styles: `white-square`, `pill-dropdown`, `transparent-square-dropdown`,
-`white-in-pill`, `colour-chit`.
+Styles: `white-square`, `dark-square`, `pill-dropdown`,
+`transparent-square-dropdown`, `white-in-pill`, `colour-chit`,
+`field-input` (plain `field_input`, not yet migrated).
 Fill: `white`, `darker`, `transparent`, `value`.
 Text: `white`, `dark`, `icon`.
 Source: `pybricks-svg`, `user`, `derived`, `ours`.
@@ -153,10 +154,10 @@ Source: `pybricks-svg`, `user`, `derived`, `ours`.
 | `pybricks_color_sensor_reflection` | `SENSOR`    | `line_left`            | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_color_sensor_ambient`    | `SENSOR`    | `line_left`            | pill-dropdown               | darker      | white |            | pybricks-svg |
 | `pybricks_var_reporter`            | `NAME`      | `WHEEL_DIAMETER`       | pill-dropdown               | darker      | white |            | pybricks-svg |
-| `pybricks_var_declare`             | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
-| `pybricks_var_declare`             | `VALUE`     | `56`                   | white-in-pill               | darker      | white |            | pybricks-svg |
-| `pybricks_var_set`                 | `NAME`      | `X`                    | white-square                | white       | dark  |            | pybricks-svg |
-| `pybricks_var_set`                 | `VALUE`     | `57`                   | white-in-pill               | darker      | white |            | pybricks-svg |
+| `pybricks_var_declare`             | `NAME`      | `X`                    | dark-square                 | darker      | white |            | pybricks-svg |
+| `pybricks_var_declare`             | `VALUE`     | `56`                   | field-input                 | white       | dark  |            | ours         |
+| `pybricks_var_set`                 | `NAME`      | `X`                    | pill-dropdown               | darker      | white |            | pybricks-svg |
+| `pybricks_var_set`                 | `VALUE`     | `57`                   | field-input                 | white       | dark  |            | ours         |
 | `pybricks_if`                      | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
 | `pybricks_if_else`                 | `CONDITION` | `i > 0`                | white-square                | white       | dark  |            | ours         |
 | `pybricks_while`                   | `CONDITION` | `True`                 | white-square                | white       | dark  |            | ours         |
