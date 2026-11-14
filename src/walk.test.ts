@@ -195,3 +195,23 @@ it("falls through to the generic call block for print()", () => {
     false,
   );
 });
+
+it("routes await wait(20) to the wait block", () => {
+  const blocks = collectBlocks("await wait(20)", {});
+  const wait = blocks.find((block) => block.type === "pybricks_wait");
+  expect(wait?.fields).toMatchObject({ TIME: "20" });
+});
+
+it("falls back to the await wrapper for a non-numeric wait argument", () => {
+  // The TIME field is a FieldNumber, which would coerce `x` to 0. The walker
+  // rejects non-numeric literals, so the statement falls back to the generic
+  // await wrapper around `pybricks_call NAME=wait` instead of showing a wrong
+  // number. Value inputs that accept reporters arrive with v2b.2b.e.
+  const blocks = collectBlocks("await wait(x)", {});
+  expect(blocks.some((block) => block.type === "pybricks_wait")).toBe(false);
+  const awaitBlock = blocks.find((block) => block.type === "pybricks_await");
+  expect(awaitBlock?.inputs?.INNER?.[0]?.fields).toMatchObject({
+    NAME: "wait",
+    ARGS: "x",
+  });
+});

@@ -788,6 +788,14 @@ function collectWaitCall(
     return undefined;
   }
 
+  // The TIME field is a `FieldNumber`, which silently coerces `x` to 0. Rather
+  // than show a wrong number, only accept a numeric literal and let anything
+  // else fall through to raw code. Value inputs that accept reporters arrive
+  // with the v2b.2b.e shadow migration.
+  if (!/^-?\d+(\.\d+)?$/.test(positional[0].text)) {
+    return undefined;
+  }
+
   return {
     type: "pybricks_wait",
     fields: { TIME: positional[0].text },
