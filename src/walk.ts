@@ -106,6 +106,50 @@ function rawDescriptor(source: string, node: ParseNode): BlockDescriptor {
   };
 }
 
+/**
+ * Builds the reporter descriptor for a variable's right-hand side.
+ *
+ * Only literals get a reporter block: numbers become `pybricks_number`,
+ * strings `pybricks_string`, and `True`/`False` `pybricks_boolean`. Anything
+ * else returns `undefined` so the caller falls back to raw code — the Python
+ * text is preserved, never dropped.
+ */
+function collectValueReporter(
+  text: string,
+  node: ParseNode,
+): BlockDescriptor | undefined {
+  const trimmed = text.trim();
+
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+    return {
+      type: "pybricks_number",
+      fields: { NUM: trimmed },
+      sourceStart: node.from,
+      sourceEnd: node.to,
+    };
+  }
+
+  if (/^["'].*["']$/s.test(trimmed)) {
+    return {
+      type: "pybricks_string",
+      fields: { TEXT: trimmed.slice(1, -1) },
+      sourceStart: node.from,
+      sourceEnd: node.to,
+    };
+  }
+
+  if (trimmed === "True" || trimmed === "False") {
+    return {
+      type: "pybricks_boolean",
+      fields: { BOOL: trimmed === "True" ? "TRUE" : "FALSE" },
+      sourceStart: node.from,
+      sourceEnd: node.to,
+    };
+  }
+
+  return undefined;
+}
+
 function collectVariableBlock(
   source: string,
   node: ParseNode,
@@ -143,12 +187,21 @@ function collectVariableBlock(
   }
 
   const name = source.slice(variableName.from, variableName.to);
+  const valueDescriptor = collectValueReporter(
+    source.slice(value.from, value.to),
+    value,
+  );
+  if (!valueDescriptor) {
+    // Only literals have a reporter block. Calls, identifiers, arithmetic and
+    // lists fall back to raw so the Python text is preserved rather than
+    // replaced by a placeholder shadow.
+    return undefined;
+  }
+
   const descriptor: BlockDescriptor = {
     type: topLevel ? "pybricks_var_declare" : "pybricks_var_set",
-    fields: {
-      NAME: name,
-      VALUE: source.slice(value.from, value.to),
-    },
+    fields: { NAME: name },
+    inputs: { VALUE: [valueDescriptor] },
     sourceStart: node.from,
     sourceEnd: node.to,
   };
@@ -2376,6 +2429,11 @@ function materializeInputs(
         throw new Error(`Value block ${child.type} needs an output.`);
       }
       childBlock.outputConnection.connect(input.connection);
+      // Reporter blocks wired from parsed source (pybricks_number, pybricks_string,
+      // pybricks_boolean) must render at shadow size, identical to the default
+      // shadow that setShadowState produces. Without this, Zelos uses the full
+      // block height (r=20, h=40) instead of the compressed shadow height (r=16, h=32).
+      childBlock.setShadow(true);
       materializeInputs(childBlock, child, workspace);
       childBlock.render();
       continue;
