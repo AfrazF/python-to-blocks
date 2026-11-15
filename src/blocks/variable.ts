@@ -3,7 +3,7 @@ import { FieldDarkSquare } from "../fields/FieldDarkSquare";
 import { FieldPillDropdown } from "../fields/FieldPillDropdown";
 
 /**
- * Variable blocks (Step v2b.2b.d.5).
+ * Variable blocks (Step v2b.2b.e).
  *
  * Reference SVGs: `docs/pybricks-blocks/variables/`.
  *
@@ -17,8 +17,8 @@ import { FieldPillDropdown } from "../fields/FieldPillDropdown";
  * is a free-text dark square; `var_set` SELECTS an existing variable, so it is
  * a pill dropdown listing every variable resolved for the file.
  *
- * VALUE stays a plain `field_input` until the value-slot migration
- * (v2b.2b.d.6 / v2b.2b.e) turns it into a pill wrapping a white field.
+ * VALUE is an `input_value` slot whose default shadow is `pybricks_number`
+ * (a white pill). Any reporter can be dropped onto it.
  */
 
 /**
@@ -58,6 +58,18 @@ function variableExtraState(block: Blockly.Block): {
   };
 }
 
+/**
+ * The VALUE slot's default shadow. `appendValueInput` creates the connection
+ * during `init()`, so `setShadowState` is safe to call here — before the block
+ * has an SVG.
+ */
+function setValueShadow(block: Blockly.Block): void {
+  block.getInput("VALUE")?.connection?.setShadowState({
+    type: "pybricks_number",
+    fields: { NUM: 0 },
+  });
+}
+
 Blockly.Blocks["pybricks_var_reporter"] = {
   init() {
     this.jsonInit({
@@ -75,12 +87,15 @@ Blockly.Blocks["pybricks_var_declare"] = {
     this.appendDummyInput("VAR_ROW")
       .appendField("variable |")
       .appendField(new FieldDarkSquare(), "NAME")
-      .appendField("starting at")
-      .appendField(new Blockly.FieldTextInput(""), "VALUE");
+      .appendField("starting at");
+    this.appendValueInput("VALUE");
 
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour("#ff6680");
+
+    setValueShadow(this);
   },
 };
 
@@ -89,13 +104,16 @@ Blockly.Blocks["pybricks_var_set"] = {
     this.appendDummyInput("VAR_ROW")
       .appendField("variable |")
       .appendField(new FieldPillDropdown(variablePlaceholder), "NAME")
-      .appendField("set to")
-      .appendField(new Blockly.FieldTextInput(""), "VALUE");
+      .appendField("set to");
+    this.appendValueInput("VALUE");
 
+    this.setInputsInline(true);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour("#ff6680");
 
     Object.assign(this, variableExtraState(this));
+
+    setValueShadow(this);
   },
 };

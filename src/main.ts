@@ -19,6 +19,7 @@ import "./blocks/multitask";
 import "./blocks/driveBase";
 import "./blocks/motor";
 import "./blocks/variable";
+import "./blocks/reporters";
 import "./blocks/comment";
 import "./blocks/pass";
 import "./blocks/hardware";
