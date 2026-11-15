@@ -18,8 +18,8 @@ This table is the **source of truth for the palette**. `docs/ROADMAP.md` v2a.2 (
 | Hardware objects    | `#46BAEC` (ours)         | `#358BB0` (ours)         | `#3c9ec9` (ours)         | Motor and DriveBase object chips (`drive`, `attachment_a`, `left`, `right`, …)                                  |
 | Hub display / light | `#9b6af6` (user)         | `#691ff0` (user)         | `#845ad1` (derived)      | `hub.display.*`, `hub.light.*`                                                                                  |
 | Data                | `#00cc99` (derived)      | `#009973` (derived)      | `#00ad82` (derived)      | lists, geometry                                                                                                 |
-| Math                | `#59c059`                | `#467e46`                | `#4ca34c` (derived)      | standard Blockly Math blocks                                                                                    |
-| Logic               | `#5cb1d6`                | `#4585a1`                | `#4e96b6` (derived)      | standard Blockly Logic blocks                                                                                   |
+| Math                | `#59c059` (pybricks-svg) | `#439043` (pybricks-svg) | `#4ca34c` (derived)      | numbers, arithmetic — Pybricks-style green                                                                      |
+| Logic               | `#21a176` (pybricks-svg) | `#197959` (pybricks-svg) | `#1c8964` (derived)      | boolean values, comparisons, logic operators                                                                    |
 | Other               | `#9a72a2` (derived)      | `#74567a` (derived)      | `#83618a` (derived)      | (unused in v1)                                                                                                  |
 
 Source tags: `(user)` = confirmed by the repo owner from a real screenshot; `(pybricks-svg)` = extracted from a Pybricks block SVG; `(ours)` = our own choice, not from Pybricks; `(derived)` = computed by the ×0.85 (field fill) or ×0.75 (stroke) rule.
@@ -38,7 +38,35 @@ Source tags: `(user)` = confirmed by the repo owner from a real screenshot; `(py
   - `if` uses Flow orange (`#ffab19`), matching wait/repeat. No separate decisions color.
   - `print` is Python-functions purple, not Output blue — it is a Python builtin, not a robot action.
   - `hub.display.*` and `hub.light.*` get their own **SPIKE Prime purple** (`#9b6af6`, border `#691ff0`) rather than Output blue, so hub output reads as distinct from robot motion. These are SPIKE Prime's own values, not derived.
+  - Pybricks renders the variable name in `set [X] to (56)` as a dropdown listing all variables in scope. Our interim uses a `FieldPillDropdown` populated from the resolved symbol table (v2b.2b.d.5). Full parity with Pybricks' single-chip-with-dropdown approach is v2d.6b.
 - **Known code/doc mismatch (fixed in v2d.1):** the Hardware objects cyan (`#46BAEC`) is defined in `src/theme.ts` but never rendered. Object chips are `pybricks_var_reporter` blocks whose `jsonInit` hardcodes `#ff6680`, and `src/pybricks.css` forces `.pybricks_var_reporter > .blocklyPath { fill: #ff6680 }`. Until v2d.1 lands, chips render pink.
+
+## Value reporters
+
+Value reporters are small rounded blocks that plug into value slots.
+They have one output connection and no previous/next statement.
+They have no name field — they hold a single value.
+
+| Reporter | Fill / Stroke | Shape | Ships in | Toolbox |
+|---|---|---|---|---|
+| Number | `#fff` / parent × 0.75 | `( 56 )` — pill, text-only, no inner box | v2b.2b.e | shadow only |
+| String | `#00cc99` / `#009973` (Data) | `" [abc] "` — quote images around white box | v2b.2b.e | Operators → Text |
+| Boolean | `#21a176` / `#197959` (Logic) | `(true ▾)` — pill dropdown | v2b.2b.e | Operators → Logic |
+| Arithmetic | `#59c059` / `#439043` (Math) | stock math_arithmetic — rebuild pending | v2b.2c.e | Operators → Math |
+| Logic compare/operation | `#21a176` / `#197959` (Logic) | stock logic_* — rebuild pending | v2b.2c.e | Operators → Compare, Logic |
+
+Notes:
+- The Number reporter appears only as a shadow (default) in value
+  slots. It is not draggable from the toolbox. Users edit it in
+  place, or replace it with another reporter.
+- The String and Boolean reporters are draggable from the toolbox
+  AND appear as defaults in slots when Python has a literal of that
+  type.
+- Variable chips are NOT value reporters yet. The existing
+  `pybricks_var_reporter` block (pink chip, fixed NAME) is out of
+  spec: Pybricks uses one chip with a dropdown, not one block per
+  variable. Full rebuild tracked by v2d.6b. Do not add it to slots
+  until then.
 
 ## Gaps against Pybricks (from the reference images)
 
@@ -54,6 +82,8 @@ These are places where our blocks differ from real Pybricks Code. Each is tracke
 | Variable chit       | one `pybricks_var_reporter` block per variable, fixed `NAME` field                                      | **one** chit with a dropdown listing every variable in scope                                                                                                                    | v2d.6b                                                       |
 | Variable declare    | `create variable [NAME] = [VALUE]`, both white fields                                                   | `{variable icon} \| [X] starting at (56)` — name in darker pink, value in a white circular slot                                                                                 | v2b.2b                                                       |
 | Colour field        | `field_input` showing `RED` / `GREEN` text                                                              | `(●)` — circular chit filled with the colour, no text, swatch-grid picker                                                                                                       | v2b.2b                                                       |
+| Logic/Math shape    | Stock Blockly square, blue                                                                              | Pybricks green value reporters, white-pill number inputs, transparent-square operator dropdowns                                                                                 | v2b.2c.e                                                     |
+| Value reporters in slots | Fields only (no slot connection)                                                                   | Number/string/boolean reporters plug into value slots                                                                                                                           | v2b.2b.e                                                     |
 
 ## Rules
 
@@ -93,8 +123,8 @@ Screenshots of real Pybricks Code blocks live in `docs/images/`. They are the ev
 | `hub = PrimeHub()`                                         | `{spike prime icon} \| [hub name]` — the variable name is the only field (verified — `docs/images/setup-blocks.png`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `m = Motor(Port.A, Direction.X)`                           | `{motor icon} \| [left] on (A ▾) with forward ({clockwise motor icon}▾)` (verified — `docs/images/setup-blocks.png`). Motor name is a square field; port is a **circular dropdown**; `with forward` is static text; the trailing **circular dropdown shows a rotation-direction icon** (clockwise / counterclockwise), not a word.                                                                                                                                                                                                                                                        |
 | `d = DriveBase(l, r, wd, at)`                              | `{drive base icon} \| [drive base name] left (l ▾) right (r ▾) with {wheel diameter icon} (wheel diameter) and {axle length icon} (axle length)` (verified — `docs/images/setup-blocks.png`; target shape in `docs/images/drivebase-setup-mockup.svg`). The four value fields are **circular dropdowns** listing variables.                                                                                                                                                                                                                                                               |
-| `await m.run_target(s, a)`                                 | `motor [m ▾] run at [s °/s] [towards ▾] [a °] then [hold ▾]` (verified). One `motor run` block covers all three run methods; the mode is a **transparent square dropdown** selecting `towards` / `by` / `to end stop`.                                                                                                                                                                                                                                                                                                                                                                     |
-| `await m.run_until_stalled(s, then, duty)`                 | same block, mode `to end stop` — the `[a °]` slot is replaced by `with power limit [duty %]`, placed between the mode dropdown and `then` (verified)                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `await m.run_target(s, a)`                                 | `motor [m ▾] run at [s °/s] [towards ▾] [a °] then [hold ▾]` (verified). One `motor run` block covers all three run methods; the mode is a **transparent square dropdown** selecting `towards` / `by` / `to end stop`.                                                                                                                                                                                                                                                                                                                                                                    |
+| `await m.run_until_stalled(s, then, duty)`                 | same block, mode `to end stop` — the `[a °]` slot is replaced by `with power limit [duty %]`, placed between the mode dropdown and `then` (verified)                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `await m.run_angle(s, a)`                                  | same block, mode `by` — `motor [m ▾] run at [s °/s] [by ▾] [a °] then [hold ▾]` (verified)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `await m.run_time(s, t)`, `m.run(s)`                       | not seen in the editor; mode names unknown (inference)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `m.reset_angle(0)`                                         | `m reset angle to (0) °` (verified)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
