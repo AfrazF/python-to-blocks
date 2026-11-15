@@ -171,10 +171,11 @@ const toolboxXml = {
         { kind: "block", type: "logic_compare" },
 
         { kind: "label", text: "Logic" },
-        { kind: "block", type: "logic_boolean" },
+        { kind: "block", type: "pybricks_boolean" },
         { kind: "block", type: "logic_operation" },
 
         { kind: "label", text: "Text" },
+        { kind: "block", type: "pybricks_string" },
         { kind: "label", text: "Lists" },
       ],
     },
@@ -185,6 +186,7 @@ const toolboxXml = {
       contents: [
         { kind: "block", type: "pybricks_var_declare" },
         { kind: "block", type: "pybricks_var_set" },
+        { kind: "block", type: "pybricks_var_reporter" },
       ],
     },
     {

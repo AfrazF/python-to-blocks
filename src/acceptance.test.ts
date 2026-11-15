@@ -8,8 +8,13 @@ import { collectBlocks, type BlockDescriptor } from "./walk";
 //   main.py = 1 (tuple unpack, deferred to optional Step 38.5).
 // Lower the baselines in the same PR when a later step reduces a
 // count. Never raise them.
-const BASELINE_MAIN = 1;
-const BASELINE_RUN = 0;
+//
+// v2b.2b.e raised both: a variable's VALUE is now a reporter slot, and only
+// literals have a reporter. Non-literal right-hand sides (`i = start`,
+// `NEXT_ICON = Icon.LEFT + Icon.RIGHT`) fall back to raw so the Python text is
+// preserved instead of being replaced by a placeholder shadow.
+const BASELINE_MAIN = 7;
+const BASELINE_RUN = 3;
 
 function countRaw(descriptors: BlockDescriptor[]): number {
   return descriptors.reduce((sum, descriptor) => {

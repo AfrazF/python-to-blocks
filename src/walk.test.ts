@@ -219,7 +219,12 @@ it("falls back to the await wrapper for a non-numeric wait argument", () => {
 it("declares a top-level assignment as a dark-square name block", () => {
   const blocks = collectBlocks("X = 56", {});
   const declare = blocks.find((block) => block.type === "pybricks_var_declare");
-  expect(declare?.fields).toMatchObject({ NAME: "X", VALUE: "56" });
+  expect(declare?.fields).toMatchObject({ NAME: "X" });
+  // The value is a reporter in the VALUE slot, not a field.
+  expect(declare?.inputs?.VALUE?.[0]).toMatchObject({
+    type: "pybricks_number",
+    fields: { NUM: "56" },
+  });
   // var_declare creates a name, so it has no dropdown to populate.
   expect(declare?.extraState).toBeUndefined();
 });
@@ -237,6 +242,36 @@ it("sets an in-function assignment with every resolved variable in the pill", ()
   const set = blocks
     .flatMap((block) => block.inputs?.BODY ?? [])
     .find((block) => block.type === "pybricks_var_set");
-  expect(set?.fields).toMatchObject({ NAME: "X", VALUE: "56" });
+  expect(set?.fields).toMatchObject({ NAME: "X" });
+  expect(set?.inputs?.VALUE?.[0]).toMatchObject({
+    type: "pybricks_number",
+    fields: { NUM: "56" },
+  });
   expect(set?.extraState).toEqual({ variables: ["X", "motor"] });
+});
+
+it("maps string and boolean right-hand sides to their reporters", () => {
+  const text = collectBlocks('X = "hi"', {}).find(
+    (block) => block.type === "pybricks_var_declare",
+  );
+  expect(text?.inputs?.VALUE?.[0]).toMatchObject({
+    type: "pybricks_string",
+    fields: { TEXT: "hi" },
+  });
+
+  const flag = collectBlocks("X = True", {}).find(
+    (block) => block.type === "pybricks_var_declare",
+  );
+  expect(flag?.inputs?.VALUE?.[0]).toMatchObject({
+    type: "pybricks_boolean",
+    fields: { BOOL: "TRUE" },
+  });
+});
+
+it("falls back to raw for a non-literal assignment", () => {
+  const blocks = collectBlocks("X = pick()", {});
+  expect(blocks.some((block) => block.type === "pybricks_var_declare")).toBe(
+    false,
+  );
+  expect(blocks.some((block) => block.type === "pybricks_raw_code")).toBe(true);
 });
