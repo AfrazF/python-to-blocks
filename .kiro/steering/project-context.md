@@ -110,7 +110,13 @@ var_reporter (broken, see v2d.6b) · var_declare · var_set · comment · pass �
 hub · motor_setup · drivebase_setup · drive_move · drive_reset · drive_use_gyro · drive_configure ·
 motor_run · motor_reset_angle · motor_stop · for · while · if / if_else · try_except · return ·
 raise · hub_display_icon / \_char / \_number / \_off · wait · print · hub_light ·
+<<<<<<< HEAD
+color_sensor_setup · color_sensor_color / \_reflection / \_ambient · colour ·
+number (shadow only) · string · boolean
+=======
 color_sensor_setup · color_sensor_color / \_reflection / \_ambient · colour
+
+> > > > > > > 4a5b045ca6cf87af238f74706b93a258375e05f7
 
 **Toolbox** uses `kind: "label"` sub-headers inside categories — never a new top-level category for
 one block.
@@ -125,7 +131,15 @@ one block.
 - `collectPrintCall` accepts one positional arg; **multi-arg falls through to `pybricks_call`**,
   not raw — `run.py` contains `print("Mission error:", e)`.
 - `collectVariableBlock` classifies RHS as `Number` / `String` / `Boolean`; anything else
+  <<<<<<< HEAD
+  (identifier, call, expression) returns `undefined` from `collectValueReporter` and the whole
+  assignment falls to raw. The variable block is never emitted for non-literal RHS.
+- Value children (`pybricks_number`, `pybricks_string`, `pybricks_boolean`) are connected via
+  `descriptor.inputs` and materialised by `materializeInputs`. `setShadow(true)` is called on
+  each connected value child so Zelos uses compressed shadow geometry (`r=16/h=32`).
+  =======
   (identifier, call, expression) is expected to fall to raw until call/variable reporters exist.
+  > > > > > > > 4a5b045ca6cf87af238f74706b93a258375e05f7
 - `collectColorSensorRead` handles the variable form only; `hub.port.X.device.*` is deferred to v2e.
 - `multitask` uses `loadExtraState({ taskCount })` **before** `initSvg()`.
 - Mutators are removed after load with `block.removeIcon(Blockly.icons.IconType.MUTATOR)` —
@@ -160,7 +174,7 @@ one block.
 
 - `src/acceptance.test.ts` is the product contract: raw-block counts per fixture.
 - **Baselines:** `robot.py = 0`, `exampleattach.py = 0`, `run.py = 0`, `main.py = 1`
-  (the tuple-unpacking assignment, deferred to Step 38.5).
+  (the tuple-unpacking55 hub light · #56 colour sensor · #57 print · #58 wait · #59 variables · #62 value slots. assignment, deferred to Step 38.5).
 - Baselines may **rise** when a step honestly refuses to render something it cannot represent.
   Record the delta and the reason in the roadmap. Never lower a baseline to hide a regression.
 - Every new block gets a test: the cheapest places are `src/walk.test.ts` (descriptor assertions
@@ -182,25 +196,19 @@ one block.
 
 **Shipped:** v1.0.0 · v1.1.0 · v1.5.0 · v1.75.0 · v2a.1 · v2a.2 · v2b.1 · v2b.2 ·
 v2b.2b.a/b/c · c-fix-a/b/c · d.2 (hub light) · d.3 (colour sensor) · d.4 (wait) ·
-d.5 (variable name fields) · v2b.2c.a (print).
+d.5 (variable name fields) · v2b.2c.a (print) · v2b.2b.e (value slots + reporters).
 
 **Latest merged PRs:** #54 colour pill · #55 hub light · #56 colour sensor · #57 print ·
-#58 wait · #59 variables.
+#58 wait · #59 variables · #62 value slots.
 
-### Immediate next action — v2b.2b.e (code)
+### Immediate next action — v2b.2b.e.1 (code)
 
-The docs-only PR is already complete: BLOCK_DESIGN.md and ROADMAP.md carry the corrected colours and the v2b.2b.e step descriptions. v2b.2c.d is marked ✅.
+Next branch: `v2b-2b-e-1-slot-migration`.
 
-Next branch: `v2b-2b-e-value-slots`.
+### Then — v2b.2b.e.1
 
-### Then — v2b.2b.e (code)
-
-- Convert the value position on the two variable blocks from a field to an `input_value` slot
-- Three reporters: `pybricks_number` (white pill, text-only, **shadow only, not in toolbox**),
-  `pybricks_string` (Data green), `pybricks_boolean` (Logic green)
-- Parser inspects RHS type and wires the matching shadow
-- Small Zelos renderer extension so the number shadow's stroke derives from the parent (× 0.75)
-- Expect `main.py`'s raw count to rise; record it honestly
+- Apply the same field→slot pattern to the remaining `FieldWhiteInPill` call sites: `wait.TIME`, `drive_move.AMOUNT`, `drive_reset.DISTANCE/ANGLE`, `drive_configure.VALUE`, `motor_run.SPEED/VALUE/DUTY`, `motor_reset_angle.VALUE`
+- `FieldWhiteInPill` stays untouched; the migration replaces its use at the block level
 
 ### After that
 
