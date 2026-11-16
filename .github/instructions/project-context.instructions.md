@@ -1,6 +1,11 @@
 ---
-inclusion: always
+description: Permanent project context — tech stack, conventions, architecture, status
+applyTo: "**"
 ---
+
+---
+
+## inclusion: always
 
 # Project context — Python to Blocks
 
